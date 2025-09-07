@@ -15,44 +15,34 @@ type Response struct {
 	Status  string `json:"status"`
 }
 
+type HealthResponse struct {
+	Status  string `json:"status"`
+	Service string `json:"service"`
+	Version string `json:"version"`
+}
+
 func main() {
 	router := mux.NewRouter()
+
+	// Enable CORS for frontend communication
+	router.Use(corsMiddleware)
 
 	// API routes
 	api := router.PathPrefix("/api").Subrouter()
 	api.HandleFunc("/health", healthHandler).Methods("GET")
 	api.HandleFunc("/hello", helloHandler).Methods("GET")
 
-	// Enable CORS for frontend communication
-	router.Use(corsMiddleware)
-
+	// Get port from environment or use default
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	fmt.Printf("Server starting on port %s\n", port)
+	fmt.Printf("🚀 EduPro Backend Server starting on port %s\n", port)
+	fmt.Printf("📊 Health check: http://localhost:%s/api/health\n", port)
+	fmt.Printf("👋 Hello endpoint: http://localhost:%s/api/hello\n", port)
+
 	log.Fatal(http.ListenAndServe(":"+port, router))
-}
-
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	response := Response{
-		Message: "EduPro Backend is running!",
-		Status:  "healthy",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-func helloHandler(w http.ResponseWriter, r *http.Request) {
-	response := Response{
-		Message: "Hello from EduPro Backend!",
-		Status:  "success",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
@@ -68,4 +58,25 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	response := HealthResponse{
+		Status:  "healthy",
+		Service: "EduPro Backend",
+		Version: "1.0.0",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func helloHandler(w http.ResponseWriter, r *http.Request) {
+	response := Response{
+		Message: "Hello from EduPro Backend! 🎓",
+		Status:  "success",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }

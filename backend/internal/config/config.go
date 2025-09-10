@@ -22,6 +22,8 @@ type Config struct {
 	SupabaseKey       string
 	SupabaseJWTSecret string
 	DatabaseURL       string
+	// RAG Configuration
+	BucketName string
 }
 
 func Load() (*Config, error) {
@@ -38,10 +40,11 @@ func Load() (*Config, error) {
 		SupabaseKey:       getEnv("SUPABASE_KEY", ""),
 		SupabaseJWTSecret: getEnv("SUPABASE_JWT_SECRET", ""),
 		DatabaseURL:       getEnv("DATABASE_URL", ""),
+		BucketName:        getEnv("BUCKET_NAME", "documents"),
 	}
 
 	// Parse allowed origins
-	origins := getEnv("ALLOWED_ORIGINS", "http://localhost:3000")
+	origins := getEnv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173")
 	config.AllowedOrigins = strings.Split(origins, ",")
 	for i := range config.AllowedOrigins {
 		config.AllowedOrigins[i] = strings.TrimSpace(config.AllowedOrigins[i])

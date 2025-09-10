@@ -22,7 +22,7 @@ run:
 # Run in development mode with hot reload (requires air)
 dev:
 	@echo "Starting development server..."
-	@air -c .air.toml
+	@$(shell go env GOPATH)/bin/air -c air.toml
 
 # Run tests
 test:
@@ -76,7 +76,7 @@ deploy:
 init:
 	@echo "Initializing project..."
 	@go mod download
-	@go install github.com/cosmtrek/air@latest
+	@go install github.com/air-verse/air@latest
 	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 # Generate API documentation (requires swag)

@@ -13,9 +13,9 @@ type APIResponse struct {
 
 // Meta contains additional response metadata
 type Meta struct {
-	RequestID    string  `json:"request_id,omitempty"`
+	RequestID      string  `json:"request_id,omitempty"`
 	ProcessingTime float64 `json:"processing_time_ms,omitempty"`
-	Version      string  `json:"version,omitempty"`
+	Version        string  `json:"version,omitempty"`
 }
 
 // QuizResponse contains quiz data
@@ -64,4 +64,93 @@ type TaskInfo struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Example     string `json:"example"`
+}
+
+// AuthResponse represents authentication response
+type AuthResponse struct {
+	AccessToken string       `json:"access_token"`
+	TokenType   string       `json:"token_type"`
+	ExpiresIn   int          `json:"expires_in"`
+	User        *UserProfile `json:"user"`
+}
+
+// ErrorResponse represents error response
+type ErrorResponse struct {
+	Error   string `json:"error"`
+	Details string `json:"details,omitempty"`
+}
+
+// RAG Response Models
+
+// DocumentResponse represents a document
+type DocumentResponse struct {
+	ID        string    `json:"id"`
+	Title     string    `json:"title"`
+	SourceURL *string   `json:"source_url"`
+	MimeType  string    `json:"mime_type"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// DocumentsResponse represents paginated documents
+type DocumentsResponse struct {
+	Documents []DocumentResponse `json:"documents"`
+	Page      int                `json:"page"`
+	Total     int                `json:"total"`
+	HasMore   bool               `json:"has_more"`
+}
+
+// ChatResponse represents a chat
+type ChatResponse struct {
+	ID          string    `json:"id"`
+	LastMessage *string   `json:"last_message"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// ChatsResponse represents paginated chats
+type ChatsResponse struct {
+	Chats   []ChatResponse `json:"chats"`
+	Page    int            `json:"page"`
+	Total   int            `json:"total"`
+	HasMore bool           `json:"has_more"`
+}
+
+// ChatMessageResponse represents a chat message
+type ChatMessageResponse struct {
+	ID        string      `json:"id"`
+	Role      string      `json:"role"`
+	Content   string      `json:"content"`
+	Metadata  interface{} `json:"metadata,omitempty"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+// ChatMessagesResponse represents paginated chat messages
+type ChatMessagesResponse struct {
+	Messages []ChatMessageResponse `json:"messages"`
+	Page     int                   `json:"page"`
+	Total    int                   `json:"total"`
+	HasMore  bool                  `json:"has_more"`
+}
+
+// Citation represents a source citation
+type Citation struct {
+	DocumentID    string  `json:"document_id"`
+	DocumentTitle string  `json:"document_title"`
+	Ordinal       int     `json:"ordinal"`
+	Snippet       string  `json:"snippet"`
+	SourceURL     *string `json:"source_url"`
+}
+
+// AskResponse represents the response to an ask query
+type AskResponse struct {
+	ChatID    string     `json:"chat_id"`
+	Answer    string     `json:"answer"`
+	Citations []Citation `json:"citations"`
+}
+
+// UploadResponse represents file upload response
+type UploadResponse struct {
+	DocumentID string `json:"document_id"`
+	Title      string `json:"title"`
+	SourceURL  string `json:"source_url"`
+	MimeType   string `json:"mime_type"`
 }

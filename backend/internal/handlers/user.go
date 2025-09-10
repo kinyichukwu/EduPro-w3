@@ -177,15 +177,17 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	// Parse user ID to UUID
-	userUUID, err := uuid.Parse(userID)
+	// Get user by Supabase ID first
+	user, err := h.db.GetUserBySupabaseID(userID)
 	if err != nil {
-		logger.Error("Invalid user ID format", zap.String("user_id", userID), zap.Error(err))
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid user ID format",
+		logger.Error("User not found by Supabase ID", zap.String("supabase_id", userID), zap.Error(err))
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "User not found",
 		})
 		return
 	}
+	
+	userUUID := user.ID
 
 	// Parse request body
 	var req models.UpdateUserRequest
@@ -208,7 +210,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	// Update user profile
-	user, err := h.db.UpdateUser(userUUID, &req)
+	updatedUser, err := h.db.UpdateUser(userUUID, &req)
 	if err != nil {
 		logger.Error("Failed to update user profile", zap.String("user_id", userID), zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -218,7 +220,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	}
 
 	logger.Info("User profile updated successfully", zap.String("user_id", userID))
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, updatedUser)
 }
 
 // ensureUserExists checks if user exists in our database and creates them if needed

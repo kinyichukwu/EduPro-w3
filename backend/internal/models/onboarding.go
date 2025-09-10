@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -8,14 +9,14 @@ import (
 
 // OnboardingData represents the main onboarding data structure
 type OnboardingData struct {
-	ID                 uuid.UUID        `json:"id" db:"id"`
-	UserID             uuid.UUID        `json:"user_id" db:"user_id"`
-	Role               string           `json:"role" db:"role" validate:"required,oneof=jamb undergraduate university masters lecturer custom"`
-	CustomLearningGoal *string          `json:"custom_learning_goal,omitempty" db:"custom_learning_goal"`
-	AcademicDetails    *AcademicDetails `json:"academic_details,omitempty" db:"academic_details"`
-	CreatedAt          time.Time        `json:"created_at" db:"created_at"`
-	CompletedAt        *time.Time       `json:"completed_at,omitempty" db:"completed_at"`
-	UpdatedAt          time.Time        `json:"updated_at" db:"updated_at"`
+	ID                 uuid.UUID       `json:"id" db:"id"`
+	UserID             uuid.UUID       `json:"user_id" db:"user_id"`
+	Role               string          `json:"role" db:"role" validate:"required,oneof=jamb undergraduate university masters lecturer custom"`
+	CustomLearningGoal *string         `json:"custom_learning_goal,omitempty" db:"custom_learning_goal"`
+	AcademicDetails    json.RawMessage `json:"academic_details,omitempty" db:"academic_details"`
+	CreatedAt          time.Time       `json:"created_at" db:"created_at"`
+	CompletedAt        *time.Time      `json:"completed_at,omitempty" db:"completed_at"`
+	UpdatedAt          time.Time       `json:"updated_at" db:"updated_at"`
 }
 
 // AcademicDetails represents role-specific academic details
@@ -66,9 +67,9 @@ type CustomDetails struct {
 
 // OnboardingUpdateRequest represents the request to update onboarding data
 type OnboardingUpdateRequest struct {
-	Role               string           `json:"role" validate:"required,oneof=jamb undergraduate university masters lecturer custom"`
-	CustomLearningGoal *string          `json:"custom_learning_goal,omitempty"`
-	AcademicDetails    *AcademicDetails `json:"academic_details,omitempty"`
+	Role               string          `json:"role" validate:"required,oneof=jamb undergraduate university masters lecturer custom"`
+	CustomLearningGoal *string         `json:"custom_learning_goal,omitempty"`
+	AcademicDetails    json.RawMessage `json:"academic_details,omitempty"`
 }
 
 // OnboardingResponse represents the response for onboarding operations
@@ -80,8 +81,8 @@ type OnboardingResponse struct {
 
 // CreateOnboardingRequest represents the request to create onboarding data
 type CreateOnboardingRequest struct {
-	UserID             uuid.UUID        `json:"user_id" validate:"required"`
-	Role               string           `json:"role" validate:"required,oneof=jamb undergraduate university masters lecturer custom"`
-	CustomLearningGoal *string          `json:"custom_learning_goal,omitempty"`
-	AcademicDetails    *AcademicDetails `json:"academic_details,omitempty"`
+	UserID             uuid.UUID       `json:"user_id" validate:"required"`
+	Role               string          `json:"role" validate:"required,oneof=jamb undergraduate university masters lecturer custom"`
+	CustomLearningGoal *string         `json:"custom_learning_goal,omitempty"`
+	AcademicDetails    json.RawMessage `json:"academic_details,omitempty"`
 }

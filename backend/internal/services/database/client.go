@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/kinyichukwu/edu-pro-backend/internal/config"
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
 	"github.com/kinyichukwu/edu-pro-backend/internal/utils"
-	"github.com/google/uuid"
 	"go.uber.org/zap"
-	
+
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
@@ -22,7 +22,7 @@ type Client struct {
 // NewClient creates a new database client
 func NewClient(cfg *config.Config) (*Client, error) {
 	logger := utils.GetLogger()
-	
+
 	db, err := sql.Open("postgres", cfg.DatabaseURL)
 	if err != nil {
 		logger.Error("Failed to connect to database", zap.Error(err))
@@ -44,10 +44,15 @@ func (c *Client) Close() error {
 	return c.db.Close()
 }
 
+// GetDB returns the underlying database connection
+func (c *Client) GetDB() *sql.DB {
+	return c.db
+}
+
 // CreateUser creates a new user in the database
 func (c *Client) CreateUser(req *models.CreateUserRequest) (*models.User, error) {
 	logger := utils.GetLogger()
-	
+	// TODO: what is the difference between the username and the full name?
 	user := &models.User{
 		ID:         uuid.New(),
 		Email:      req.Email,
@@ -76,7 +81,7 @@ func (c *Client) CreateUser(req *models.CreateUserRequest) (*models.User, error)
 // GetUserBySupabaseID retrieves a user by their Supabase ID
 func (c *Client) GetUserBySupabaseID(supabaseID string) (*models.User, error) {
 	logger := utils.GetLogger()
-	
+
 	user := &models.User{}
 	query := `
 		SELECT id, email, username, full_name, avatar, supabase_id, created_at, updated_at
@@ -85,7 +90,7 @@ func (c *Client) GetUserBySupabaseID(supabaseID string) (*models.User, error) {
 	`
 
 	err := c.db.QueryRow(query, supabaseID).Scan(
-		&user.ID, &user.Email, &user.Username, &user.FullName, 
+		&user.ID, &user.Email, &user.Username, &user.FullName,
 		&user.Avatar, &user.SupabaseID, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
@@ -103,7 +108,7 @@ func (c *Client) GetUserBySupabaseID(supabaseID string) (*models.User, error) {
 // GetUserByID retrieves a user by their ID
 func (c *Client) GetUserByID(userID uuid.UUID) (*models.User, error) {
 	logger := utils.GetLogger()
-	
+
 	user := &models.User{}
 	query := `
 		SELECT id, email, username, full_name, avatar, supabase_id, created_at, updated_at
@@ -112,7 +117,7 @@ func (c *Client) GetUserByID(userID uuid.UUID) (*models.User, error) {
 	`
 
 	err := c.db.QueryRow(query, userID).Scan(
-		&user.ID, &user.Email, &user.Username, &user.FullName, 
+		&user.ID, &user.Email, &user.Username, &user.FullName,
 		&user.Avatar, &user.SupabaseID, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
@@ -130,7 +135,7 @@ func (c *Client) GetUserByID(userID uuid.UUID) (*models.User, error) {
 // UpdateUser updates a user's information
 func (c *Client) UpdateUser(userID uuid.UUID, req *models.UpdateUserRequest) (*models.User, error) {
 	logger := utils.GetLogger()
-	
+
 	query := `
 		UPDATE users 
 		SET username = COALESCE($2, username),
@@ -143,7 +148,7 @@ func (c *Client) UpdateUser(userID uuid.UUID, req *models.UpdateUserRequest) (*m
 
 	user := &models.User{}
 	err := c.db.QueryRow(query, userID, req.Username, req.FullName, req.Avatar).Scan(
-		&user.ID, &user.Email, &user.Username, &user.FullName, 
+		&user.ID, &user.Email, &user.Username, &user.FullName,
 		&user.Avatar, &user.SupabaseID, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
@@ -158,16 +163,11 @@ func (c *Client) UpdateUser(userID uuid.UUID, req *models.UpdateUserRequest) (*m
 // CreateOnboarding creates onboarding data for a user
 func (c *Client) CreateOnboarding(req *models.CreateOnboardingRequest) (*models.OnboardingData, error) {
 	logger := utils.GetLogger()
-	
-	// Serialize academic details to JSON
+
+	// Handle academic details JSON
 	var academicDetailsJSON *string
-	if req.AcademicDetails != nil {
-		jsonData, err := json.Marshal(req.AcademicDetails)
-		if err != nil {
-			logger.Error("Failed to marshal academic details", zap.Error(err))
-			return nil, fmt.Errorf("failed to marshal academic details: %w", err)
-		}
-		jsonStr := string(jsonData)
+	if len(req.AcademicDetails) > 0 {
+		jsonStr := string(req.AcademicDetails)
 		academicDetailsJSON = &jsonStr
 	}
 
@@ -180,14 +180,14 @@ func (c *Client) CreateOnboarding(req *models.CreateOnboardingRequest) (*models.
 	}
 
 	query := `
-		INSERT INTO onboarding (id, user_id, role, custom_learning_goal, academic_details, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-		RETURNING created_at, updated_at
+		INSERT INTO onboarding (id, user_id, role, custom_learning_goal, academic_details, created_at, completed_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, NOW(), NOW(), NOW())
+		RETURNING created_at, completed_at, updated_at
 	`
 
-	err := c.db.QueryRow(query, onboarding.ID, onboarding.UserID, onboarding.Role, 
+	err := c.db.QueryRow(query, onboarding.ID, onboarding.UserID, onboarding.Role,
 		onboarding.CustomLearningGoal, academicDetailsJSON).
-		Scan(&onboarding.CreatedAt, &onboarding.UpdatedAt)
+		Scan(&onboarding.CreatedAt, &onboarding.CompletedAt, &onboarding.UpdatedAt)
 	if err != nil {
 		logger.Error("Failed to create onboarding", zap.Error(err))
 		return nil, fmt.Errorf("failed to create onboarding: %w", err)
@@ -200,19 +200,19 @@ func (c *Client) CreateOnboarding(req *models.CreateOnboardingRequest) (*models.
 // GetOnboardingByUserID retrieves onboarding data for a user (userID can be Supabase ID)
 func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData, error) {
 	logger := utils.GetLogger()
-	
+
 	// First, get the internal user ID from Supabase ID
 	user, err := c.GetUserBySupabaseID(userID.String())
 	if err != nil {
 		logger.Warn("User not found by Supabase ID for onboarding lookup", zap.String("supabase_id", userID.String()))
 		return nil, fmt.Errorf("user not found")
 	}
-	
+
 	internalUserID := user.ID
-	
+
 	onboarding := &models.OnboardingData{}
 	var academicDetailsJSON *string
-	
+
 	query := `
 		SELECT id, user_id, role, custom_learning_goal, academic_details, created_at, completed_at, updated_at
 		FROM onboarding
@@ -220,7 +220,7 @@ func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData
 	`
 
 	err = c.db.QueryRow(query, internalUserID).Scan(
-		&onboarding.ID, &onboarding.UserID, &onboarding.Role, 
+		&onboarding.ID, &onboarding.UserID, &onboarding.Role,
 		&onboarding.CustomLearningGoal, &academicDetailsJSON,
 		&onboarding.CreatedAt, &onboarding.CompletedAt, &onboarding.UpdatedAt,
 	)
@@ -233,14 +233,9 @@ func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData
 		return nil, fmt.Errorf("failed to get onboarding: %w", err)
 	}
 
-	// Deserialize academic details from JSON
+	// Set academic details as raw JSON
 	if academicDetailsJSON != nil {
-		var academicDetails models.AcademicDetails
-		if err := json.Unmarshal([]byte(*academicDetailsJSON), &academicDetails); err != nil {
-			logger.Error("Failed to unmarshal academic details", zap.Error(err))
-			return nil, fmt.Errorf("failed to unmarshal academic details: %w", err)
-		}
-		onboarding.AcademicDetails = &academicDetails
+		onboarding.AcademicDetails = json.RawMessage(*academicDetailsJSON)
 	}
 
 	return onboarding, nil
@@ -249,29 +244,24 @@ func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData
 // UpdateOnboarding updates onboarding data for a user (userID can be Supabase ID)
 func (c *Client) UpdateOnboarding(userID uuid.UUID, req *models.OnboardingUpdateRequest) (*models.OnboardingData, error) {
 	logger := utils.GetLogger()
-	
+
 	// First, get the internal user ID from Supabase ID
 	user, err := c.GetUserBySupabaseID(userID.String())
 	if err != nil {
 		logger.Error("User not found by Supabase ID", zap.String("supabase_id", userID.String()), zap.Error(err))
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
-	
+
 	internalUserID := user.ID
-	logger.Info("Found user for onboarding update", 
+	logger.Info("Found user for onboarding update",
 		zap.String("supabase_id", userID.String()),
 		zap.String("internal_user_id", internalUserID.String()),
 	)
-	
-	// Serialize academic details to JSON
+
+	// Handle academic details JSON
 	var academicDetailsJSON *string
-	if req.AcademicDetails != nil {
-		jsonData, err := json.Marshal(req.AcademicDetails)
-		if err != nil {
-			logger.Error("Failed to marshal academic details", zap.Error(err))
-			return nil, fmt.Errorf("failed to marshal academic details: %w", err)
-		}
-		jsonStr := string(jsonData)
+	if len(req.AcademicDetails) > 0 {
+		jsonStr := string(req.AcademicDetails)
 		academicDetailsJSON = &jsonStr
 	}
 
@@ -289,9 +279,9 @@ func (c *Client) UpdateOnboarding(userID uuid.UUID, req *models.OnboardingUpdate
 
 	onboarding := &models.OnboardingData{}
 	var academicDetailsResult *string
-	
+
 	err = c.db.QueryRow(query, internalUserID, req.Role, req.CustomLearningGoal, academicDetailsJSON).Scan(
-		&onboarding.ID, &onboarding.UserID, &onboarding.Role, 
+		&onboarding.ID, &onboarding.UserID, &onboarding.Role,
 		&onboarding.CustomLearningGoal, &academicDetailsResult,
 		&onboarding.CreatedAt, &onboarding.CompletedAt, &onboarding.UpdatedAt,
 	)
@@ -310,14 +300,9 @@ func (c *Client) UpdateOnboarding(userID uuid.UUID, req *models.OnboardingUpdate
 		return nil, fmt.Errorf("failed to update onboarding: %w", err)
 	}
 
-	// Deserialize academic details from JSON
+	// Set academic details as raw JSON
 	if academicDetailsResult != nil {
-		var academicDetails models.AcademicDetails
-		if err := json.Unmarshal([]byte(*academicDetailsResult), &academicDetails); err != nil {
-			logger.Error("Failed to unmarshal academic details", zap.Error(err))
-			return nil, fmt.Errorf("failed to unmarshal academic details: %w", err)
-		}
-		onboarding.AcademicDetails = &academicDetails
+		onboarding.AcademicDetails = json.RawMessage(*academicDetailsResult)
 	}
 
 	logger.Info("Onboarding updated successfully", zap.String("user_id", userID.String()))

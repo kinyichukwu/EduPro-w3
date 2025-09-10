@@ -22,8 +22,8 @@ type QuizOptions struct {
 
 // ExplainOptions contains explanation-specific configuration
 type ExplainOptions struct {
-	DetailLevel string `json:"detail_level,omitempty" validate:"omitempty,oneof=simple detailed advanced"`
-	IncludeExamples bool `json:"include_examples,omitempty"`
+	DetailLevel     string `json:"detail_level,omitempty" validate:"omitempty,oneof=simple detailed advanced"`
+	IncludeExamples bool   `json:"include_examples,omitempty"`
 }
 
 // GetQuizQuestions returns the number of questions to generate
@@ -41,4 +41,26 @@ func (q *QueryRequest) IsValid() bool {
 		}
 	}
 	return false
+}
+
+// RegisterRequest represents the request to register a new user
+type RegisterRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8"`
+	Username string `json:"username" validate:"required,min=3,max=50"`
+	FullName string `json:"full_name,omitempty"`
+}
+
+// LoginRequest represents the request to login
+type LoginRequest struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+// RAG Request Models
+
+// AskRequest represents a question to the RAG system
+type AskRequest struct {
+	Query  string `json:"query" validate:"required,min=3,max=1000"`
+	ChatID string `json:"chat_id,omitempty"`
 }

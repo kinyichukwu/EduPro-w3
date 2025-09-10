@@ -46,7 +46,7 @@ func main() {
 
 	// Initialize services
 	aiService := ai.NewClient(cfg.GeminiAPIKey)
-	
+
 	// Initialize database
 	dbClient, err := database.NewClient(cfg)
 	if err != nil {
@@ -54,14 +54,25 @@ func main() {
 	}
 	defer dbClient.Close()
 
+	// Initialize pgx client for vector operations
+	pgxClient, err := database.NewPgxClient(cfg)
+	if err != nil {
+		logger.Fatal("Failed to initialize pgx client", zap.Error(err))
+	}
+	defer pgxClient.Close()
+
 	// Initialize handlers
 	healthHandler := handlers.NewHealthHandler(aiService)
 	queryHandler := handlers.NewQueryHandler(aiService)
 	authHandler := handlers.NewAuthHandler(dbClient, cfg)
 	userHandler := handlers.NewUserHandler(dbClient)
+	ragHandler, err := handlers.NewRAGHandler(dbClient, pgxClient, cfg, aiService)
+	if err != nil {
+		logger.Fatal("Failed to initialize RAG handler", zap.Error(err))
+	}
 
 	// Setup router
-	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler)
+	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler)
 
 	// Create HTTP server
 	srv := &http.Server{
@@ -98,7 +109,7 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler) *gin.Engine {
 	router := gin.New()
 
 	// Setup middleware
@@ -116,10 +127,15 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 		api.GET("/tasks", healthHandler.GetTasks)
 		api.POST("/query", queryHandler.Query)
 
-		// Auth routes (protected)
+		// Auth routes // TODO: make people to be able to use invalid emals and passwords
 		auth := api.Group("/auth")
-		auth.Use(middleware.JWTMiddleware(cfg))
 		{
+			// Public auth routes
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/login", authHandler.Login)
+
+			// Protected auth routes
+			auth.Use(middleware.JWTMiddleware(cfg))
 			auth.GET("/me", authHandler.Me)
 			auth.POST("/refresh", authHandler.RefreshToken)
 		}
@@ -132,6 +148,14 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			user.PUT("/onboarding", userHandler.UpdateOnboarding)
 			user.PUT("/profile", userHandler.UpdateProfile)
 		}
+
+		// RAG routes (protected) - Apply JWT middleware individually to avoid CORS conflicts
+		api.POST("/upload", middleware.JWTMiddleware(cfg), ragHandler.Upload)
+		api.GET("/documents", middleware.JWTMiddleware(cfg), ragHandler.GetDocuments)
+		api.GET("/chats", middleware.JWTMiddleware(cfg), ragHandler.GetChats)
+		api.POST("/chats", middleware.JWTMiddleware(cfg), ragHandler.CreateChat)
+		api.GET("/chats/:id", middleware.JWTMiddleware(cfg), ragHandler.GetChatMessages)
+		api.POST("/ask", middleware.JWTMiddleware(cfg), ragHandler.Ask)
 
 		// Internal routes (for integration)
 		internal := api.Group("/internal")

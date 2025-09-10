@@ -23,7 +23,7 @@ type JWTClaims struct {
 func JWTMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger := utils.GetLogger()
-		
+
 		// Get the Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -90,7 +90,7 @@ func JWTMiddleware(cfg *config.Config) gin.HandlerFunc {
 		c.Set("user_email", claims.Email)
 		c.Set("user_role", claims.Role)
 
-		logger.Info("JWT authentication successful", 
+		logger.Info("JWT authentication successful",
 			zap.String("user_id", claims.UserID),
 			zap.String("email", claims.Email),
 		)
@@ -105,7 +105,7 @@ func GetUserIDFromContext(c *gin.Context) (string, bool) {
 	if !exists {
 		return "", false
 	}
-	
+
 	userIDStr, ok := userID.(string)
 	return userIDStr, ok
 }
@@ -116,7 +116,7 @@ func GetUserEmailFromContext(c *gin.Context) (string, bool) {
 	if !exists {
 		return "", false
 	}
-	
+
 	emailStr, ok := email.(string)
 	return emailStr, ok
 }
@@ -127,7 +127,7 @@ func GetUserRoleFromContext(c *gin.Context) (string, bool) {
 	if !exists {
 		return "", false
 	}
-	
+
 	roleStr, ok := role.(string)
 	return roleStr, ok
 }

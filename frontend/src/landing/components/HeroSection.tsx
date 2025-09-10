@@ -50,7 +50,7 @@ const HeroSection = () => {
             transition={{ duration: 0.5, delay: 0.6 }}
           >
             <Button
-              className="btn-primary px-6 py-3 text-sm font-medium hover:scale-105 cursor-pointer"
+              className="btn-primary px-6 py-3 text-sm font-medium hover:shadow-lg shadow-purple-300/10 cursor-pointer"
               data-testid="start-learning-button"
             >
               Start Learning Now
@@ -58,7 +58,7 @@ const HeroSection = () => {
             </Button>
             <Button
               variant="outline"
-              className="btn-outline px-6 py-3 text-sm font-medium hover:scale-105 cursor-pointer"
+              className="btn-outline px-6 py-3 text-sm font-medium hover:shadow-lg shadow-purple-300/10 cursor-pointer"
             >
               View Features
             </Button>
@@ -115,7 +115,6 @@ const HeroSection = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: feature.delay }}
                 whileHover={{
-                  scale: 1.05,
                   boxShadow:
                     "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
                 }}

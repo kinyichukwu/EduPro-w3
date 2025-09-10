@@ -102,7 +102,7 @@ const TestimonialsSection = () => {
   };
 
   return (
-    <div className="py-16 sm:py-24 bg-gradient-to-br from-dark-background to-dark-card/30 relative">
+    <div className="py-16 hidden md:block sm:py-24 bg-gradient-to-br from-dark-background to-dark-card/30 relative">
       {/* Background gradients with continuous animation */}
       <div className="absolute inset-0 overflow-hidden -z-10">
         <div className="absolute top-0 left-0 w-full h-full bg-mesh-gradient opacity-40 animate-pulse-slow"></div>

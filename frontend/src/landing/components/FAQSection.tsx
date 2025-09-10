@@ -71,21 +71,10 @@ const FAQSection = () => {
 
         <div className="max-w-3xl mx-auto">
           {faqs.map((faq, index) => (
-            <motion.div
-              key={index}
-              className="mb-4"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-            >
-              <motion.button
-                className={`w-full p-5 glass-card text-left rounded-xl flex justify-between items-center ${
-                  activeIndex === index ? "bg-dark-card/80" : ""
-                }`}
+            <div key={index}>
+              <button
+                className={`w-full border-b border-purple-100/40 p-4 text-left flex justify-between items-center`}
                 onClick={() => toggleFAQ(index)}
-                whileHover={{ scale: 1.01 }}
-                transition={{ duration: 0.2 }}
               >
                 <span className="text-base md:text-lg font-bold text-dark-text pr-4">
                   {faq.question}
@@ -97,21 +86,20 @@ const FAQSection = () => {
                     <Plus className="h-5 w-5 text-primary" />
                   )}
                 </div>
-              </motion.button>
+              </button>
 
-              <motion.div
-                className={`overflow-hidden rounded-b-xl ${
-                  activeIndex !== index ? "h-0" : "glass-card mt-1"
+              <div
+                className={`overflow-hidden transition-all rounded-b-xl duration-300 ease-in-out transform origin-top ${
+                  activeIndex === index
+                    ? "max-h-[500px] opacity-100 scale-y-100 bg-purple-200/20"
+                    : "max-h-0 opacity-0 scale-y-95"
                 }`}
-                initial={{ height: 0 }}
-                animate={{ height: activeIndex === index ? "auto" : 0 }}
-                transition={{ duration: 0.3 }}
               >
                 <div className="p-5 text-sm md:text-base text-dark-muted opacity-90 leading-relaxed">
                   {faq.answer}
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           ))}
         </div>
       </div>

@@ -110,17 +110,16 @@ const FeaturesSection = () => {
         >
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((feature) => (
-              <motion.div
+              <section
                 key={feature.name}
-                className="relative p-6 glass-card rounded-lg hover:shadow-lg transition-all overflow-hidden group flex flex-col items-center justify-center"
-                variants={itemVariants}
-                whileHover={{ scale: 1.03, y: -5 }}
+                className="relative p-6 glass-card rounded-2xl hover:shadow-lg transition-all overflow-hidden duration-500 group flex flex-col items-center justify-center"
               >
+                <span className="absolute w-[50vw] z-10 h-[50vw] group-hover:scale-150 group-hover:rotate-12 transition-all duration-1000 bottom-[-70%] left-0 blur-3xl bg-primary text-white px-2 py-1 text-sm font-medium rounded-full bg-gradient-to-r from-purple-800 to-green-700" />
                 <div className="flex flex-col items-center w-full">
-                  <div className="h-12 w-12 rounded-md bg-gradient-to-r from-purple-700 to-indigo-700 flex items-center justify-center text-white group-hover:scale-110 transition-transform mb-4">
+                  <div className="h-12 w-12 z-20 rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-700 flex items-center justify-center text-white group-hover:scale-110 transition-transform mb-4">
                     <feature.icon className="h-6 w-6" aria-hidden="true" />
                   </div>
-                  <div className="text-center">
+                  <div className="text-center z-20">
                     <h3 className="text-lg md:text-xl font-bold text-dark-text mb-2">
                       {feature.name}
                     </h3>
@@ -132,7 +131,7 @@ const FeaturesSection = () => {
 
                 {/* Animated background glow */}
                 <div className="absolute -right-10 -bottom-10 w-24 h-24 bg-primary/5 rounded-full filter blur-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              </motion.div>
+              </section>
             ))}
           </div>
         </motion.div>

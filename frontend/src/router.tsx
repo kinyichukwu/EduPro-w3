@@ -9,7 +9,9 @@ import SignUp from "./landing/login-register/SignUp";
 import Login from "./landing/login-register/Login";
 import { DashboardLayout } from "./dashboard/DashboardLayout";
 import { DashboardHome } from "./dashboard/DashboardHome";
-import { ChatView } from "./dashboard/ChatView";
+import ChatView from "./dashboard/ChatView";
+import FlashcardApp from "./dashboard/FlashCardView";
+import QuizView from "./dashboard/QuizView";
 
 export const AppRoutes = () => {
   return (
@@ -32,11 +34,8 @@ export const AppRoutes = () => {
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardHome />} />
           <Route path="chat" element={<ChatView />} />
-          <Route
-            path="flashcards"
-            element={<PlaceholderView title="Flashcards" />}
-          />
-          <Route path="quizzes" element={<PlaceholderView title="Quizzes" />} />
+          <Route path="flashcards" element={<FlashcardApp />} />
+          <Route path="quizzes" element={<QuizView />} />
           <Route path="library" element={<PlaceholderView title="Library" />} />
           <Route path="profile" element={<PlaceholderView title="Profile" />} />
         </Route>

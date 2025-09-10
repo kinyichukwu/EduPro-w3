@@ -1,8 +1,7 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { SubscriptionPopup } from "./components/SubscriptionPopup";
-import { Progress } from "@/shared/components/ui/progress";
 import {
   TooltipProvider,
   Tooltip,
@@ -15,7 +14,6 @@ import {
   MessageCircle,
   UserRound,
   Library,
-  Search,
   Bell,
   Menu,
   X,
@@ -24,9 +22,11 @@ import {
   BookText,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import SearchBar from "./components/SearchBar";
+import { cn } from "@/shared/lib/utils";
 
 // Navigation items
-const navItems = [
+export const navItems = [
   {
     icon: <Home size={22} />,
     label: "Home",
@@ -65,6 +65,7 @@ const navItems = [
   },
 ];
 
+
 export const DashboardLayout = () => {
   const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
   const [limitType, setLimitType] = useState<
@@ -73,8 +74,8 @@ export const DashboardLayout = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Check if device is mobile or tablet
   useEffect(() => {
@@ -124,9 +125,11 @@ export const DashboardLayout = () => {
       <div className="w-full min-h-screen flex bg-dark-background text-dark-text relative ">
         {/* Desktop Sidebar */}
         <motion.aside
-          className={`fixed top-0 bottom-0 left-0 z-30 h-screen backdrop-blur-lg glass-card transition-all ${
-            sidebarOpen ? "w-64" : "w-0 md:w-20"
-          } md:relative md:flex md:flex-col hidden overflow-hidden`}
+          className={cn (
+            "fixed top-0 h-screen pt-[57px] bottom-0 left-0 z-30 backdrop-blur-lg glass-card transition-all",
+            sidebarOpen ? "w-64" : "w-0 md:w-20",
+            "md:sticky shrink-0 md:flex md:flex-col hidden overflow-hidden",
+          )}
           initial={false}
           animate={
             sidebarOpen
@@ -144,27 +147,6 @@ export const DashboardLayout = () => {
             boxShadow: "5px 0 15px rgba(0, 0, 0, 0.2)",
           }}
         >
-          {/* Logo and brand */}
-          <div className="flex items-center justify-between h-16 px-4 border-b border-white/10">
-            {sidebarOpen ? (
-              <span className="font-bold text-2xl gradient-text">
-                EduPro AI
-              </span>
-            ) : (
-              <span className="font-bold text-3xl gradient-text mx-auto">
-                E
-              </span>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:flex hover:bg-white/10 text-dark-muted hover:text-white"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
-            </Button>
-          </div>
-
           {/* Navigation links */}
           <nav className="flex-1 px-2 py-4 space-y-2">
             {navItems.map((item) => (
@@ -178,6 +160,11 @@ export const DashboardLayout = () => {
                     ? `bg-gradient-to-r from-turbo-purple/30 to-turbo-indigo/30 ${item.color}`
                     : "text-dark-muted hover:bg-dark-accent/30 hover:text-white"
                 }`}
+                onClick={() => {
+                  if (item.label === "Chat") {
+                    setSidebarOpen(false)
+                  }
+                }}
               >
                 <span
                   className={`${
@@ -218,7 +205,8 @@ export const DashboardLayout = () => {
                 className="w-full bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:shadow-lg hover:shadow-turbo-purple/20 text-white"
                 onClick={handleGoToSubscription}
               >
-                <Zap size={16} className="mr-2" /> Upgrade Plan
+                <Zap size={16} className="mr-2" /> 
+                <span className="truncate line-clamp-1">Upgrade Plan</span>
               </Button>
             ) : (
               <Tooltip>
@@ -239,95 +227,84 @@ export const DashboardLayout = () => {
           </div>
         </motion.aside>
 
-        <div className="flex-1 flex flex-col">
-          {/* Header */}
-          <header
-            className="w-full flex items-center justify-between p-4 border-b border-white/10 glass-card backdrop-blur-lg sticky top-0 z-20"
-            style={{ boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)" }}
-          >
-            <div className="flex items-center gap-3">
+        <header
+          className={cn (
+            'w-full flex items-center md:justify-between p-2 border-b border-white/10 glass-card backdrop-blur-lg fixed left-0 top-0 z-40',
+            location.pathname === "/dashboard/chat" && "hidden"
+          )}
+          style={{ boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)" }}
+        >
+          <div className="flex items-center justify-between gap-2 max-md:hidden">
+            <div className="w-16 flex items-center justify-center">
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden hover:bg-white/10 text-dark-muted hover:text-white"
+                className="md:flex hover:bg-white/10 text-dark-muted hover:text-white"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
               >
-                {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-              </Button>
-              <span className="font-bold text-2xl gradient-text md:hidden">
-                EduPro AI
-              </span>
-            </div>
-            <div className="flex-1 max-w-xl px-4 hidden md:block relative">
-              <div className="absolute left-6 top-1/2 transform -translate-y-1/2 text-dark-muted">
-                <Search size={18} />
-              </div>
-              <input
-                type="text"
-                placeholder="Search everything... docs, quizzes, flashcards..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-dark-accent/30 py-2.5 pl-10 pr-4 text-white focus:border-turbo-indigo/50 focus:outline-none focus:ring-1 focus:ring-turbo-indigo/50 placeholder:text-dark-muted/70"
-              />
-            </div>
-            <div className="flex items-center gap-2 md:gap-4">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="relative hover:bg-dark-accent/50 text-dark-muted hover:text-turbo-indigo"
-                  >
-                    <span className="sr-only">Notifications</span>
-                    <span
-                      className="absolute top-1 right-1 block h-2 w-2 rounded-full animate-pulse"
-                      style={{ backgroundColor: "#F43F5E" }}
-                    ></span>
-                    <Bell size={22} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Notifications</TooltipContent>
-              </Tooltip>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hover:bg-dark-accent/50"
-              >
-                <div className="h-9 w-9 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo ring-2 ring-turbo-indigo/70">
-                  <img
-                    src="https://ui.shadcn.com/avatars/01.png"
-                    className="h-full w-full rounded-full object-cover"
-                    alt="User avatar"
-                  />
-                </div>
+                {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
               </Button>
             </div>
-          </header>
-
-          {/* For mobile: search bar sits beneath header */}
-          <div className="px-4 pt-3 md:hidden">
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-dark-muted">
-                <Search size={18} />
-              </div>
-              <input
-                type="text"
-                placeholder="Search everything..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-lg border border-white/10 bg-dark-accent/30 py-2.5 pl-10 pr-4 text-white focus:border-turbo-indigo/50 focus:outline-none focus:ring-1 focus:ring-turbo-indigo/50 placeholder:text-dark-muted/70"
-              />
-            </div>
+            <span className="font-bold text-2xl gradient-text truncate line-clamp-1">
+              EduPro AI
+            </span>
           </div>
+          <div className="flex items-center gap-3">
+            <span className="font-bold w-max text-2xl gradient-text md:hidden">
+              EduPro AI
+            </span>
+          </div>
+          <SearchBar />
+          <div className="flex items-center gap-2 md:gap-4">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="relative hover:bg-dark-accent/50 text-dark-muted hover:text-turbo-indigo"
+                >
+                  <span className="sr-only">Notifications</span>
+                  <span
+                    className="absolute top-1 right-1 block h-2 w-2 rounded-full animate-pulse"
+                    style={{ backgroundColor: "#F43F5E" }}
+                  ></span>
+                  <Bell className="max-sm:h-[18px]" size={22} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Notifications</TooltipContent>
+            </Tooltip>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hover:bg-dark-accent/50"
+              onClick={() => navigate("/dashboard/profile")}
+            >
+              <div className="h-7 sm:h-9 w-7 sm:w-9 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo ring-2 ring-turbo-indigo/70">
+                <img
+                  src="https://ui.shadcn.com/avatars/01.png"
+                  className="h-full w-full rounded-full object-cover"
+                  alt="User avatar"
+                />
+              </div>
+            </Button>
+          </div>
+        </header>
 
+        <div className="flex-1 flex flex-col">
           {/* Main content area - where child routes will be rendered */}
-          <main className="flex-1 py-4 md:py-6 md:px-3 w-full overflow-y-auto mb-30">
+          <main className={cn (
+            "flex-1 w-full overflow-y-auto",
+            location.pathname !== "/dashboard/chat" ? "py-4 md:py-6 md:px-3 mb-30 mt-16" : "mt-[58px"
+          )}>
             <Outlet />
           </main>
 
           {/* Footer nav - sticky on mobile */}
           <nav
-            className="md:hidden fixed bottom-0 left-0 right-0 glass-card border-t border-white/10 z-40 flex justify-around items-center py-2.5"
+            className={cn(
+              "md:hidden fixed bottom-0 left-0 right-0 glass-card border-t border-white/10 z-40 flex justify-around items-center py-2.5",
+              location.pathname === "/dashboard/chat" && "hidden"
+            )}
             style={{
               boxShadow: "0 -4px 12px rgba(0, 0, 0, 0.15)",
               backdropFilter: "blur(12px)",

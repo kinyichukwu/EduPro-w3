@@ -95,44 +95,35 @@ const CTASection = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
               <motion.div
-                className="glass-card p-6 rounded-xl"
+                className="glass-card p-6 flex w-full flex-col justify-start items-start rounded-3xl border-purple-800 outline-3 outline-green-300/40 outline-offset-4"
                 initial={{ opacity: 0, x: -30 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5 }}
-                whileHover={{ scale: 1.03, y: -5 }}
               >
                 <div className="flex items-center mb-4">
-                  <motion.div
-                    className="bg-dark-accent/50 w-10 h-10 rounded-full flex items-center justify-center mr-4"
-                    whileHover={{ rotate: 5 }}
-                  >
+                  <div className="bg-dark-accent/50 w-10 h-10 rounded-full flex items-center justify-center mr-4">
                     <Crown className="h-5 w-5 text-primary" />
-                  </motion.div>
-                  <h3 className="text-lg md:text-xl font-bold gradient-text">
-                    Premium Subscription
-                  </h3>
+                  </div>
+                  <h3 className="text-2xl font-bold gradient-text">Premium</h3>
                 </div>
-                <ul className="space-y-2 text-dark-muted">
+
+                <ul className="space-y-2 w-full text-dark-muted">
                   {[
                     "Unlimited study material uploads",
                     "Advanced AI-generated questions",
                     "Priority customer support",
                     "Export notes in multiple formats",
                   ].map((item, index) => (
-                    <motion.li
+                    <li
                       key={index}
-                      className="flex items-start"
-                      initial={{ opacity: 0, x: -10 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.3, delay: 0.1 * index }}
+                      className="w-full flex justify-start items-start"
                     >
-                      <span className="text-primary mr-2">✓</span>
-                      <span className="text-sm md:text-base opacity-90 leading-relaxed">
+                      <span className="text-primary mr-2 w-fit">✓</span>
+                      <div className="text-sm text-start w-full md:text-base opacity-90 leading-relaxed">
                         {item}
-                      </span>
-                    </motion.li>
+                      </div>
+                    </li>
                   ))}
                 </ul>
               </motion.div>

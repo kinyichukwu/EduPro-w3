@@ -13,22 +13,14 @@ import { Button } from "@/shared/components/ui";
 import { motion } from "framer-motion";
 import { fileTypeMap } from "@/dashboard/library/uploads";
 import { GlassCard } from "../../GlassCard";
+import { FileItem } from "./types";
 
 interface GridViewProps {
-  files: {
-    id: number,
-    name: string,
-    type: string,
-    category: string,
-    size: string,
-    tags: string[],
-    lastModified: string,
-    starred: boolean,
-    thumbnail: null,
-  }[]
+  files: FileItem[];
+  onChatWithDocument?: (documentId: string, title: string) => void;
 }
 
-export const GridView = ({files}: GridViewProps) => {
+export const GridView = ({files, onChatWithDocument}: GridViewProps) => {
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -146,12 +138,26 @@ export const GridView = ({files}: GridViewProps) => {
 
               <div className="mt-4 flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-3">
                 <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" className="h-8 px-2">
-                    <MessageSquare size={14} className="mr-1" /> Chat
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 px-2">
-                    <Pencil size={14} className="mr-1" /> Edit
-                  </Button>
+                  {onChatWithDocument && file.document_id && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 px-2 hover:bg-blue-500/10 hover:text-blue-400"
+                      onClick={() => onChatWithDocument(file.document_id!, file.name)}
+                    >
+                      <MessageSquare size={14} className="mr-1" /> Chat
+                    </Button>
+                  )}
+                  {file.source_url && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 px-2"
+                      onClick={() => window.open(file.source_url, '_blank')}
+                    >
+                      <Download size={14} className="mr-1" /> View
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

@@ -119,6 +119,16 @@ class ApiService {
       }
 
       const data = await response.json();
+      
+      // Handle APIResponse wrapper from backend
+      if (data && typeof data === 'object' && 'success' in data) {
+        if (data.success) {
+          return data.data as T;
+        } else {
+          throw new Error(data.error || 'API request failed');
+        }
+      }
+      
       return data as T;
     } catch (error) {
       console.error(`API request failed: ${method} ${url}`, error);

@@ -1,9 +1,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiService, OnboardingData, OnboardingResponse } from "@/services/api";
 
-export const useGetOnboardingStatus = () => {
+export const useGetOnboardingStatus = (enabled: boolean = true) => {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['onboarding'],
+    enabled,
     queryFn: async (): Promise<OnboardingResponse> => {
       const response = await apiService.getOnboarding();
       return response.data ?? {

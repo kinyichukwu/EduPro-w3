@@ -16,17 +16,15 @@ import {
 } from "@/shared/components/ui/tooltip";
 import { Button } from "@/shared/components/ui/button";
 import {
-  // Home,
-  // UserRound,
-  // Library,
-  // Bell,
+  Home,
+  UserRound,
+  Library,
   Menu,
   X,
-  // BookOpen,
-  // BookText,
-  // BrainCircuit,
+  BookOpen,
+  BookText,
+  BrainCircuit,
   MessageCircle,
-  // Bell,
 } from "lucide-react";
 import { motion } from "framer-motion";
 // import SearchBar from "./components/SearchBar";
@@ -40,48 +38,48 @@ import { Toaster } from "@/shared/components/ui/sonner";
 
 // Navigation items
 const navItems = [
-  // {
-  //   icon: <Home size={22} />,
-  //   label: "Home",
-  //   path: "/dashboard",
-  //   color: "text-turbo-indigo",
-  // },
-  // {
-  //   icon: <BrainCircuit size={22} />,
-  //   label: "AI Tutor",
-  //   path: "/dashboard/ai-tutor",
-  //   color: "text-turbo-purple",
-  // },
+  {
+    icon: <Home size={22} />,
+    label: "Home",
+    path: "/dashboard",
+    color: "text-turbo-indigo",
+  },
+  {
+    icon: <BrainCircuit size={22} />,
+    label: "AI Tutor",
+    path: "/dashboard/ai-tutor",
+    color: "text-turbo-purple",
+  },
   {
     icon: <MessageCircle size={22} />,
     label: "Chats",
     path: "/dashboard/chats",
     color: "text-turbo-purple",
   },
-  // {
-  //   icon: <BookOpen size={22} />,
-  //   label: "Cards",
-  //   path: "/dashboard/flashcards",
-  //   color: `text-pink-500`,
-  // },
-  // {
-  //   icon: <BookText size={22} />,
-  //   label: "Quizzes",
-  //   path: "/dashboard/quizzes",
-  //   color: "text-turbo-blue",
-  // },
-  // {
-  //   icon: <Library size={22} />,
-  //   label: "Library",
-  //   path: "/dashboard/library",
-  //   color: `text-orange-500`,
-  // },
-  // {
-  //   icon: <UserRound size={22} />,
-  //   label: "Profile",
-  //   path: "/dashboard/profile",
-  //   color: `text-emerald-500`,
-  // },
+  {
+    icon: <BookOpen size={22} />,
+    label: "Cards",
+    path: "/dashboard/flashcards",
+    color: `text-pink-500`,
+  },
+  {
+    icon: <BookText size={22} />,
+    label: "Quizzes",
+    path: "/dashboard/quizzes",
+    color: "text-turbo-blue",
+  },
+  {
+    icon: <Library size={22} />,
+    label: "Library",
+    path: "/dashboard/library",
+    color: `text-orange-500`,
+  },
+  {
+    icon: <UserRound size={22} />,
+    label: "Profile",
+    path: "/dashboard/profile",
+    color: `text-emerald-500`,
+  },
 ];
 
 export const DashboardLayout = () => {
@@ -91,9 +89,9 @@ export const DashboardLayout = () => {
   >("prompts");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { data: onboardingData } = useGetOnboardingStatus();
-  const isOnboarded = onboardingData?.is_completed ?? true
   const user = useAuthStore((s) => s.user);
+  const { data: onboardingData } = useGetOnboardingStatus(!!user);
+  const isOnboarded = user ? (onboardingData?.is_completed ?? true) : true
   const navigate = useNavigate();
 
   const isActive = (path: string) => {
@@ -102,7 +100,7 @@ export const DashboardLayout = () => {
 
   const isChatPage =
     /^\/dashboard\/ai-tutor\/[^/]+\/[^/]+$/.test(location.pathname) ||
-    location.pathname === "/dashboard/chats";
+    /^\/dashboard\/chats(\/.+)?$/.test(location.pathname);
 
   const { pathname } = useLocation();
 

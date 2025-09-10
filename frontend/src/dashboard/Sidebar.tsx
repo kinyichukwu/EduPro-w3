@@ -1,11 +1,11 @@
 import {
-    // Home,
-    // UserRound,
+    Home,
+    UserRound,
   // Zap,
-  // BookText,
-  // BookOpen,
-  // Library,
-  // BrainCircuit,
+  BookText,
+  BookOpen,
+  Library,
+  BrainCircuit,
   MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,48 +21,48 @@ import { useEffect, useState } from "react";
 // import { useRef } from 'react';
 
 const navItems = [
-  // {
-  //   icon: <Home size={22} />,
-  //   label: "Home",
-  //   path: "/dashboard",
-  //   color: "text-turbo-indigo",
-  // },
-  // {
-  //   icon: <BrainCircuit size={22} />,
-  //   label: "AI Tutor",
-  //   path: "/dashboard/ai-tutor",
-  //   color: "text-turbo-purple",
-  // },
+  {
+    icon: <Home size={22} />,
+    label: "Home",
+    path: "/dashboard",
+    color: "text-turbo-indigo",
+  },
+  {
+    icon: <BrainCircuit size={22} />,
+    label: "AI Tutor",
+    path: "/dashboard/ai-tutor",
+    color: "text-turbo-purple",
+  },
   {
     icon: <MessageCircle size={22} />,
     label: "Chats",
     path: "/dashboard/chats",
     color: "text-turbo-purple",
   },
-  // {
-  //   icon: <BookOpen size={22} />,
-  //   label: "Cards",
-  //   path: "/dashboard/flashcards",
-  //   color: `text-pink-500`,
-  // },
-  // {
-  //   icon: <BookText size={22} />,
-  //   label: "Quizzes",
-  //   path: "/dashboard/quizzes",
-  //   color: "text-turbo-blue",
-  // },
-  // {
-  //   icon: <Library size={22} />,
-  //   label: "Library",
-  //   path: "/dashboard/library",
-  //   color: `text-orange-500`,
-  // },
-  // {
-  //   icon: <UserRound size={22} />,
-  //   label: "Profile",
-  //   path: "/dashboard/profile",
-  //   color: `text-emerald-500`,
-  // },
+  {
+    icon: <BookOpen size={22} />,
+    label: "Cards",
+    path: "/dashboard/flashcards",
+    color: `text-pink-500`,
+  },
+  {
+    icon: <BookText size={22} />,
+    label: "Quizzes",
+    path: "/dashboard/quizzes",
+    color: "text-turbo-blue",
+  },
+  {
+    icon: <Library size={22} />,
+    label: "Library",
+    path: "/dashboard/library",
+    color: `text-orange-500`,
+  },
+  {
+    icon: <UserRound size={22} />,
+    label: "Profile",
+    path: "/dashboard/profile",
+    color: `text-emerald-500`,
+  },
 ];
 
 export const Sidebar = ({
@@ -91,32 +91,8 @@ export const Sidebar = ({
     }
   }, [sidebarOpen]);
 
-  // const handleMouseEnter = () => {
-  //   if (!isMobile && !sidebarOpen) {
-  //     hoverTimeout.current = setTimeout(() => {
-  //       setHovered(true);
-  //       setSidebarOpen(true);
-  //     }, 500);
-  //   }
-  // };
-
-  // const handleMouseLeave = () => {
-  //   if (hoverTimeout.current) {
-  //     clearTimeout(hoverTimeout.current);
-  //     hoverTimeout.current = null;
-  //   }
-
-  //   // Only close if it was opened via hover
-  //   if (!isMobile && hovered) {
-  //     setHovered(false);
-  //     setSidebarOpen(false);
-  //   }
-  // };
-
   return (
     <aside
-      // onMouseEnter={handleMouseEnter}
-      // onMouseLeave={handleMouseLeave}
       className={cn(
         "sticky top-0 h-screen pt-[57px] space-y-2 bottom-0 left-0 z-30 flex flex-col backdrop-blur-lg glass-card transition-all",
         sidebarOpen ? "w-60" : "w-0 md:w-20",

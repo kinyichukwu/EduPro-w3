@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BookText,
@@ -11,10 +12,14 @@ import {
   MessageSquare,
   Plus,
   Upload,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { GlassCard } from "../components/GlassCard";
 import { GridView, ListView, SearchFilterBar } from "../components/library/uploads";
+import { ragService, type Document } from "@/services/rag";
+// import { useToast } from "@/shared/hooks";
 
 export const fileTypeMap = {
   pdf: {
@@ -37,84 +42,102 @@ export const fileTypeMap = {
 
 export default function MyUploads() {
   const navigate = useNavigate();
+  // const { toast } = useToast();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const [allDocuments, setAllDocuments] = useState<Document[]>([]);
 
-  // Mock data for uploaded files
-  const uploadedFiles = [
-    {
-      id: 1,
-      name: "Organic Chemistry Notes.pdf",
-      type: "pdf",
-      category: "notes",
-      size: "4.2 MB",
-      tags: ["Chemistry", "Organic"],
-      lastModified: "2 days ago",
-      starred: true,
-      thumbnail: null,
-    },
-    {
-      id: 2,
-      name: "Cell Division Diagram.png",
-      type: "image",
-      category: "images",
-      size: "1.8 MB",
-      tags: ["Biology", "Cell Biology"],
-      lastModified: "1 week ago",
-      starred: false,
-      thumbnail: null,
-    },
-    {
-      id: 3,
-      name: "Calculus Formulas.pdf",
-      type: "pdf",
-      category: "notes",
-      size: "2.5 MB",
-      tags: ["Mathematics", "Calculus"],
-      lastModified: "1 week ago",
-      starred: true,
-      thumbnail: null,
-    },
-    {
-      id: 4,
-      name: "Physics Assignment 3.docx",
-      type: "doc",
-      category: "assignments",
-      size: "1.2 MB",
-      tags: ["Physics", "Homework"],
-      lastModified: "2 weeks ago",
-      starred: false,
-      thumbnail: null,
-    },
-    {
-      id: 5,
-      name: "Biology Lecture Slides.pptx",
-      type: "ppt",
-      category: "slides",
-      size: "5.7 MB",
-      tags: ["Biology", "Lecture"],
-      lastModified: "3 weeks ago",
-      starred: false,
-      thumbnail: null,
-    },
-    {
-      id: 6,
-      name: "English Literature Notes.pdf",
-      type: "pdf",
-      category: "notes",
-      size: "3.1 MB",
-      tags: ["English", "Literature"],
-      lastModified: "1 month ago",
-      starred: false,
-      thumbnail: null,
-    },
-  ];
+  const {
+    data: documentsResponse,
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['documents', page],
+    queryFn: () => ragService.listDocuments(page),
+    staleTime: 30000, // 30 seconds
+  });
+
+  // Accumulate documents from all pages
+  useEffect(() => {
+    if (documentsResponse?.data) {
+      if (page === 1) {
+        setAllDocuments(documentsResponse.data);
+      } else {
+        setAllDocuments(prev => [...prev, ...documentsResponse.data]);
+      }
+    }
+  }, [documentsResponse, page]);
+
+  // Convert Document to the format expected by existing components
+  const convertDocumentToFile = (doc: Document) => ({
+    id: doc.id,
+    name: doc.filename,
+    type: getFileTypeFromMime(doc.mime_type),
+    category: getCategoryFromMime(doc.mime_type),
+    size: doc.size ? formatFileSize(doc.size) : 'Unknown',
+    tags: [], // Could be extracted from title or added as metadata
+    lastModified: new Date(doc.created_at).toLocaleDateString(),
+    starred: false, // Could be added as user preference
+    thumbnail: null,
+    source_url: doc.source_url,
+    document_id: doc.id,
+  });
+
+  const getFileTypeFromMime = (mimeType: string): string => {
+    if (mimeType.includes('pdf')) return 'pdf';
+    if (mimeType.includes('word') || mimeType.includes('document')) return 'doc';
+    if (mimeType.includes('image')) return 'image';
+    if (mimeType.includes('presentation')) return 'ppt';
+    return 'doc';
+  };
+
+  const getCategoryFromMime = (mimeType: string): string => {
+    if (mimeType.includes('pdf')) return 'notes';
+    if (mimeType.includes('word') || mimeType.includes('document')) return 'assignments';
+    if (mimeType.includes('image')) return 'images';
+    if (mimeType.includes('presentation')) return 'slides';
+    return 'notes';
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const convertedFiles = allDocuments.map(convertDocumentToFile);
 
   // Filter files based on selected category
-  const filteredFiles =
-    selectedCategory === "all"
-      ? uploadedFiles
-      : uploadedFiles.filter((file) => file.category === selectedCategory);
+  const filteredFiles = selectedCategory === "all"
+    ? convertedFiles
+    : convertedFiles.filter((file) => file.category === selectedCategory);
+
+  const handleChatWithDocument = async (_documentId: string, title: string) => {
+    try {
+      // Create a new chat and navigate to it
+      const newChat = await ragService.createChat(`Chat about ${title}`);
+      
+      console.log("Chat created:", `Started a new conversation about ${title}`);
+      
+      // Navigate to the new chat
+      navigate(`/dashboard/chats/${newChat.id}`);
+    } catch (error) {
+      console.error('Failed to create chat:', error);
+      alert(`Failed to create chat: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const loadMoreDocuments = () => {
+    if (documentsResponse?.pagination && page < documentsResponse.pagination.total_pages) {
+      setPage(prev => prev + 1);
+    }
+  };
+
+  const hasMoreDocuments = documentsResponse?.pagination && page < documentsResponse.pagination.total_pages;
 
   return (
     <div className="px-4 py-6 md:px-6 lg:px-8 max-w-7xl mx-auto">
@@ -157,26 +180,73 @@ export default function MyUploads() {
         setSelectedCategory={setSelectedCategory}
       />
 
+      {/* Loading State */}
+      {isLoading && page === 1 && (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+          <span className="ml-2 text-white/60">Loading documents...</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="flex flex-col items-center justify-center text-center py-16">
+          <div className="p-5 rounded-full bg-red-500/10 mb-4">
+            <RefreshCw size={48} className="text-red-400" />
+          </div>
+          <h3 className="text-xl font-bold mb-2 text-white">Failed to load documents</h3>
+          <p className="text-gray-500 dark:text-gray-400 max-w-md mb-6">
+            There was an error loading your documents. Please try again.
+          </p>
+          <Button
+            onClick={() => refetch()}
+            variant="outline"
+            className="bg-white/5 hover:bg-white/10"
+          >
+            <RefreshCw size={16} className="mr-2" /> Try Again
+          </Button>
+        </div>
+      )}
+
       {/* Grid View */}
-      {viewMode === "grid" && (
-        <GridView files={filteredFiles} />
+      {!isLoading && !error && viewMode === "grid" && (
+        <GridView files={filteredFiles} onChatWithDocument={handleChatWithDocument} />
       )}
 
       {/* List View */}
-      {viewMode === "list" && (
-        <ListView files={filteredFiles} />
+      {!isLoading && !error && viewMode === "list" && (
+        <ListView files={filteredFiles} onChatWithDocument={handleChatWithDocument} />
+      )}
+
+      {/* Load More Button */}
+      {hasMoreDocuments && !isLoading && (
+        <div className="flex justify-center mt-8">
+          <Button
+            onClick={loadMoreDocuments}
+            variant="outline"
+            className="bg-white/5 hover:bg-white/10"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : null}
+            Load More Documents
+          </Button>
+        </div>
       )}
 
       {/* Empty State */}
-      {filteredFiles.length === 0 && (
+      {!isLoading && !error && filteredFiles.length === 0 && (
         <div className="flex flex-col items-center justify-center text-center py-16">
           <div className="p-5 rounded-full bg-white/10 mb-4">
             <FolderOpen size={48} className="text-gray-400" />
           </div>
-          <h3 className="text-xl font-bold mb-2">No files found</h3>
+          <h3 className="text-xl font-bold mb-2">No documents found</h3>
           <p className="text-gray-500 dark:text-gray-400 max-w-md mb-6">
-            We couldn't find any files that match your current filters. Try
-            adjusting your search or upload a new file.
+            {selectedCategory === "all" 
+              ? "You haven't uploaded any documents yet. Upload your first document to get started."
+              : "No documents match your current filter. Try adjusting your search or upload a new file."
+            }
           </p>
           <Button
             className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
@@ -227,19 +297,24 @@ export default function MyUploads() {
           </div>
         </GlassCard>
 
-        <GlassCard className="p-4 hover:bg-white/5 transition-colors cursor-pointer">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600">
-              <MessageSquare size={20} className="text-white" />
+        <div 
+          className="cursor-pointer"
+          onClick={() => navigate("/dashboard/chats")}
+        >
+          <GlassCard className="p-4 hover:bg-white/5 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600">
+                <MessageSquare size={20} className="text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold">Chat with Documents</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Start a conversation about your uploaded materials
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold">Chat with Documents</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                Ask questions about your uploaded materials
-              </p>
-            </div>
-          </div>
-        </GlassCard>
+          </GlassCard>
+        </div>
 
         <GlassCard className="p-4 hover:bg-white/5 transition-colors cursor-pointer">
           <div className="flex items-center gap-3">

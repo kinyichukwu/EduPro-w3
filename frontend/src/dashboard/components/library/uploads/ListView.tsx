@@ -1,25 +1,16 @@
 import { fileTypeMap } from "@/dashboard/library/uploads";
 import { GlassCard } from "../../GlassCard"
 import { motion } from "framer-motion";
-import { Download, MoreHorizontal, FileText, Share2, Star } from "lucide-react";
+import { Download, MoreHorizontal, FileText, Share2, Star, MessageSquare } from "lucide-react";
 import { Button } from "@/shared/components/ui";
-
+import { FileItem } from "./types";
 
 interface ListViewProps {
-  files: {
-    id: number,
-    name: string,
-    type: string,
-    category: string,
-    size: string,
-    tags: string[],
-    lastModified: string,
-    starred: boolean,
-    thumbnail: null,
-  }[]
+  files: FileItem[];
+  onChatWithDocument?: (documentId: string, title: string) => void;
 }
 
-export const ListView = ({files}: ListViewProps) => {
+export const ListView = ({files, onChatWithDocument}: ListViewProps) => {
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -101,13 +92,28 @@ export const ListView = ({files}: ListViewProps) => {
               </div>
 
               <div className="col-span-2 flex items-center justify-end gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full hover:bg-gray-200/20"
-                >
-                  <Download size={16} />
-                </Button>
+                {onChatWithDocument && file.document_id && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-blue-500/10 hover:text-blue-400"
+                    onClick={() => onChatWithDocument(file.document_id!, file.name)}
+                    title="Chat with this document"
+                  >
+                    <MessageSquare size={16} />
+                  </Button>
+                )}
+                {file.source_url && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-full hover:bg-gray-200/20"
+                    onClick={() => window.open(file.source_url, '_blank')}
+                    title="View document"
+                  >
+                    <Download size={16} />
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"

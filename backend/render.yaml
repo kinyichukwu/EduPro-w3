@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: edupro-api
+    env: go
+    plan: free
+    buildCommand: go build -o main cmd/api/main.go
+    startCommand: ./main
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: GIN_MODE
+        value: release
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+    healthCheckPath: /health

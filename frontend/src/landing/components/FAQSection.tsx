@@ -91,11 +91,11 @@ const FAQSection = () => {
               <div
                 className={`overflow-hidden transition-all rounded-b-xl duration-300 ease-in-out transform origin-top ${
                   activeIndex === index
-                    ? "max-h-[500px] opacity-100 scale-y-100 bg-purple-200/20"
+                    ? "max-h-[500px] opacity-100 scale-y-100  bg-gradient-to-r from-purple-800/20 to-green-700/15"
                     : "max-h-0 opacity-0 scale-y-95"
                 }`}
               >
-                <div className="p-5 text-sm md:text-base text-dark-muted opacity-90 leading-relaxed">
+                <div className="p-5 text-sm md:text-base text-white/80 opacity-90 leading-relaxed">
                   {faq.answer}
                 </div>
               </div>

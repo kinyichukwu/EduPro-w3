@@ -57,17 +57,6 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-    },
-  },
-};
-
 const FeaturesSection = () => {
   return (
     <div className="py-16 sm:py-24 bg-dark-background relative">
@@ -114,7 +103,7 @@ const FeaturesSection = () => {
                 key={feature.name}
                 className="relative p-6 glass-card rounded-2xl hover:shadow-lg transition-all overflow-hidden duration-500 group flex flex-col items-center justify-center"
               >
-                <span className="absolute w-[50vw] z-10 h-[50vw] group-hover:scale-150 group-hover:rotate-12 transition-all duration-1000 bottom-[-70%] left-0 blur-3xl bg-primary text-white px-2 py-1 text-sm font-medium rounded-full bg-gradient-to-r from-purple-800 to-green-700" />
+                <span className="absolute w-[140px] sm:w-[150px] z-10 h-[150px] sm:h-[170px] group-hover:scale-150 group-hover:rotate-12 transition-all duration-1000 bottom-[-70%] left-0 blur-3xl bg-primary px-2 py-1 rounded-full bg-gradient-to-r from-purple-800 to-green-700" />
                 <div className="flex flex-col items-center w-full">
                   <div className="h-12 w-12 z-20 rounded-2xl bg-gradient-to-r from-purple-700 to-indigo-700 flex items-center justify-center text-white group-hover:scale-110 transition-transform mb-4">
                     <feature.icon className="h-6 w-6" aria-hidden="true" />

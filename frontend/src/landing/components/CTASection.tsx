@@ -2,8 +2,11 @@ import { Button } from "@/shared/components/ui/button";
 import { ArrowRight, Crown, Users } from "lucide-react";
 import { Separator } from "@/shared/components/ui/separator";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 const CTASection = () => {
+  const navigate = useNavigate()
+
   return (
     <div className="py-16 sm:py-24 bg-dark-background relative">
       {/* Background effects */}
@@ -68,11 +71,15 @@ const CTASection = () => {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <Button className="btn-primary px-8 py-6 text-sm font-medium cursor-pointer">
+                <Button 
+                  onClick={() => navigate('/register')}
+                  className="btn-primary px-8 py-6 text-sm font-medium cursor-pointer"
+                >
                   Start Free Trial
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button
+                  onClick={() => navigate('/features')}
                   variant="outline"
                   className="btn-outline px-8 py-6 text-sm font-medium cursor-pointer"
                 >
@@ -95,20 +102,21 @@ const CTASection = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
               <motion.div
-                className="glass-card p-6 flex w-full flex-col justify-start items-start rounded-3xl border-purple-800 outline-3 outline-green-300/40 outline-offset-4"
+                className="glass-card p-6 flex w-full flex-col justify-start items-start rounded-3xl border-purple-800/60 overflow-hidden group"
                 initial={{ opacity: 0, x: -30 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5 }}
               >
+                <span className="absolute w-[35vw] sm:w-[170px] lg:w-[220px] z-10 h-[40vw] sm:h-[220px] lg:h-[235px] group-hover:scale-150 group-hover:rotate-12 transition-all duration-1000 bottom-[-70%] left-0 blur-3xl bg-primary text-white px-2 py-1 text-sm font-medium rounded-full bg-gradient-to-r from-purple-800 to-green-700" />
                 <div className="flex items-center mb-4">
-                  <div className="bg-dark-accent/50 w-10 h-10 rounded-full flex items-center justify-center mr-4">
+                  <div className="bg-gradient-to-r from-purple-700 to-indigo-700 w-10 h-10 rounded-full flex items-center justify-center mr-4">
                     <Crown className="h-5 w-5 text-primary" />
                   </div>
                   <h3 className="text-2xl font-bold gradient-text">Premium</h3>
                 </div>
 
-                <ul className="space-y-2 w-full text-dark-muted">
+                <ul className="space-y-2 mb-7 w-full text-dark-muted">
                   {[
                     "Unlimited study material uploads",
                     "Advanced AI-generated questions",
@@ -126,19 +134,31 @@ const CTASection = () => {
                     </li>
                   ))}
                 </ul>
+
+                <Button className="mt-auto w-full font-semibold hover:bg-turbo-purple/90 group-hover:scale-105">
+                  Subscribe
+                  <motion.div
+                    className="ml-1"
+                    initial={{ x: 0 }}
+                    whileHover={{ x: 3 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </motion.div>
+                </Button>
               </motion.div>
 
               <motion.div
-                className="glass-card p-6 rounded-xl"
+                className="glass-card p-6 rounded-xl overflow-hidden group"
                 initial={{ opacity: 0, x: 30 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5 }}
-                whileHover={{ scale: 1.03, y: -5 }}
               >
+                <span className="absolute w-[35vw] sm:w-[170px] lg:w-[220px] z-10 h-[40vw] sm:h-[220px] lg:h-[235px] group-hover:scale-150 group-hover:rotate-12 transition-all duration-1000 bottom-[-70%] left-0 blur-3xl bg-primary text-white px-2 py-1 text-sm font-medium rounded-full bg-gradient-to-r from-purple-800 to-green-700" />
                 <div className="flex items-center mb-4">
                   <motion.div
-                    className="bg-dark-accent/50 w-10 h-10 rounded-full flex items-center justify-center mr-4"
+                    className="bg-gradient-to-r from-purple-700 to-indigo-700 w-10 h-10 rounded-full flex items-center justify-center mr-4"
                     whileHover={{ rotate: 5 }}
                   >
                     <Users className="h-5 w-5 text-primary" />
@@ -147,7 +167,7 @@ const CTASection = () => {
                     Team Plan
                   </h3>
                 </div>
-                <ul className="space-y-2 text-dark-muted">
+                <ul className="space-y-2 mb-7 text-dark-muted">
                   {[
                     "All Premium features included",
                     "Team collaboration tools",
@@ -169,6 +189,18 @@ const CTASection = () => {
                     </motion.li>
                   ))}
                 </ul>
+
+                <Button className="mt-auto w-full font-semibold hover:bg-purple group-hover:scale-105">
+                  Subscribe
+                  <motion.div
+                    className="ml-1"
+                    initial={{ x: 0 }}
+                    whileHover={{ x: 3 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </motion.div>
+                </Button>
               </motion.div>
             </div>
           </div>

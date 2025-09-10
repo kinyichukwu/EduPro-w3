@@ -1,0 +1,9 @@
+export { AdminLayout } from "./AdminLayout";
+export { AdminSidebar } from "./AdminSidebar";
+export { AdminDashboardPage } from "./dashboard";
+export { ContentManagementPage } from "./content";
+export { QuestionBankPage } from "./questions";
+export { UserManagementPage } from "./users";
+export { AnalyticsPage } from "./analytics";
+export { PaymentsPage } from "./payments";
+export { SettingsPage } from "./settings";

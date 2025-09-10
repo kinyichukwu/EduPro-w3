@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 const pricingPlans = [
   {
     name: "Basic",
-    price: "$9.99",
+    price: "₦9.99",
     period: "per month",
     description: "Perfect for beginners",
     features: [
@@ -23,7 +23,7 @@ const pricingPlans = [
   },
   {
     name: "Pro",
-    price: "$19.99",
+    price: "₦19.99",
     period: "per month",
     description: "Our most popular plan",
     features: [
@@ -40,7 +40,7 @@ const pricingPlans = [
   },
   {
     name: "Enterprise",
-    price: "$49.99",
+    price: "₦49.99",
     period: "per month",
     description: "For teams and organizations",
     features: [
@@ -91,7 +91,7 @@ const Pricing = () => {
         </motion.div>
 
         <motion.div
-          className="mt-16 grid gap-8 md:grid-cols-3"
+          className="mt-12 sm:mt-16 grid gap-8 gap-y-12 md:grid-cols-3"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -101,7 +101,7 @@ const Pricing = () => {
               key={plan.name}
               className={`relative rounded-2xl glass-card flex flex-col h-full ${
                 plan.highlighted
-                  ? "border border-primary/40 shadow-xl shadow-primary/10 z-10 transform scale-105 bg-gradient-to-b from-dark-card to-dark-background"
+                  ? "border border-primary/40 shadow-xl shadow-primary/10 z-10 transform sm:scale-105 bg-gradient-to-b from-dark-card to-dark-background"
                   : "border border-white/10"
               }`}
               initial={{ opacity: 0, y: 20 }}
@@ -116,7 +116,7 @@ const Pricing = () => {
               }}
             >
               {plan.highlighted && (
-                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2">
+                <div className="flex-wrap absolute -top-4 z-10 left-1/2 transform -translate-x-1/2">
                   <motion.div
                     className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold px-6 py-2 rounded-full uppercase tracking-wider flex items-center shadow-lg"
                     initial={{ y: -10, opacity: 0 }}
@@ -124,7 +124,8 @@ const Pricing = () => {
                     transition={{ delay: 0.5, duration: 0.3 }}
                     whileHover={{ scale: 1.05 }}
                   >
-                    <Crown className="w-3.5 h-3.5 mr-1" /> Most Popular
+                    <Crown className="w-3.5 h-3.5 mr-1" />
+                    <span className="min-w-max">Most Popular</span>
                   </motion.div>
                 </div>
               )}
@@ -223,7 +224,7 @@ const Pricing = () => {
 
         {/* FAQ Teaser */}
         <motion.div
-          className="mt-24 text-center"
+          className="mt-12 md:mt-24 text-center"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}

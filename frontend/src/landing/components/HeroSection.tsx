@@ -1,12 +1,15 @@
 import { Button } from "@/shared/components/ui/button";
 import { ArrowRight, BookOpen, FlaskRound, File } from "lucide-react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
+  const navigate = useNavigate()
+
   return (
     <div className="relative pt-20 pb-16 sm:pt-24 sm:pb-20 md:pt-32 md:pb-24 overflow-hidden">
       {/* Background gradients with continuous animation */}
-      <div className="absolute inset-0 overflow-hidden -z-10">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-full bg-mesh-gradient opacity-70 animate-pulse-slow"></div>
         <div className="absolute -top-[40%] -left-[10%] w-[50%] h-[80%] rounded-full bg-purple-900/20 blur-3xl animate-pulse-slow"></div>
         <div
@@ -50,6 +53,7 @@ const HeroSection = () => {
             transition={{ duration: 0.5, delay: 0.6 }}
           >
             <Button
+              onClick={() => navigate('/register')}
               className="btn-primary px-6 py-3 text-sm font-medium hover:shadow-lg shadow-purple-300/10 cursor-pointer"
               data-testid="start-learning-button"
             >
@@ -57,6 +61,7 @@ const HeroSection = () => {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button
+              onClick={() => navigate('/features')}
               variant="outline"
               className="btn-outline px-6 py-3 text-sm font-medium hover:shadow-lg shadow-purple-300/10 cursor-pointer"
             >
@@ -110,7 +115,7 @@ const HeroSection = () => {
             ].map((feature, index) => (
               <motion.div
                 key={index}
-                className="glass-card p-6 rounded-xl transition-all"
+                className="glass-card p-6 rounded-xl transition-all overflow-hidden group"
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: feature.delay }}
@@ -119,8 +124,9 @@ const HeroSection = () => {
                     "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
                 }}
               >
+                <span className="absolute w-[140px] md:w-[120px] z-10 h-[160px] md:h-[165px] group-hover:scale-150 group-hover:rotate-12 transition-all duration-1000 bottom-[-70%] left-0 blur-3xl bg-primary text-white px-2 py-1 rounded-full bg-gradient-to-r from-purple-800 to-green-700" />
                 <motion.div
-                  className="bg-gradient-to-r from-purple-600/20 to-indigo-600/20 w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto pulse-glow"
+                  className="bg-gradient-to-r from-purple-700 to-indigo-700 group-hover:scale-110 transition-transform w-12 h-12 rounded-full flex items-center justify-center mb-4 mx-auto pulse-glow"
                   whileHover={{ rotate: 5 }}
                 >
                   <feature.icon className="h-6 w-6 text-primary" />

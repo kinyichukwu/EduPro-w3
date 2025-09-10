@@ -1,0 +1,23 @@
+{
+  "name": "EduPro AI - AI-Powered Learning Platform",
+  "short_name": "EduPro AI",
+  "description": "Transform your learning experience with AI-powered tools for interactive flashcards, quizzes, and comprehensive study support.",
+  "start_url": "/dashboard/chats",
+  "display": "standalone",
+  "background_color": "#0A0C12",
+  "theme_color": "#8B5CF6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/Edupro.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity", "utilities"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "scope": "/",
+  "id": "edupro-ai-learning-platform"
+}

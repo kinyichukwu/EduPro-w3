@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Allow: /dashboard/chats
+Disallow: /dashboard/*
+Disallow: /admin/*
+Disallow: /api/*
+
+# Sitemap location
+Sitemap: https://edupro-ai.com/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1 

@@ -2,7 +2,6 @@ import { ReactNode, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BarChart3,
-  MessageSquare,
   SquareStack,
   BookOpen,
   FileQuestion,
@@ -15,6 +14,7 @@ import {
   X,
   LogOut,
   ArrowRight,
+  BrainCircuit,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -28,7 +28,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const navItems = [
     { icon: BarChart3, name: "Dashboard", path: "/dashboard" },
-    { icon: MessageSquare, name: "Chatbot", path: "/dashboard/chat" },
+    { icon: BrainCircuit, name: "Chatbot", path: "/dashboard/ai-tutor" },
     { icon: SquareStack, name: "Flashcards", path: "/dashboard/flashcards" },
     { icon: BookOpen, name: "Quizzes", path: "/dashboard/quizzes" },
     {

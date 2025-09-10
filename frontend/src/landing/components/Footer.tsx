@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import EduproLogo from "@/shared/assets/Edupro.svg";
 
 const Footer = () => {
   return (
@@ -6,11 +7,16 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-1">
-            <Link
-              to="/"
-              className="text-2xl font-bold bg-clip-text text-transparent bg-dark-gradient"
-            >
-              EduPro AI
+            <Link to="/" className="flex items-center gap-2">
+              <img
+                src={EduproLogo}
+                alt="Edupro Logo"
+                className="w-8 h-8 text-white"
+              />
+
+              <span className="text-2xl font-bold gradient-text">
+                EduPro AI
+              </span>
             </Link>
             <p className="mt-4 text-dark-muted text-sm">
               Transform your study materials into interactive learning resources
@@ -25,7 +31,7 @@ const Footer = () => {
             <ul className="space-y-2">
               <li>
                 <Link
-                  to="/courses"
+                  to="/features"
                   className="text-dark-muted hover:text-white transition-colors"
                 >
                   Features

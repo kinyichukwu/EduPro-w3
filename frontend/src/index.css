@@ -2,49 +2,56 @@
 @import "@fontsource/inter";
 @import "tw-animate-css";
 
-@layer theme {
-  :root {
-    /* Base colors using HSL */
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 261 83% 58%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 244 75% 57%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 261 83% 58%;
+@theme {
+  /* Base colors using HSL */
+  --color-background: 0 0% 100%;
+  --color-foreground: 222.2 84% 4.9%;
+  --color-card: 0 0% 100%;
+  --color-card-foreground: 222.2 84% 4.9%;
+  --color-popover: 0 0% 100%;
+  --color-popover-foreground: 222.2 84% 4.9%;
+  --color-primary: 261 83% 58%;
+  --color-primary-foreground: 0 0% 98%;
+  --color-secondary: 244 75% 57%;
+  --color-secondary-foreground: 210 40% 98%;
+  --color-muted: 210 40% 96.1%;
+  --color-muted-foreground: 215.4 16.3% 46.9%;
+  --color-accent: 210 40% 96.1%;
+  --color-accent-foreground: 222.2 47.4% 11.2%;
+  --color-destructive: 0 84.2% 60.2%;
+  --color-destructive-foreground: 210 40% 98%;
+  --color-border: 214.3 31.8% 91.4%;
+  --color-input: 214.3 31.8% 91.4%;
+  --color-ring: 261 83% 58%;
 
-    /* Custom colors for turbo */
-    --turbo-purple: #8b5cf6;
-    --turbo-indigo: #6366f1;
-    --turbo-blue: #3b82f6;
+  /* Custom colors for turbo */
+  --color-turbo-purple: #8b5cf6;
+  --color-turbo-indigo: #6366f1;
+  --color-turbo-blue: #3b82f6;
 
-    /* Custom colors for dark theme */
-    --dark-background: #09090b;
-    --dark-card: #151925;
-    --dark-accent: #2d3748;
-    --dark-text: #e2e8f0;
-    --dark-muted: #a0aec0;
+  /* Custom colors for dark theme */
+  --color-dark-background: #111117;
+  --color-dark-card: #151925;
+  --color-dark-accent: #2d3748;
+  --color-dark-text: #e2e8f0;
+  --color-dark-muted: #a0aec0;
 
-    /* Border radius */
-    --radius: 0.75rem;
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-sm: calc(var(--radius) - 4px);
+  --color-purple: #9333ea;
+  --color-light-blue: #06b6d4;
+  --color-green: #34d399;
+  --color-teal: #0d9488;
+  --color-amber: #f9a000;
+  --color-orange: #ea580c;
+  --color-dark-blue: #1d212b;
+  --color-red: #ef4444;
 
-    /* Spacing (if needed) */
-    --spacing: 0.25rem;
-  }
+  /* Border radius */
+  --radius: 0.75rem;
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Spacing (if needed) */
+  --spacing: 0.25rem;
 }
 
 @layer base {
@@ -87,5 +94,54 @@
 
   .dark {
     color-scheme: dark;
+  }
+
+  /* Gradient text utility */
+  .gradient-text {
+    background: linear-gradient(90deg, #8b5cf6, #6366f1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glass card styling */
+  .glass-card {
+    background: rgba(21, 25, 37, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Mesh gradient background */
+  .bg-mesh-gradient {
+    background: radial-gradient(
+        circle at 20% 80%,
+        rgba(139, 92, 246, 0.15) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 20%,
+        rgba(99, 102, 241, 0.15) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 40% 40%,
+        rgba(168, 85, 247, 0.1) 0%,
+        transparent 50%
+      );
+  }
+
+  /* Animation utilities */
+  .animate-pulse-slow {
+    animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.8;
+    }
   }
 }

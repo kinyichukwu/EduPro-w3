@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/shared/components/ui/button";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Menu, X, ArrowRight, LogIn } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import EduproLogo from "@/shared/assets/Edupro.svg";
 
 const navItems = [
   { name: "Home", href: "/" },
-  { name: "Courses", href: "/courses" },
+  { name: "Features", href: "/features" },
   { name: "Pricing", href: "/pricing" },
   { name: "About", href: "/about" },
 ];
@@ -14,9 +15,19 @@ const navItems = [
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleLoginRegister = (type: "login" | "register") => {
+    if (type === "login") {
+      navigate("/login");
+    } else {
+      navigate("/register");
+    }
+    setIsMenuOpen(false);
   };
 
   useEffect(() => {
@@ -51,8 +62,14 @@ const Navbar = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center">
-              <Link to="/" className="flex-shrink-0 flex items-center">
-                <span className="text-2xl font-extrabold gradient-text">
+              <Link to="/" className="flex-shrink-0 flex gap-2 items-center">
+                <img
+                  src={EduproLogo}
+                  alt="Edupro Logo"
+                  className="w-8 h-8 text-white"
+                />
+
+                <span className="text-2xl font-bold gradient-text">
                   EduPro AI
                 </span>
               </Link>
@@ -93,13 +110,17 @@ const Navbar = () => {
             <div className="hidden md:block">
               <div className="flex items-center space-x-3">
                 <Button
+                  onClick={() => navigate("/login")}
                   variant="outline"
                   className="btn-outline cursor-pointer flex items-center gap-2"
                 >
                   <LogIn className="h-4 w-4" />
                   Sign in
                 </Button>
-                <Button className="btn-primary cursor-pointer group flex items-center gap-2">
+                <Button
+                  onClick={() => navigate("/register")}
+                  className="btn-primary cursor-pointer group flex items-center gap-2"
+                >
                   Get Started
                   <motion.div
                     className="ml-1"
@@ -144,8 +165,8 @@ const Navbar = () => {
               key={item.name}
               to={item.href}
               className={({ isActive }) =>
-                `block px-3 py-2 rounded-md text-base font-medium transition-colors hover:bg-dark-accent hover:text-white ${
-                  isActive ? "bg-dark-accent text-white" : "text-dark-muted"
+                `block px-3 py-2 rounded-md text-base font-medium transition-colors hover:bg-white/5 hover:text-white ${
+                  isActive ? "bg-white/5 text-white" : "text-dark-muted"
                 }`
               }
               onClick={toggleMenu}
@@ -155,19 +176,19 @@ const Navbar = () => {
           ))}
         </div>
 
-        <div className="pt-4 pb-4 border-t border-white/10 px-5">
+        <div className="pt-4 pb-4 border-y border-white/10 px-5">
           <div className="flex flex-col space-y-3">
             <Button
               variant="outline"
               className="w-full btn-outline cursor-pointer flex items-center justify-center gap-2"
-              onClick={toggleMenu}
+              onClick={() => handleLoginRegister("login")}
             >
               <LogIn className="h-4 w-4" />
               Sign in
             </Button>
             <Button
               className="w-full btn-primary cursor-pointer group flex items-center justify-center gap-2"
-              onClick={toggleMenu}
+              onClick={() => handleLoginRegister("register")}
             >
               Get Started
               <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />

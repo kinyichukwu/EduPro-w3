@@ -192,11 +192,12 @@ const About = () => {
             ].map((value, index) => (
               <motion.div
                 key={index}
-                className="glass-card p-6 rounded-xl flex flex-col items-center text-center"
+                className="glass-card p-6 rounded-xl flex flex-col items-center text-center group overflow-hidden"
                 variants={itemVariants}
                 whileHover={{ y: -5, transition: { duration: 0.2 } }}
               >
-                <div className="bg-dark-accent/50 w-12 h-12 rounded-full flex items-center justify-center mb-4">
+                <span className="absolute w-[30vw] sm:w-[140px] lg:w-[150px] z-10 h-[40vw] sm:h-[170px] lg:h-[180px] group-hover:scale-150 group-hover:rotate-12 transition-all duration-1000 bottom-[-70%] left-0 blur-3xl bg-primary text-white px-2 py-1 text-sm font-medium rounded-full bg-gradient-to-r from-purple-800 to-green-700" />
+                <div className="bg-gradient-to-r from-purple-700 to-indigo-700 group-hover:scale-110 transition-transform w-12 h-12 rounded-full flex items-center justify-center mb-4">
                   <value.icon className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-dark-text">

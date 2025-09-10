@@ -1,174 +1,353 @@
 // import { useAuth } from "@/context/AuthContext";
 // import { Button } from "@/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
-import { CheckCircle, User, GraduationCap, PenTool, Award, UserCheck, BookOpen, Mail } from "lucide-react";
-import { useState } from "react";
-import { userDetails } from "./OnboardingStep2";
+import {
+  CheckCircle,
+  User,
+  GraduationCap,
+  PenTool,
+  Award,
+  UserCheck,
+  BookOpen,
+  Sparkles,
+  Target,
+} from "lucide-react";
+// import { useState } from "react";
+import { motion } from "framer-motion";
 
-const OnboardingStep3 = () => {
+interface OnboardingStep3Props {
+  selectedRole: string;
+  customLearningGoal: string;
+}
+
+// interface userDetails {
+//   role: string,
+//   universityDetails: {
+//     university: string,
+//     course: string,
+//     level: string,
+//     matricNumber: string,
+//   },
+//   jambDetails: {
+//     preferredUniversity: string,
+//     preferredCourse: string,
+//   },
+//   email: string,
+// }
+
+const OnboardingStep3: React.FC<OnboardingStep3Props> = ({
+  selectedRole,
+  customLearningGoal,
+}) => {
   // const { userDetails } = useAuth();
-  const [userDetails] = useState<userDetails>({
-    role: "",
-    universityDetails: {
-      university: "",
-      course: "",
-      level: "",
-      matricNumber: "",
-    },
-    jambDetails: {
-      preferredUniversity: "",
-      preferredCourse: "",
-    },
-		email: "",
-  });
+  // const [userDetails] = useState<userDetails>({
+  //   role: "",
+  //   universityDetails: {
+  //     university: "",
+  //     course: "",
+  //     level: "",
+  //     matricNumber: "",
+  //   },
+  //   jambDetails: {
+  //     preferredUniversity: "",
+  //     preferredCourse: "",
+  //   },
+  //   email: "",
+  // });
 
   const getRoleIcon = () => {
-    switch (userDetails.role) {
+    switch (selectedRole) {
       case "undergraduate":
-        return <BookOpen className="h-6 w-6 text-indigo-500" />;
+        return <BookOpen className="w-8 h-8 text-turbo-purple" />;
       case "university":
-        return <GraduationCap className="h-6 w-6 text-indigo-500" />;
+        return <GraduationCap className="w-8 h-8 text-turbo-indigo" />;
       case "jamb":
-        return <PenTool className="h-6 w-6 text-indigo-500" />;
+        return <PenTool className="w-8 h-8 text-amber-500" />;
       case "masters":
-        return <Award className="h-6 w-6 text-indigo-500" />;
+        return <Award className="w-8 h-8 text-green-500" />;
       case "lecturer":
-        return <UserCheck className="h-6 w-6 text-indigo-500" />;
+        return <UserCheck className="w-8 h-8 text-purple-500" />;
+      case "custom":
+        return <Sparkles className="w-8 h-8 text-orange-500" />;
       default:
-        return <User className="h-6 w-6 text-indigo-500" />;
+        return <User className="w-8 h-8 text-turbo-purple" />;
     }
   };
 
   const getRoleName = () => {
-    switch (userDetails.role) {
+    switch (selectedRole) {
       case "undergraduate":
-        return "Undergraduate";
+        return "Undergraduate Student";
       case "university":
         return "University Student";
       case "jamb":
-        return "JAMB Student";
+        return "JAMB Candidate";
       case "masters":
         return "Master's Student";
       case "lecturer":
         return "Lecturer";
+      case "custom":
+        return `Custom Learner: ${customLearningGoal}`;
       default:
-        return "User";
+        return "Student";
     }
   };
 
-  const hasUniversityDetails =
-    userDetails.universityDetails &&
-    (userDetails.universityDetails.university ||
-      userDetails.universityDetails.course ||
-      userDetails.universityDetails.level ||
-      userDetails.universityDetails.matricNumber);
+  const getRoleFeatures = () => {
+    switch (selectedRole) {
+      case "jamb":
+        return [
+          "JAMB-specific study materials and past questions",
+          "Personalized study schedule based on your target score",
+          "Subject-specific practice tests and mock exams",
+          "Performance analytics and progress tracking",
+        ];
+      case "undergraduate":
+        return [
+          "Course-specific study materials and resources",
+          "Assignment and project assistance",
+          "Exam preparation and practice questions",
+          "Academic writing and research support",
+        ];
+      case "university":
+        return [
+          "University-level academic resources",
+          "Research and thesis assistance",
+          "Course material organization and notes",
+          "Study group collaboration tools",
+        ];
+      case "masters":
+        return [
+          "Advanced research methodologies and tools",
+          "Thesis writing and academic publication support",
+          "Specialized subject matter expertise",
+          "Professional development resources",
+        ];
+      case "lecturer":
+        return [
+          "Course creation and curriculum development tools",
+          "Student assessment and grading assistance",
+          "Research collaboration and publication support",
+          "Teaching methodology and pedagogy resources",
+        ];
+      case "custom":
+        return [
+          `Personalized content for "${customLearningGoal}"`,
+          "Adaptive learning paths based on your goals",
+          "Custom study materials and resources",
+          "Progress tracking tailored to your objectives",
+          "Flexible learning schedule and pace",
+        ];
+      default:
+        return [
+          "AI-powered study assistance",
+          "Personalized learning recommendations",
+          "Progress tracking and analytics",
+          "Interactive learning tools",
+        ];
+    }
+  };
 
-  const hasJambDetails =
-    userDetails.jambDetails &&
-    (userDetails.jambDetails.preferredUniversity ||
-      userDetails.jambDetails.preferredCourse);
+  // const hasUniversityDetails =
+  //   userDetails.universityDetails &&
+  //   (userDetails.universityDetails.university ||
+  //     userDetails.universityDetails.course ||
+  //     userDetails.universityDetails.level ||
+  //     userDetails.universityDetails.matricNumber);
+
+  // const hasJambDetails =
+  //   userDetails.jambDetails &&
+  //   (userDetails.jambDetails.preferredUniversity ||
+  //     userDetails.jambDetails.preferredCourse);
 
   return (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
-        <div className="mx-auto bg-white/10 rounded-full p-4 w-20 h-20 flex items-center justify-center mb-4">
-          {getRoleIcon()}
-        </div>
-        <h2 className="text-xl text-white/90 font-semibold">Confirm Your Details</h2>
-        <p className="text-white/60">Please review the information you've provided</p>
-      </div>
-
-      <div className="bg-white/5 rounded-lg p-6 space-y-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <User className="h-5 w-5 text-indigo-500" />
-            <span className="font-medium text-white/90">Role</span>
+    <div className="space-y-8">
+      {/* Success Header */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="text-center"
+      >
+        <div className="relative inline-flex items-center justify-center mb-6">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center">
+            {getRoleIcon()}
           </div>
-          <span>{getRoleName()}</span>
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.3, duration: 0.3 }}
+            className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-green-500 flex items-center justify-center"
+          >
+            <CheckCircle className="w-5 h-5 text-white" />
+          </motion.div>
         </div>
 
-        {userDetails.email && (
-          <>
-            <Separator className="bg-dark-accent/40" />
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                <Mail className="h-5 w-5 text-turbo-indigo" />
-                <span className="font-medium">Email</span>
-              </div>
-              <span>{userDetails.email}</span>
-            </div>
-          </>
-        )}
+        <motion.h2
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="text-3xl font-bold text-white mb-2"
+        >
+          Welcome to EduPro AI!
+        </motion.h2>
 
-        {hasUniversityDetails && (
-          <>
-            <Separator className="bg-dark-accent/40" />
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <GraduationCap className="h-5 w-5 text-turbo-indigo" />
-                <span className="font-medium">Academic Information</span>
-              </div>
-              <div className="ml-8 space-y-2">
-                {userDetails.universityDetails?.university && (
-                  <div className="flex justify-between">
-                    <span className="text-dark-muted">University:</span>
-                    <span>{userDetails.universityDetails.university}</span>
-                  </div>
-                )}
-                {userDetails.universityDetails?.course && (
-                  <div className="flex justify-between">
-                    <span className="text-dark-muted">Course:</span>
-                    <span>{userDetails.universityDetails.course}</span>
-                  </div>
-                )}
-                {userDetails.universityDetails?.level && (
-                  <div className="flex justify-between">
-                    <span className="text-dark-muted">Level:</span>
-                    <span>{userDetails.universityDetails.level}</span>
-                  </div>
-                )}
-                {userDetails.universityDetails?.matricNumber && (
-                  <div className="flex justify-between">
-                    <span className="text-dark-muted">Matric Number:</span>
-                    <span>{userDetails.universityDetails.matricNumber}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+          className="text-white/60 text-lg"
+        >
+          Your profile has been set up as a{" "}
+          <span className="text-turbo-purple font-semibold">
+            {getRoleName()}
+          </span>
+        </motion.p>
+      </motion.div>
 
-        {hasJambDetails && (
-          <>
-            <Separator className="bg-dark-accent/40" />
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <PenTool className="h-5 w-5 text-turbo-indigo" />
-                <span className="font-medium">JAMB Information</span>
-              </div>
-              <div className="ml-8 space-y-2">
-                {userDetails.jambDetails?.preferredUniversity && (
-                  <div className="flex justify-between">
-                    <span className="text-dark-muted">Preferred University:</span>
-                    <span>{userDetails.jambDetails.preferredUniversity}</span>
-                  </div>
-                )}
-                {userDetails.jambDetails?.preferredCourse && (
-                  <div className="flex justify-between">
-                    <span className="text-dark-muted">Preferred Course:</span>
-                    <span>{userDetails.jambDetails.preferredCourse}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-      </div>
+      {/* Profile Summary */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.5 }}
+        className="bg-white/5 border border-white/10 rounded-xl p-6"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <User className="w-5 h-5 text-turbo-purple" />
+          <h3 className="text-lg font-semibold text-white">Profile Summary</h3>
+        </div>
 
-      <div className="pt-4 flex items-center justify-center space-x-2 text-sm text-dark-muted">
-        <CheckCircle className="h-4 w-4 text-green-500" />
-        <span>You can update these details later from your profile</span>
-      </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-white/60">Role</span>
+            <span className="text-white font-medium">{getRoleName()}</span>
+          </div>
+
+          <Separator className="bg-white/10" />
+
+          <div className="flex items-center justify-between">
+            <span className="text-white/60">Account Type</span>
+            <span className="text-turbo-purple font-medium">Free Plan</span>
+          </div>
+
+          <Separator className="bg-white/10" />
+
+          <div className="flex items-center justify-between">
+            <span className="text-white/60">Setup Status</span>
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              <span className="text-green-400 font-medium">Complete</span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Features for Your Role */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.5 }}
+        className="bg-gradient-to-r from-turbo-purple/10 to-turbo-indigo/10 border border-turbo-purple/20 rounded-xl p-6"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <Sparkles className="w-5 h-5 text-turbo-purple" />
+          <h3 className="text-lg font-semibold text-white">
+            What's Available for You
+          </h3>
+        </div>
+
+        <div className="grid gap-3">
+          {getRoleFeatures().map((feature, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 + index * 0.1, duration: 0.3 }}
+              className="flex items-center gap-3"
+            >
+              <div className="w-2 h-2 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo" />
+              <span className="text-white/80">{feature}</span>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Next Steps */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7, duration: 0.5 }}
+        className="bg-white/5 border border-white/10 rounded-xl p-6"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <Target className="w-5 h-5 text-turbo-indigo" />
+          <h3 className="text-lg font-semibold text-white">
+            Ready to Get Started?
+          </h3>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 rounded-full bg-turbo-purple/20 flex items-center justify-center mt-0.5">
+              <span className="text-xs font-bold text-turbo-purple">1</span>
+            </div>
+            <div>
+              <h4 className="font-medium text-white mb-1">
+                Explore Your Dashboard
+              </h4>
+              <p className="text-sm text-white/60">
+                Get familiar with all the tools and features available to you
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 rounded-full bg-turbo-indigo/20 flex items-center justify-center mt-0.5">
+              <span className="text-xs font-bold text-turbo-indigo">2</span>
+            </div>
+            <div>
+              <h4 className="font-medium text-white mb-1">Start Learning</h4>
+              <p className="text-sm text-white/60">
+                Begin with our AI-powered study materials and interactive
+                content
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center mt-0.5">
+              <span className="text-xs font-bold text-green-500">3</span>
+            </div>
+            <div>
+              <h4 className="font-medium text-white mb-1">
+                Track Your Progress
+              </h4>
+              <p className="text-sm text-white/60">
+                Monitor your learning journey and celebrate your achievements
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Final Note */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.5 }}
+        className="text-center p-4 bg-turbo-purple/5 border border-turbo-purple/20 rounded-lg"
+      >
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <CheckCircle className="w-4 h-4 text-green-500" />
+          <span className="text-sm font-medium text-white">
+            Setup Complete!
+          </span>
+        </div>
+        <p className="text-xs text-white/60">
+          You can always update your profile information later from your account
+          settings
+        </p>
+      </motion.div>
     </div>
   );
 };

@@ -197,9 +197,18 @@ func (c *Client) CreateOnboarding(req *models.CreateOnboardingRequest) (*models.
 	return onboarding, nil
 }
 
-// GetOnboardingByUserID retrieves onboarding data for a user
+// GetOnboardingByUserID retrieves onboarding data for a user (userID can be Supabase ID)
 func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData, error) {
 	logger := utils.GetLogger()
+	
+	// First, get the internal user ID from Supabase ID
+	user, err := c.GetUserBySupabaseID(userID.String())
+	if err != nil {
+		logger.Warn("User not found by Supabase ID for onboarding lookup", zap.String("supabase_id", userID.String()))
+		return nil, fmt.Errorf("user not found")
+	}
+	
+	internalUserID := user.ID
 	
 	onboarding := &models.OnboardingData{}
 	var academicDetailsJSON *string
@@ -210,14 +219,14 @@ func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData
 		WHERE user_id = $1
 	`
 
-	err := c.db.QueryRow(query, userID).Scan(
+	err = c.db.QueryRow(query, internalUserID).Scan(
 		&onboarding.ID, &onboarding.UserID, &onboarding.Role, 
 		&onboarding.CustomLearningGoal, &academicDetailsJSON,
 		&onboarding.CreatedAt, &onboarding.CompletedAt, &onboarding.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logger.Warn("Onboarding not found", zap.String("user_id", userID.String()))
+			logger.Warn("Onboarding not found", zap.String("internal_user_id", internalUserID.String()))
 			return nil, fmt.Errorf("onboarding not found")
 		}
 		logger.Error("Failed to get onboarding", zap.Error(err))
@@ -237,9 +246,22 @@ func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData
 	return onboarding, nil
 }
 
-// UpdateOnboarding updates onboarding data for a user
+// UpdateOnboarding updates onboarding data for a user (userID can be Supabase ID)
 func (c *Client) UpdateOnboarding(userID uuid.UUID, req *models.OnboardingUpdateRequest) (*models.OnboardingData, error) {
 	logger := utils.GetLogger()
+	
+	// First, get the internal user ID from Supabase ID
+	user, err := c.GetUserBySupabaseID(userID.String())
+	if err != nil {
+		logger.Error("User not found by Supabase ID", zap.String("supabase_id", userID.String()), zap.Error(err))
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+	
+	internalUserID := user.ID
+	logger.Info("Found user for onboarding update", 
+		zap.String("supabase_id", userID.String()),
+		zap.String("internal_user_id", internalUserID.String()),
+	)
 	
 	// Serialize academic details to JSON
 	var academicDetailsJSON *string
@@ -253,7 +275,7 @@ func (c *Client) UpdateOnboarding(userID uuid.UUID, req *models.OnboardingUpdate
 		academicDetailsJSON = &jsonStr
 	}
 
-	// First, try to update existing onboarding
+	// First, try to update existing onboarding using internal user ID
 	query := `
 		UPDATE onboarding 
 		SET role = $2,
@@ -268,16 +290,16 @@ func (c *Client) UpdateOnboarding(userID uuid.UUID, req *models.OnboardingUpdate
 	onboarding := &models.OnboardingData{}
 	var academicDetailsResult *string
 	
-	err := c.db.QueryRow(query, userID, req.Role, req.CustomLearningGoal, academicDetailsJSON).Scan(
+	err = c.db.QueryRow(query, internalUserID, req.Role, req.CustomLearningGoal, academicDetailsJSON).Scan(
 		&onboarding.ID, &onboarding.UserID, &onboarding.Role, 
 		&onboarding.CustomLearningGoal, &academicDetailsResult,
 		&onboarding.CreatedAt, &onboarding.CompletedAt, &onboarding.UpdatedAt,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// If no existing onboarding, create a new one
+			// If no existing onboarding, create a new one using internal user ID
 			createReq := &models.CreateOnboardingRequest{
-				UserID:             userID,
+				UserID:             internalUserID,
 				Role:               req.Role,
 				CustomLearningGoal: req.CustomLearningGoal,
 				AcademicDetails:    req.AcademicDetails,

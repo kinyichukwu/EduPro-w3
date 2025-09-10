@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -127,6 +130,16 @@ func (h *UserHandler) UpdateOnboarding(c *gin.Context) {
 		return
 	}
 
+	// Ensure user exists in our database (auto-create if needed)
+	err = h.ensureUserExists(c, userUUID)
+	if err != nil {
+		logger.Error("Failed to ensure user exists", zap.String("user_id", userID), zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to process user data",
+		})
+		return
+	}
+
 	// Update onboarding data
 	onboarding, err := h.db.UpdateOnboarding(userUUID, &req)
 	if err != nil {
@@ -206,4 +219,82 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 
 	logger.Info("User profile updated successfully", zap.String("user_id", userID))
 	c.JSON(http.StatusOK, user)
+}
+
+// ensureUserExists checks if user exists in our database and creates them if needed
+func (h *UserHandler) ensureUserExists(c *gin.Context, userUUID uuid.UUID) error {
+	logger := utils.GetLogger()
+	
+	// First, try to get the user by UUID (our internal UUID)
+	_, err := h.db.GetUserByID(userUUID)
+	if err == nil {
+		// User exists, nothing to do
+		return nil
+	}
+	
+	// User doesn't exist by internal UUID, try by Supabase ID
+	supabaseID := userUUID.String() // The UUID from JWT is actually the Supabase ID
+	_, err = h.db.GetUserBySupabaseID(supabaseID)
+	if err == nil {
+		// User exists by Supabase ID, nothing to do
+		return nil
+	}
+	
+	// User doesn't exist, create them from JWT data
+	email, emailExists := middleware.GetUserEmailFromContext(c)
+	if !emailExists {
+		return fmt.Errorf("email not found in JWT token")
+	}
+	
+	// Extract username from email as fallback (user can update later)
+	username := extractUsernameFromEmail(email)
+	
+	logger.Info("Auto-creating user from JWT data", 
+		zap.String("supabase_id", supabaseID),
+		zap.String("email", email),
+		zap.String("username", username),
+	)
+	
+	// Create user in our database
+	createReq := &models.CreateUserRequest{
+		Email:      email,
+		Username:   username,
+		SupabaseID: supabaseID,
+	}
+	
+	_, err = h.db.CreateUser(createReq)
+	if err != nil {
+		logger.Error("Failed to auto-create user", zap.Error(err))
+		return fmt.Errorf("failed to create user: %w", err)
+	}
+	
+	logger.Info("User auto-created successfully", zap.String("supabase_id", supabaseID))
+	return nil
+}
+
+// extractUsernameFromEmail creates a username from email address
+func extractUsernameFromEmail(email string) string {
+	parts := strings.Split(email, "@")
+	if len(parts) > 0 {
+		// Clean up the username part
+		username := parts[0]
+		// Remove any special characters and make it lowercase
+		username = strings.ToLower(username)
+		username = strings.ReplaceAll(username, ".", "")
+		username = strings.ReplaceAll(username, "-", "")
+		username = strings.ReplaceAll(username, "_", "")
+		
+		// Ensure it's not too long
+		if len(username) > 20 {
+			username = username[:20]
+		}
+		
+		// Ensure it's not too short
+		if len(username) < 3 {
+			username = username + "user"
+		}
+		
+		return username
+	}
+	return "user" + fmt.Sprintf("%d", time.Now().Unix())
 }

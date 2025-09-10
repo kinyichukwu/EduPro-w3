@@ -53,20 +53,20 @@ func (h *AuthHandler) Me(c *gin.Context) {
 		return
 	}
 
-	// Get user from database
-	user, err := h.db.GetUserByID(userUUID)
+	// Get user from database by Supabase ID (JWT contains Supabase ID)
+	user, err := h.db.GetUserBySupabaseID(userID)
 	if err != nil {
-		logger.Error("Failed to get user", zap.String("user_id", userID), zap.Error(err))
+		logger.Error("Failed to get user by Supabase ID", zap.String("supabase_id", userID), zap.Error(err))
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "User not found",
 		})
 		return
 	}
 
-	// Get onboarding data
+	// Get onboarding data using the internal user ID
 	onboarding, err := h.db.GetOnboardingByUserID(userUUID)
 	if err != nil {
-		logger.Info("No onboarding data found for user", zap.String("user_id", userID))
+		logger.Info("No onboarding data found for user", zap.String("supabase_id", userID))
 		// It's OK if onboarding doesn't exist yet
 	}
 

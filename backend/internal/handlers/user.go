@@ -3,8 +3,6 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -249,7 +247,7 @@ func (h *UserHandler) ensureUserExists(c *gin.Context, userUUID uuid.UUID) error
 	}
 	
 	// Extract username from email as fallback (user can update later)
-	username := extractUsernameFromEmail(email)
+	username := utils.ExtractUsernameFromEmail(email)
 	
 	logger.Info("Auto-creating user from JWT data", 
 		zap.String("supabase_id", supabaseID),
@@ -272,31 +270,4 @@ func (h *UserHandler) ensureUserExists(c *gin.Context, userUUID uuid.UUID) error
 	
 	logger.Info("User auto-created successfully", zap.String("supabase_id", supabaseID))
 	return nil
-}
-
-// extractUsernameFromEmail creates a username from email address
-func extractUsernameFromEmail(email string) string {
-	parts := strings.Split(email, "@")
-	if len(parts) > 0 {
-		// Clean up the username part
-		username := parts[0]
-		// Remove any special characters and make it lowercase
-		username = strings.ToLower(username)
-		username = strings.ReplaceAll(username, ".", "")
-		username = strings.ReplaceAll(username, "-", "")
-		username = strings.ReplaceAll(username, "_", "")
-		
-		// Ensure it's not too long
-		if len(username) > 20 {
-			username = username[:20]
-		}
-		
-		// Ensure it's not too short
-		if len(username) < 3 {
-			username = username + "user"
-		}
-		
-		return username
-	}
-	return "user" + fmt.Sprintf("%d", time.Now().Unix())
 }

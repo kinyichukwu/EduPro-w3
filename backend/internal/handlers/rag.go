@@ -163,7 +163,7 @@ func (h *RAGHandler) GetDocuments(c *gin.Context) {
 		return
 	}
 
-	user, err := h.db.GetUserBySupabaseID(userSupabaseID)
+	user, err := h.getOrCreateUser(c, userSupabaseID)
 	if err != nil {
 		utils.SendError(c, &models.APIError{
 			Code:    http.StatusNotFound,
@@ -243,7 +243,7 @@ func (h *RAGHandler) GetChats(c *gin.Context) {
 		return
 	}
 
-	user, err := h.db.GetUserBySupabaseID(userSupabaseID)
+	user, err := h.getOrCreateUser(c, userSupabaseID)
 	if err != nil {
 		utils.SendError(c, &models.APIError{
 			Code:    http.StatusNotFound,
@@ -332,7 +332,7 @@ func (h *RAGHandler) CreateChat(c *gin.Context) {
 		return
 	}
 
-	user, err := h.db.GetUserBySupabaseID(userSupabaseID)
+	user, err := h.getOrCreateUser(c, userSupabaseID)
 	if err != nil {
 		utils.SendError(c, &models.APIError{
 			Code:    http.StatusNotFound,
@@ -380,7 +380,7 @@ func (h *RAGHandler) GetChatMessages(c *gin.Context) {
 		return
 	}
 
-	user, err := h.db.GetUserBySupabaseID(userSupabaseID)
+	user, err := h.getOrCreateUser(c, userSupabaseID)
 	if err != nil {
 		utils.SendError(c, &models.APIError{
 			Code:    http.StatusNotFound,
@@ -505,7 +505,7 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 		return
 	}
 
-	user, err := h.db.GetUserBySupabaseID(userSupabaseID)
+	user, err := h.getOrCreateUser(c, userSupabaseID)
 	if err != nil {
 		utils.SendError(c, &models.APIError{
 			Code:    http.StatusNotFound,
@@ -703,4 +703,56 @@ func (h *RAGHandler) addFileMessageToChat(chatID, userID string, uploadResult *s
 	if err != nil {
 		logger.Error("Failed to add file message to chat", zap.Error(err))
 	}
+}
+
+// getOrCreateUser gets a user by Supabase ID or creates them if they don't exist
+func (h *RAGHandler) getOrCreateUser(c *gin.Context, supabaseID string) (*models.User, error) {
+	logger := utils.GetLogger()
+
+	// Try to get existing user
+	user, err := h.db.GetUserBySupabaseID(supabaseID)
+	if err == nil {
+		return user, nil
+	}
+
+	// User doesn't exist, create them from JWT data
+	email, emailExists := middleware.GetUserEmailFromContext(c)
+	if !emailExists {
+		logger.Error("Email not found in JWT token for user creation", zap.String("supabase_id", supabaseID))
+		return nil, fmt.Errorf("email not found in JWT token")
+	}
+
+	// Extract username from email as fallback
+	username := utils.ExtractUsernameFromEmail(email)
+
+	logger.Info("Auto-creating user from JWT data for RAG operation",
+		zap.String("supabase_id", supabaseID),
+		zap.String("email", email),
+		zap.String("username", username),
+	)
+
+	// Create user in database
+	createUserReq := &models.CreateUserRequest{
+		Email:      email,
+		Username:   username,
+		FullName:   &username, // Use username as fallback for full name
+		SupabaseID: supabaseID,
+	}
+
+	createdUser, err := h.db.CreateUser(createUserReq)
+	if err != nil {
+		logger.Error("Failed to auto-create user",
+			zap.String("supabase_id", supabaseID),
+			zap.String("email", email),
+			zap.Error(err),
+		)
+		return nil, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	logger.Info("Successfully auto-created user for RAG operation",
+		zap.String("supabase_id", supabaseID),
+		zap.String("user_id", createdUser.ID.String()),
+	)
+
+	return createdUser, nil
 }

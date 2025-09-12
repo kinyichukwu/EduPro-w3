@@ -12,8 +12,8 @@ import (
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/database"
 	"github.com/kinyichukwu/edu-pro-backend/internal/utils"
-	"github.com/supabase-community/supabase-go"
 	"github.com/supabase-community/gotrue-go/types"
+	"github.com/supabase-community/supabase-go"
 	"go.uber.org/zap"
 )
 
@@ -43,7 +43,7 @@ func NewAuthHandler(db *database.Client, cfg *config.Config) *AuthHandler {
 // Me handles GET /api/auth/me
 func (h *AuthHandler) Me(c *gin.Context) {
 	logger := utils.GetLogger()
-	
+
 	// Get user ID from JWT token
 	userID, exists := middleware.GetUserIDFromContext(c)
 	if !exists {
@@ -100,11 +100,11 @@ func (h *AuthHandler) Me(c *gin.Context) {
 // RefreshToken handles POST /api/auth/refresh
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	logger := utils.GetLogger()
-	
+
 	// For now, we'll just return the current token info
 	// In a full implementation, you would validate the refresh token
 	// and issue a new access token
-	
+
 	userID, exists := middleware.GetUserIDFromContext(c)
 	if !exists {
 		logger.Error("User ID not found in context")
@@ -149,7 +149,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 // CreateUser handles user creation (internal use, for integration with frontend auth)
 func (h *AuthHandler) CreateUser(c *gin.Context) {
 	logger := utils.GetLogger()
-	
+
 	var req models.CreateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Error("Invalid request body", zap.Error(err))
@@ -163,7 +163,7 @@ func (h *AuthHandler) CreateUser(c *gin.Context) {
 	if err := utils.ValidateStruct(&req); err != nil {
 		logger.Error("Validation failed", zap.Error(err))
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Validation failed",
+			"error":   "Validation failed",
 			"details": err.Error(),
 		})
 		return
@@ -186,12 +186,12 @@ func (h *AuthHandler) CreateUser(c *gin.Context) {
 // Register handles POST /api/auth/register
 func (h *AuthHandler) Register(c *gin.Context) {
 	logger := utils.GetLogger()
-	
+
 	var req models.RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Error("Invalid request body", zap.Error(err))
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Error: "Invalid request body",
+			Error:   "Invalid request body",
 			Details: err.Error(),
 		})
 		return
@@ -200,7 +200,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err := utils.ValidateStruct(&req); err != nil {
 		logger.Error("Validation failed", zap.Error(err))
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Error: "Validation failed",
+			Error:   "Validation failed",
 			Details: err.Error(),
 		})
 		return
@@ -214,7 +214,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err != nil {
 		logger.Error("Failed to create user in Supabase", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error: "Failed to create user account",
+			Error:   "Failed to create user account",
 			Details: err.Error(),
 		})
 		return
@@ -232,7 +232,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	if err != nil {
 		logger.Error("Failed to create user in database", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, models.ErrorResponse{
-			Error: "Failed to create user profile",
+			Error:   "Failed to create user profile",
 			Details: err.Error(),
 		})
 		return
@@ -273,12 +273,12 @@ func (h *AuthHandler) Register(c *gin.Context) {
 // Login handles POST /api/auth/login
 func (h *AuthHandler) Login(c *gin.Context) {
 	logger := utils.GetLogger()
-	
+
 	var req models.LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Error("Invalid request body", zap.Error(err))
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Error: "Invalid request body",
+			Error:   "Invalid request body",
 			Details: err.Error(),
 		})
 		return
@@ -287,7 +287,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	if err := utils.ValidateStruct(&req); err != nil {
 		logger.Error("Validation failed", zap.Error(err))
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{
-			Error: "Validation failed",
+			Error:   "Validation failed",
 			Details: err.Error(),
 		})
 		return
@@ -295,7 +295,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// For testing, we'll create a simple login that creates a Supabase user if needed
 	// In production, you'd want proper password hashing and validation
-	
+
 	// Try to sign in with Supabase first
 	user, err := h.supabase.Auth.SignInWithEmailPassword(req.Email, req.Password)
 	if err != nil {
@@ -312,7 +312,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		// Try to sign in again after signup
 		user, err = h.supabase.Auth.SignInWithEmailPassword(req.Email, req.Password)
 		if err != nil {
@@ -322,7 +322,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			})
 			return
 		}
-		
+
 		// Log the signup response for debugging
 		logger.Info("User created successfully", zap.String("user_id", signupResp.User.ID.String()))
 	}
@@ -332,16 +332,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	if err != nil {
 		// If user not found in our database, create them
 		logger.Info("User not found in database, creating new user", zap.String("supabase_id", user.User.ID.String()))
-		
+
 		// Extract username from email
-		username := extractUsernameFromEmail(req.Email)
-		
+		username := utils.ExtractUsernameFromEmail(req.Email)
+
 		createUserReq := &models.CreateUserRequest{
 			Email:      req.Email,
 			Username:   username,
 			SupabaseID: user.User.ID.String(),
 		}
-		
+
 		dbUser, err = h.db.CreateUser(createUserReq)
 		if err != nil {
 			logger.Error("Failed to create user in database", zap.Error(err))
@@ -390,7 +390,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	logger.Info("User logged in successfully", zap.String("user_id", dbUser.ID.String()))
 	c.JSON(http.StatusOK, response)
 }
-
 
 // createJWTToken creates a JWT token for the user
 func (h *AuthHandler) createJWTToken(userID, email, role string) (string, error) {

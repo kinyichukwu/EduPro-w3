@@ -206,6 +206,15 @@ class ApiService {
         };
       }
 
+      // Handle backend APIResponse wrapper
+      if (data && typeof data === 'object' && 'success' in data) {
+        if (data.success) {
+          return { data: data.data };
+        } else {
+          return { error: data.error || 'API request failed' };
+        }
+      }
+
       return { data };
     } catch (error) {
       console.error('API request failed:', error);

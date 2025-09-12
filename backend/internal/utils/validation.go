@@ -51,3 +51,30 @@ func ValidateMax(field string, max int) bool {
 func ValidateOneOf(field string, values []string) bool {
 	return validate.Var(field, fmt.Sprintf("oneof=%s", strings.Join(values, " "))) == nil
 }
+
+// ExtractUsernameFromEmail extracts username from email address
+func ExtractUsernameFromEmail(email string) string {
+	parts := strings.Split(email, "@")
+	if len(parts) > 0 {
+		// Clean up the username part
+		username := parts[0]
+		// Remove any special characters and make it lowercase
+		username = strings.ToLower(username)
+		username = strings.ReplaceAll(username, ".", "")
+		username = strings.ReplaceAll(username, "-", "")
+		username = strings.ReplaceAll(username, "_", "")
+
+		// Ensure it's not too long
+		if len(username) > 20 {
+			username = username[:20]
+		}
+
+		// Ensure it's not too short
+		if len(username) < 3 {
+			username = username + "user"
+		}
+
+		return username
+	}
+	return "user"
+}

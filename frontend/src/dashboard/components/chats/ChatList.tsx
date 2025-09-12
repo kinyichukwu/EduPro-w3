@@ -32,13 +32,14 @@ export function ChatList({ selectedChatId, onChatSelect, className = "" }: ChatL
     staleTime: 30000, // 30 seconds
   });
 
-  // Accumulate chats from all pages
+  // Accumulate chats from all pages (backend returns { chats, page, total, has_more })
   useEffect(() => {
-    if (chatsResponse?.data) {
+    if (chatsResponse) {
+      const newChats = chatsResponse.chats || [];
       if (page === 1) {
-        setAllChats(chatsResponse.data);
+        setAllChats(newChats);
       } else {
-        setAllChats(prev => [...prev, ...chatsResponse.data]);
+        setAllChats(prev => [...prev, ...newChats]);
       }
     }
   }, [chatsResponse, page]);
@@ -89,12 +90,12 @@ export function ChatList({ selectedChatId, onChatSelect, className = "" }: ChatL
   };
 
   const loadMore = () => {
-    if (chatsResponse?.pagination && page < chatsResponse.pagination.total_pages) {
+    if (chatsResponse?.has_more) {
       setPage(prev => prev + 1);
     }
   };
 
-  const hasMore = chatsResponse?.pagination && page < chatsResponse.pagination.total_pages;
+  const hasMore = Boolean(chatsResponse?.has_more);
 
   if (error) {
     return (
@@ -164,16 +165,14 @@ export function ChatList({ selectedChatId, onChatSelect, className = "" }: ChatL
                           <MessageSquare className="w-4 h-4 text-white" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm text-white truncate font-medium">
-                            {chat.title || 'Untitled Chat'}
-                          </div>
+                          <div className="text-sm text-white truncate font-medium">Chat</div>
                           {chat.last_message && (
                             <div className="text-xs text-white/50 truncate mt-0.5">
                               {chat.last_message}
                             </div>
                           )}
                           <div className="text-xs text-white/40 mt-1">
-                            {new Date(chat.updated_at).toLocaleDateString()}
+                            {new Date(chat.created_at).toLocaleDateString()}
                           </div>
                         </div>
                       </div>

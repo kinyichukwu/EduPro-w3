@@ -1,6 +1,89 @@
 import { supabase } from '../lib/supabaseClient';
 
-const API_BASE_URL = import.meta.env.VITE_APP_SERVER_URL || 'http://localhost:8080';
+// RAG Types
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'file';
+  content: string;
+  created_at: string;
+  metadata?: {
+    source_url?: string;
+    filename?: string;
+    mime_type?: string;
+  };
+}
+
+export interface Chat {
+  id: string;
+  last_message?: string | null;
+  created_at: string;
+}
+
+export interface Document {
+  id: string;
+  title: string;
+  source_url?: string | null;
+  mime_type: string;
+  created_at: string;
+}
+
+// Backend API Response wrapper
+export interface APIResponse<T> {
+  success: boolean;
+  data: T;
+  error?: string;
+  timestamp: string;
+  meta?: {
+    request_id?: string;
+    processing_time_ms?: number;
+    version?: string;
+  };
+}
+
+// Backend pagination structures
+export interface DocumentsResponse {
+  documents: Document[];
+  page: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface ChatsResponse {
+  chats: Chat[];
+  page: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface ChatMessagesResponse {
+  messages: ChatMessage[];
+  page: number;
+  total: number;
+  has_more: boolean;
+}
+
+export interface UploadResponse {
+  document_id: string;
+  title: string;
+  source_url: string;
+  mime_type: string;
+}
+
+export interface Citation {
+  document_id: string;
+  document_title: string;
+  ordinal: number;
+  snippet: string;
+  source_url?: string;
+}
+
+export interface AskResponse {
+  chat_id: string;
+  answer: string;
+  citations: Citation[];
+}
+
+const API_BASE_URL = import.meta.env.VITE_APP_SERVER_URL || 'http://localhost:8080/api';
 
 // Types matching the backend API
 export interface User {
@@ -134,22 +217,22 @@ class ApiService {
 
   // Authentication endpoints
   async getCurrentUser(): Promise<ApiResponse<UserProfile>> {
-    return this.request<UserProfile>('/api/auth/me');
+    return this.request<UserProfile>('/auth/me');
   }
 
   async refreshToken(): Promise<ApiResponse<{ access_token: string; token_type: string; expires_in: number }>> {
-    return this.request('/api/auth/refresh', {
+    return this.request('/auth/refresh', {
       method: 'POST',
     });
   }
 
   // User management endpoints
   async getOnboarding(): Promise<ApiResponse<OnboardingResponse>> {
-    return this.request<OnboardingResponse>('/api/user/onboarding');
+    return this.request<OnboardingResponse>('/user/onboarding');
   }
 
   async updateOnboarding(onboardingData: Partial<OnboardingData>): Promise<ApiResponse<OnboardingResponse>> {
-    return this.request<OnboardingResponse>('/api/user/onboarding', {
+    return this.request<OnboardingResponse>('/user/onboarding', {
       method: 'PUT',
       body: JSON.stringify(onboardingData),
     });
@@ -160,7 +243,7 @@ class ApiService {
     full_name?: string;
     avatar?: string;
   }): Promise<ApiResponse<User>> {
-    return this.request<User>('/api/user/profile', {
+    return this.request<User>('/user/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData),
     });
@@ -175,7 +258,7 @@ class ApiService {
   }): Promise<ApiResponse<User>> {
     try {
       // For internal endpoints, we might not need auth headers since it's called during registration
-      const response = await fetch(`${API_BASE_URL}/api/internal/users`, {
+      const response = await fetch(`${API_BASE_URL}/../internal/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,9 +286,9 @@ class ApiService {
   // Health check endpoint (public)
   async healthCheck(): Promise<ApiResponse<{ status: string; message: string }>> {
     try {
-      const response = await fetch(`${API_BASE_URL}/health`);
+      const response = await fetch(`${API_BASE_URL}/../../health`);
       const data = await response.json();
-      
+
       if (!response.ok) {
         return {
           error: `Backend health check failed: ${response.status}`,
@@ -216,6 +299,63 @@ class ApiService {
     } catch (error) {
       return {
         error: 'Backend server is not responding',
+      };
+    }
+  }
+
+  // RAG endpoints
+  async getChats(page: number = 1): Promise<ApiResponse<ChatsResponse>> {
+    return this.request<ChatsResponse>(`/chats?page=${page}`);
+  }
+
+  async createChat(): Promise<ApiResponse<Chat>> {
+    return this.request<Chat>('/chats', { method: 'POST' });
+  }
+
+  async getChatMessages(chatId: string, page: number = 1): Promise<ApiResponse<ChatMessagesResponse>> {
+    return this.request<ChatMessagesResponse>(`/chats/${chatId}?page=${page}`);
+  }
+
+  async askQuestion(query: string, chatId?: string): Promise<ApiResponse<AskResponse>> {
+    const body: any = { query };
+    if (chatId) body.chat_id = chatId;
+    return this.request<AskResponse>('/ask', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+  }
+
+  async getDocuments(page: number = 1): Promise<ApiResponse<DocumentsResponse>> {
+    return this.request<DocumentsResponse>(`/documents?page=${page}`);
+  }
+
+  async uploadFile(formData: FormData, chatId?: string): Promise<ApiResponse<UploadResponse>> {
+    const headers = await this.getAuthHeaders();
+    // Remove Content-Type for FormData - cast to any to avoid type issues
+    const headersObj = headers as any;
+    delete headersObj['Content-Type'];
+
+    const url = chatId ? `${API_BASE_URL}/upload?chat_id=${chatId}` : `${API_BASE_URL}/upload`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          error: data.error || `HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+
+      return { data };
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : 'Upload failed',
       };
     }
   }

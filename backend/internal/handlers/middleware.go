@@ -97,8 +97,24 @@ func LoggingMiddleware() gin.HandlerFunc {
 
 // CORSMiddleware configures CORS
 func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
+	// For development, allow common frontend ports
+	developmentOrigins := []string{
+		"http://localhost:3000",
+		"http://localhost:5173",
+		"http://localhost:5174",
+		"http://127.0.0.1:3000",
+		"http://127.0.0.1:5173",
+		"http://127.0.0.1:5174",
+	}
+
+	// Use provided origins or default development origins
+	origins := allowedOrigins
+	if len(origins) == 0 {
+		origins = developmentOrigins
+	}
+
 	config := cors.Config{
-		AllowOrigins:     allowedOrigins,
+		AllowOrigins:     origins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Request-ID", "X-Requested-With", "Cache-Control", "Pragma"},
 		ExposeHeaders:    []string{"X-Request-ID", "X-Response-Time"},

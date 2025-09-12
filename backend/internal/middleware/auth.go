@@ -24,6 +24,12 @@ func JWTMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		logger := utils.GetLogger()
 
+		// Allow OPTIONS preflight requests to pass through without auth
+		if c.Request.Method == http.MethodOptions {
+			c.Next()
+			return
+		}
+
 		// Get the Authorization header
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {

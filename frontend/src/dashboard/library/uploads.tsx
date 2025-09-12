@@ -59,13 +59,14 @@ export default function MyUploads() {
     staleTime: 30000, // 30 seconds
   });
 
-  // Accumulate documents from all pages
+  // Accumulate documents from all pages (backend returns { documents, page, total, has_more })
   useEffect(() => {
-    if (documentsResponse?.data) {
+    if (documentsResponse) {
+      const newDocs = documentsResponse.documents || [];
       if (page === 1) {
-        setAllDocuments(documentsResponse.data);
+        setAllDocuments(newDocs);
       } else {
-        setAllDocuments(prev => [...prev, ...documentsResponse.data]);
+        setAllDocuments(prev => [...prev, ...newDocs]);
       }
     }
   }, [documentsResponse, page]);
@@ -73,15 +74,15 @@ export default function MyUploads() {
   // Convert Document to the format expected by existing components
   const convertDocumentToFile = (doc: Document) => ({
     id: doc.id,
-    name: doc.filename,
+    name: doc.title,
     type: getFileTypeFromMime(doc.mime_type),
     category: getCategoryFromMime(doc.mime_type),
-    size: doc.size ? formatFileSize(doc.size) : 'Unknown',
-    tags: [], // Could be extracted from title or added as metadata
+    size: 'Unknown',
+    tags: [],
     lastModified: new Date(doc.created_at).toLocaleDateString(),
-    starred: false, // Could be added as user preference
+    starred: false,
     thumbnail: null,
-    source_url: doc.source_url,
+    source_url: doc.source_url || undefined,
     document_id: doc.id,
   });
 
@@ -119,7 +120,7 @@ export default function MyUploads() {
   const handleChatWithDocument = async (_documentId: string, title: string) => {
     try {
       // Create a new chat and navigate to it
-      const newChat = await ragService.createChat(`Chat about ${title}`);
+      const newChat = await ragService.createChat();
       
       console.log("Chat created:", `Started a new conversation about ${title}`);
       
@@ -132,12 +133,12 @@ export default function MyUploads() {
   };
 
   const loadMoreDocuments = () => {
-    if (documentsResponse?.pagination && page < documentsResponse.pagination.total_pages) {
+    if (documentsResponse?.has_more) {
       setPage(prev => prev + 1);
     }
   };
 
-  const hasMoreDocuments = documentsResponse?.pagination && page < documentsResponse.pagination.total_pages;
+  const hasMoreDocuments = Boolean(documentsResponse?.has_more);
 
   return (
     <div className="px-4 py-6 md:px-6 lg:px-8 max-w-7xl mx-auto">

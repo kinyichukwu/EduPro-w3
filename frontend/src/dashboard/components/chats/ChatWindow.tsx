@@ -38,13 +38,16 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
     staleTime: 10000, // 10 seconds
   });
 
-  // Accumulate messages from all pages
+  // Accumulate messages from all pages (backend returns { messages, page, total, has_more })
   useEffect(() => {
-    if (messagesResponse?.data) {
+    if (messagesResponse) {
+      const pageMessages = messagesResponse.messages || [];
+      // Messages are returned ASC by created_at; ensure oldest first then newest
+      const ordered = [...pageMessages];
       if (page === 1) {
-        setAllMessages(messagesResponse.data.reverse()); // Reverse to show oldest first
+        setAllMessages(ordered);
       } else {
-        setAllMessages(prev => [...messagesResponse.data.reverse(), ...prev]);
+        setAllMessages(prev => [...ordered, ...prev]);
       }
     }
   }, [messagesResponse, page]);
@@ -76,17 +79,15 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
     setIsAsking(true);
 
     try {
-      const response = await ragService.ask(chatId, query);
+      const response = await ragService.ask(query, chatId);
       
       // Create assistant message
       const assistantMessage: ChatMessage = {
         id: `response-${Date.now()}`,
         role: 'assistant',
-        content: response.response,
+        content: response.answer,
         created_at: new Date().toISOString(),
-        metadata: response.sources ? {
-          sources: response.sources
-        } : undefined
+        metadata: response.citations ? { sources: response.citations } : undefined
       };
 
       // Add assistant message
@@ -113,7 +114,7 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
       id: `file-${Date.now()}`,
       role: 'file',
       content: `Uploaded: ${document.title}`,
-      created_at: document.created_at,
+      created_at: new Date().toISOString(),
       metadata: {
         source_url: document.source_url,
         filename: document.title,
@@ -132,12 +133,12 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
   };
 
   const loadMoreMessages = () => {
-    if (messagesResponse?.pagination && page < messagesResponse.pagination.total_pages) {
+    if (messagesResponse?.has_more) {
       setPage(prev => prev + 1);
     }
   };
 
-  const hasMoreMessages = messagesResponse?.pagination && page < messagesResponse.pagination.total_pages;
+  const hasMoreMessages = Boolean(messagesResponse?.has_more);
 
   if (error) {
     return (

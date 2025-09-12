@@ -177,14 +177,14 @@ func (h *RAGHandler) GetDocuments(c *gin.Context) {
 	limit := 20
 	offset := (page - 1) * limit
 
-	// Get documents
+	// Get documents with pagination
 	rows, err := h.db.GetDB().Query(`
 		SELECT id, title, source_url, mime_type, created_at
 		FROM documents
 		WHERE user_id = $1
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
-	`, user.ID, limit, offset)
+	`, user.ID, limit+1, offset) // Get one extra to check if there are more
 	if err != nil {
 		logger.Error("Failed to get documents", zap.Error(err))
 		utils.SendError(c, &models.APIError{
@@ -206,6 +206,12 @@ func (h *RAGHandler) GetDocuments(c *gin.Context) {
 		documents = append(documents, doc)
 	}
 
+	// Check if there are more documents
+	hasMore := len(documents) > limit
+	if hasMore {
+		documents = documents[:limit] // Remove the extra document
+	}
+
 	// Get total count
 	var total int
 	err = h.db.GetDB().QueryRow("SELECT COUNT(*) FROM documents WHERE user_id = $1", user.ID).Scan(&total)
@@ -217,7 +223,7 @@ func (h *RAGHandler) GetDocuments(c *gin.Context) {
 		Documents: documents,
 		Page:      page,
 		Total:     total,
-		HasMore:   len(documents) == limit,
+		HasMore:   hasMore,
 	}
 
 	utils.SendSuccess(c, response)
@@ -251,7 +257,7 @@ func (h *RAGHandler) GetChats(c *gin.Context) {
 	limit := 20
 	offset := (page - 1) * limit
 
-	// Get chats with last message
+	// Get chats with last message (get one extra to check if there are more)
 	rows, err := h.db.GetDB().Query(`
 		SELECT 
 			c.id,
@@ -267,7 +273,7 @@ func (h *RAGHandler) GetChats(c *gin.Context) {
 		WHERE c.user_id = $1
 		ORDER BY c.created_at DESC
 		LIMIT $2 OFFSET $3
-	`, user.ID, limit, offset)
+	`, user.ID, limit+1, offset)
 	if err != nil {
 		logger.Error("Failed to get chats", zap.Error(err))
 		utils.SendError(c, &models.APIError{
@@ -289,6 +295,12 @@ func (h *RAGHandler) GetChats(c *gin.Context) {
 		chats = append(chats, chat)
 	}
 
+	// Check if there are more chats
+	hasMore := len(chats) > limit
+	if hasMore {
+		chats = chats[:limit] // Remove the extra chat
+	}
+
 	// Get total count
 	var total int
 	err = h.db.GetDB().QueryRow("SELECT COUNT(*) FROM chats WHERE user_id = $1", user.ID).Scan(&total)
@@ -300,7 +312,7 @@ func (h *RAGHandler) GetChats(c *gin.Context) {
 		Chats:   chats,
 		Page:    page,
 		Total:   total,
-		HasMore: len(chats) == limit,
+		HasMore: hasMore,
 	}
 
 	utils.SendSuccess(c, response)
@@ -418,14 +430,14 @@ func (h *RAGHandler) GetChatMessages(c *gin.Context) {
 	limit := 50
 	offset := (page - 1) * limit
 
-	// Get messages
+	// Get messages (get one extra to check if there are more)
 	rows, err := h.db.GetDB().Query(`
 		SELECT id, role, content, metadata, created_at
 		FROM chat_messages
 		WHERE chat_id = $1
 		ORDER BY created_at ASC
 		LIMIT $2 OFFSET $3
-	`, chatID, limit, offset)
+	`, chatID, limit+1, offset)
 	if err != nil {
 		logger.Error("Failed to get chat messages", zap.Error(err))
 		utils.SendError(c, &models.APIError{
@@ -456,6 +468,12 @@ func (h *RAGHandler) GetChatMessages(c *gin.Context) {
 		messages = append(messages, msg)
 	}
 
+	// Check if there are more messages
+	hasMore := len(messages) > limit
+	if hasMore {
+		messages = messages[:limit] // Remove the extra message
+	}
+
 	// Get total count
 	var total int
 	err = h.db.GetDB().QueryRow("SELECT COUNT(*) FROM chat_messages WHERE chat_id = $1", chatID).Scan(&total)
@@ -467,7 +485,7 @@ func (h *RAGHandler) GetChatMessages(c *gin.Context) {
 		Messages: messages,
 		Page:     page,
 		Total:    total,
-		HasMore:  len(messages) == limit,
+		HasMore:  hasMore,
 	}
 
 	utils.SendSuccess(c, response)

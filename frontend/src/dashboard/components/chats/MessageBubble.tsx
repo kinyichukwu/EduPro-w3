@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Bot, User, FileText, ExternalLink } from 'lucide-react';
 import { MarkdownRenderer } from '@/shared/components/MarkdownRenderer';
 import { Button } from '@/shared/components/ui/button';
-import { type ChatMessage } from '@/services/rag';
+import { type ChatMessage } from '@/services/api';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -28,7 +28,7 @@ export function MessageBubble({ message, index }: MessageBubbleProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05 }}
       >
-        <div className="max-w-[80%]">
+        <div className="max-w-[80%] sm:max-w-[70%] md:max-w-[65%]">
           <div className="bg-dark-card/60 backdrop-blur-lg border border-white/10 rounded-2xl px-4 py-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-turbo-purple/20 flex items-center justify-center">
@@ -70,30 +70,15 @@ export function MessageBubble({ message, index }: MessageBubbleProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
     >
-      <div className={`max-w-[85%] ${isAI ? 'order-2' : 'order-1'}`}>
+      <div className={`max-w-[80%] sm:max-w-[70%] md:max-w-[65%] ${isAI ? 'order-2' : 'order-1'}`}>
         <div
-          className={`rounded-2xl px-4 py-3 ${
+          className={`rounded-2xl px-4 py-3 break-words overflow-hidden ${
             isAI
               ? 'bg-dark-card/80 backdrop-blur-lg border border-white/10 text-white'
               : 'bg-gradient-to-r from-turbo-purple to-turbo-indigo text-white'
           }`}
         >
           <MarkdownRenderer content={message.content} />
-          
-          {/* Sources for AI messages */}
-          {isAI && message.metadata?.sources && (
-            <div className="mt-3 pt-3 border-t border-white/10">
-              <p className="text-xs text-white/60 mb-2">Sources:</p>
-              <div className="space-y-1">
-                {message.metadata.sources.map((source: any, idx: number) => (
-                  <div key={idx} className="text-xs bg-white/5 rounded p-2">
-                    <p className="text-white/80 font-medium">{source.title}</p>
-                    <p className="text-white/60 mt-1">{source.excerpt}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
         
         <div

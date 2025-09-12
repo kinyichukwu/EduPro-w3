@@ -144,16 +144,16 @@ export function FileUpload({
   return (
     <div className={className}>
       {/* File Selection */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <Button
           onClick={handleFileSelect}
           variant="outline"
           size="sm"
           disabled={disabled || uploading}
-          className="flex items-center gap-2"
+          className="flex items-center gap-1 h-9 px-3"
         >
-          <Upload className="w-4 h-4" />
-          Select Files
+          <Upload className="w-3 h-3" />
+          {!multiple && selectedFiles.length === 0 ? 'Upload' : 'Select'}
         </Button>
 
         {selectedFiles.length > 0 && (
@@ -161,37 +161,54 @@ export function FileUpload({
             onClick={handleUpload}
             size="sm"
             disabled={uploading}
-            className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80"
+            className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80 h-9 px-3"
           >
-            {uploading ? 'Uploading...' : `Upload ${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''}`}
+            {uploading ? '...' : `Upload ${selectedFiles.length}`}
           </Button>
         )}
       </div>
 
-      {/* Selected Files Preview */}
-      {selectedFiles.length > 0 && (
-        <div className="mt-3 space-y-2">
+      {/* Selected Files Preview - Compact Inline Version */}
+      {selectedFiles.length > 0 && !multiple && (
+        <div className="flex items-center gap-2 px-2 py-1 bg-dark-card/40 rounded-md border border-white/10">
+          <FileText className="w-3 h-3 text-turbo-purple flex-shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs text-white truncate">{selectedFiles[0].name}</p>
+          </div>
+          {!uploading && (
+            <Button
+              onClick={() => removeFile(0)}
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-white/60 hover:text-white"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Multiple Files Preview */}
+      {selectedFiles.length > 0 && multiple && (
+        <div className="mt-2 space-y-1">
           {selectedFiles.map((file, index) => (
             <div
               key={index}
-              className="flex items-center gap-3 p-3 bg-dark-card/40 rounded-lg border border-white/10"
+              className="flex items-center gap-2 p-2 bg-dark-card/40 rounded-md border border-white/10"
             >
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <FileText className="w-4 h-4 text-turbo-purple flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-white truncate">{file.name}</p>
-                  <p className="text-xs text-white/60">{file.size}</p>
-                </div>
+              <FileText className="w-3 h-3 text-turbo-purple flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-white truncate">{file.name}</p>
               </div>
-              
+
               {!uploading && (
                 <Button
                   onClick={() => removeFile(index)}
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-white/60 hover:text-white"
+                  className="h-6 w-6 text-white/60 hover:text-white"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3 h-3" />
                 </Button>
               )}
             </div>

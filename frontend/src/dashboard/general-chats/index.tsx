@@ -38,42 +38,53 @@ export default function GeneralChats() {
   // If logged in, render the new RAG-enabled chat experience
   if (user) {
     return (
-      <div className="h-[calc(100dvh-50px)] w-full flex">
+      <div className="max-h-[calc(100dvh-50px)] h-[calc(100dvh-50px)] w-full flex flex-col md:flex-row overflow-hidden">
         {/* Left Sidebar - Chat List */}
-        <aside className="hidden md:flex w-72 shrink-0 flex-col border-r border-white/10 bg-dark-card/30">
-          <ChatList selectedChatId={chatId} />
+        <aside className={`${chatId ? 'hidden md:flex' : 'flex'} w-full md:w-72 shrink-0 flex-col border-r border-white/10 bg-dark-card/30 max-h-full`}>
+          <ChatList selectedChatId={chatId} className="max-h-full" />
         </aside>
 
         {/* Main Chat Area */}
-        <div className="flex-1 flex flex-col">
+        <div className={`${chatId ? 'flex' : 'hidden md:flex'} flex-1 flex flex-col max-h-full overflow-hidden`}>
           {/* Header */}
-          <div className="flex items-center justify-between p-4 bg-dark-card/40 backdrop-blur-lg border-b border-white/10">
+          <div className="flex items-center justify-between p-4 bg-dark-card/40 backdrop-blur-lg border-b border-white/10 shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center">
                 <MessageSquare className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h2 className="font-bold text-white text-lg">RAG Chat</h2>
+                <h2 className="font-bold text-white text-lg">Let's learn</h2>
                 <p className="text-sm text-white/60 flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
-                  Document-aware AI Assistant
+                  AI Study Assistant
                 </p>
               </div>
             </div>
+            {/* Mobile back button */}
+            {chatId && (
+              <Button
+                onClick={() => window.history.back()}
+                variant="ghost"
+                size="sm"
+                className="md:hidden text-white/60 hover:text-white"
+              >
+                ← Back
+              </Button>
+            )}
           </div>
 
           {/* Chat Window or Empty State */}
           {chatId ? (
-            <ChatWindow chatId={chatId} className="flex-1" />
+            <ChatWindow chatId={chatId} className="flex-1 overflow-hidden" />
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-dark-card/20">
+            <div className="flex-1 flex items-center justify-center bg-dark-card/20 p-4 overflow-y-auto">
               <div className="text-center max-w-md">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center mx-auto mb-4">
                   <MessageSquare className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Welcome to RAG Chat</h3>
+                <h3 className="text-xl font-semibold text-white mb-2">Let's learn together</h3>
                 <p className="text-white/60 mb-4">
-                  Select a conversation from the sidebar or start a new chat to begin. 
+                  Select a conversation from the sidebar or start a new chat to begin.
                   You can upload documents and ask questions about them.
                 </p>
                 <div className="space-y-2 text-sm text-white/50">
@@ -99,9 +110,9 @@ export default function GeneralChats() {
 
   // For non-logged-in users, show a simple welcome message
   return (
-      <div className="h-[calc(100dvh-50px)] w-full flex flex-col">
+      <div className="max-h-[calc(100dvh-50px)] h-[calc(100dvh-50px)] w-full flex flex-col overflow-hidden">
         {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-dark-card/40 backdrop-blur-lg border-b border-white/10">
+      <div className="flex items-center justify-between p-4 bg-dark-card/40 backdrop-blur-lg border-b border-white/10 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center">
               <MessageSquare className="w-4 h-4 text-white" />
@@ -117,8 +128,8 @@ export default function GeneralChats() {
       </div>
 
       {/* Welcome Message */}
-      <div className="flex-1 flex items-center justify-center bg-dark-card/20">
-        <div className="text-center max-w-md">
+      <div className="flex-1 flex items-center justify-center bg-dark-card/20 overflow-y-auto">
+        <div className="text-center max-w-md p-4">
           <div className="w-16 h-16 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center mx-auto mb-4">
             <MessageSquare className="w-8 h-8 text-white" />
           </div>
@@ -132,8 +143,8 @@ export default function GeneralChats() {
           >
             Sign In to Continue
           </Button>
-                    </div>
-                  </div>
-                </div>
+        </div>
+      </div>
+    </div>
   );
 }

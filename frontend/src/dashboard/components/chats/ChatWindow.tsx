@@ -5,7 +5,8 @@ import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import { Send, Loader2, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TextareaAutosize from 'react-textarea-autosize';
-import { ragService, type ChatMessage } from '@/services/rag';
+import { ragService } from '@/services/rag';
+import { type ChatMessage } from '@/services/api';
 import { MessageBubble } from './MessageBubble';
 import { FileUpload } from './FileUpload';
 import { ProgressBar } from './ProgressBar';
@@ -86,8 +87,7 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
         id: `response-${Date.now()}`,
         role: 'assistant',
         content: response.answer,
-        created_at: new Date().toISOString(),
-        metadata: response.citations ? { sources: response.citations } : undefined
+        created_at: new Date().toISOString()
       };
 
       // Add assistant message
@@ -155,10 +155,10 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
   }
 
   return (
-    <div className={`flex flex-col h-full ${className}`}>
+    <div className={`flex flex-col h-full overflow-hidden ${className}`}>
       {/* Messages Area */}
-      <ScrollArea className="flex-1 px-4">
-        <div className="max-w-4xl mx-auto py-4">
+      <ScrollArea className="flex-1 px-2 sm:px-4 overflow-hidden">
+        <div className="max-w-4xl mx-auto py-4 px-2 sm:px-0">
           {/* Load More Messages Button */}
           {hasMoreMessages && (
             <div className="text-center mb-4">
@@ -187,8 +187,8 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
               <div className="w-16 h-16 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center mx-auto mb-4">
                 <Send className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-lg font-semibold text-white mb-2">Start a conversation</h3>
-              <p className="text-white/60 text-sm">Ask a question or upload a document to begin</p>
+              <h3 className="text-lg font-semibold text-white mb-2">Let's learn together</h3>
+              <p className="text-white/60 text-sm">Ask me anything or upload a document to get started</p>
             </div>
           ) : (
             <AnimatePresence>
@@ -230,31 +230,34 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="border-t border-white/10 bg-dark-card/40 backdrop-blur-lg">
-        <div className="max-w-4xl mx-auto p-4">
+      <div className="border-t border-white/10 bg-dark-card/40 backdrop-blur-lg shrink-0">
+        <div className="max-w-4xl mx-auto p-2 sm:p-4">
           {/* Upload Progress */}
           {uploadProgress > 0 && uploadProgress < 100 && (
             <div className="mb-4">
-              <ProgressBar 
-                value={uploadProgress} 
+              <ProgressBar
+                value={uploadProgress}
                 label="Uploading file..."
                 className="mb-2"
               />
             </div>
           )}
 
-          {/* File Upload */}
-          <div className="mb-4">
-            <FileUpload
-              chatId={chatId}
-              onUploaded={handleFileUploaded}
-              onProgress={setUploadProgress}
-              disabled={isAsking}
-            />
-          </div>
-
-          {/* Message Input */}
+          {/* Message Input with Upload Button */}
           <div className="flex items-end gap-3">
+            {/* Upload Button */}
+            <div className="flex-shrink-0">
+              <FileUpload
+                chatId={chatId}
+                onUploaded={handleFileUploaded}
+                onProgress={setUploadProgress}
+                disabled={isAsking}
+                multiple={false}
+                className="mb-0"
+              />
+            </div>
+
+            {/* Text Input */}
             <div className="flex-1">
               <TextareaAutosize
                 value={inputText}
@@ -271,11 +274,12 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
                 disabled={isAsking}
               />
             </div>
-            
+
+            {/* Send Button */}
             <Button
               onClick={handleSendMessage}
               disabled={!inputText.trim() || isAsking}
-              className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80 disabled:opacity-50 text-white p-3"
+              className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80 disabled:opacity-50 text-white p-3 flex-shrink-0"
             >
               {isAsking ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

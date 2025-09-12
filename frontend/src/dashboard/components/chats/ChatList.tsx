@@ -5,7 +5,8 @@ import { Button } from '@/shared/components/ui/button';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import { MessageSquare, Plus, Trash2, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ragService, type Chat } from '@/services/rag';
+import { ragService } from '@/services/rag';
+import { type Chat } from '@/services/api';
 import { cn } from '@/shared/lib/utils';
 // import { useToast } from '@/shared/hooks/use-toast';
 
@@ -119,9 +120,9 @@ export function ChatList({ selectedChatId, onChatSelect, className = "" }: ChatL
   }
 
   return (
-    <div className={`flex flex-col ${className}`}>
+    <div className={`flex flex-col h-full ${className}`}>
       {/* Header */}
-      <div className="p-4 border-b border-white/10">
+      <div className="p-4 border-b border-white/10 shrink-0">
         <Button onClick={handleNewChat} className="w-full">
           <Plus className="w-4 h-4 mr-2" />
           New Chat
@@ -129,7 +130,7 @@ export function ChatList({ selectedChatId, onChatSelect, className = "" }: ChatL
       </div>
 
       {/* Chat List */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 overflow-hidden">
         <div className="p-2">
           {isLoading && page === 1 ? (
             <div className="flex items-center justify-center py-8">
@@ -155,20 +156,20 @@ export function ChatList({ selectedChatId, onChatSelect, className = "" }: ChatL
                   >
                     <div
                       className={cn(
-                        "flex items-center justify-between gap-2 rounded-lg border border-white/5 p-3 hover:bg-white/5 cursor-pointer transition-colors",
+                        "flex items-center justify-between gap-2 rounded-lg border border-white/5 p-3 hover:bg-white/5 cursor-pointer transition-colors max-w-full",
                         selectedChatId === chat.id && "bg-white/10 border-white/10"
                       )}
                       onClick={() => handleChatClick(chat.id)}
                     >
-                      <div className="flex items-center gap-3 overflow-hidden flex-1">
+                      <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center flex-shrink-0">
                           <MessageSquare className="w-4 h-4 text-white" />
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm text-white truncate font-medium">Chat</div>
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          <div className="text-sm text-white truncate font-medium">Let's learn</div>
                           {chat.last_message && (
-                            <div className="text-xs text-white/50 truncate mt-0.5">
-                              {chat.last_message}
+                            <div className="text-xs text-white/50 truncate mt-0.5 ">
+                              {chat.last_message?.substring(0, 30)}...
                             </div>
                           )}
                           <div className="text-xs text-white/40 mt-1">
@@ -176,12 +177,12 @@ export function ChatList({ selectedChatId, onChatSelect, className = "" }: ChatL
                           </div>
                         </div>
                       </div>
-                      
+
                       <Button
                         onClick={(e) => handleDeleteChat(chat.id, e)}
                         variant="ghost"
                         size="icon"
-                        className="opacity-0 group-hover:opacity-100 h-8 w-8 text-white/60 hover:text-red-400 transition-all"
+                        className="opacity-0 group-hover:opacity-100 h-8 w-8 text-white/60 hover:text-red-400 transition-all flex-shrink-0"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

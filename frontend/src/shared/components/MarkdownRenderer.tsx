@@ -46,8 +46,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
                 {codeBlockLanguage}
               </div>
             )}
-            <pre className="bg-dark-background/60 border border-white/10 rounded-lg rounded-t-none p-3 overflow-x-auto">
-              <code className="text-sm text-green-300 font-mono">
+            <pre className="bg-dark-background/60 border border-white/10 rounded-lg rounded-t-none p-3 overflow-x-auto max-w-full break-all">
+              <code className="text-sm text-green-300 font-mono whitespace-pre-wrap break-all">
                 {codeBlockContent.join("\n")}
               </code>
             </pre>
@@ -218,7 +218,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
         parts.push(
           <code
             key={key++}
-            className="bg-dark-background/60 text-green-300 px-1.5 py-0.5 rounded text-xs font-mono border border-white/10"
+            className="bg-dark-background/60 text-green-300 px-1.5 py-0.5 rounded text-xs font-mono border border-white/10 break-all"
           >
             {codeMatch[2]}
           </code>
@@ -255,7 +255,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   };
 
   return (
-    <div className={cn("prose prose-sm prose-invert max-w-none", className)}>
+    <div className={cn("prose prose-sm prose-invert max-w-none break-words overflow-wrap-anywhere", className)}>
       {parseMarkdown(content)}
     </div>
   );

@@ -38,7 +38,7 @@ func (c *Client) GenerateEmbedding(text string) ([]float32, error) {
 
 	client, err := genai.NewClient(ctx, option.WithAPIKey(c.apiKey))
 	if err != nil {
-		logger.Error("Failed to create Gemini client", zap.Error(err))
+		logger.Error("Failed to create Gemini client", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
 	}
 	defer client.Close()
@@ -50,7 +50,7 @@ func (c *Client) GenerateEmbedding(text string) ([]float32, error) {
 	resp, err := model.EmbedContent(ctx, genai.Text(text))
 	if err != nil {
 		logger.Error("Failed to generate embedding",
-			zap.Error(err),
+			zap.String("error", err.Error()),
 			zap.String("text_preview", truncateText(text, 100)),
 		)
 		return nil, fmt.Errorf("failed to generate embedding: %w", err)
@@ -83,7 +83,7 @@ func (c *Client) GenerateEmbeddings(texts []string) ([][]float32, error) {
 
 	client, err := genai.NewClient(ctx, option.WithAPIKey(c.apiKey))
 	if err != nil {
-		logger.Error("Failed to create Gemini client", zap.Error(err))
+		logger.Error("Failed to create Gemini client", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
 	}
 	defer client.Close()
@@ -117,7 +117,7 @@ func (c *Client) GenerateEmbeddings(texts []string) ([][]float32, error) {
 			resp, err := model.EmbedContent(ctx, genai.Text(text))
 			if err != nil {
 				logger.Error("Failed to generate embedding in batch",
-					zap.Error(err),
+					zap.String("error", err.Error()),
 					zap.String("text_preview", truncateText(text, 100)),
 				)
 				return nil, fmt.Errorf("failed to generate embedding for text: %w", err)

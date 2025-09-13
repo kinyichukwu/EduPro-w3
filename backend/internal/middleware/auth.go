@@ -62,7 +62,7 @@ func JWTMiddleware(cfg *config.Config) gin.HandlerFunc {
 		})
 
 		if err != nil {
-			logger.Error("JWT validation failed", zap.Error(err))
+			logger.Error("JWT validation failed", zap.String("error", err.Error()))
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "Invalid token",
 			})

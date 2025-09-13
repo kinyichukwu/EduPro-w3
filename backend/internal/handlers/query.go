@@ -50,7 +50,7 @@ func (h *QueryHandler) Query(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		logger.Error("Failed to bind request",
 			zap.String("request_id", requestID.(string)),
-			zap.Error(err),
+			zap.String("error", err.Error()),
 		)
 		utils.SendError(c, models.ErrInvalidRequest)
 		return
@@ -107,7 +107,7 @@ func (h *QueryHandler) Query(c *gin.Context) {
 		if err != nil {
 			logger.Error("Failed to generate quiz",
 				zap.String("request_id", requestID.(string)),
-				zap.Error(err),
+				zap.String("error", err.Error()),
 			)
 			utils.SendError(c, models.ErrAIServiceUnavailable)
 			return
@@ -120,7 +120,7 @@ func (h *QueryHandler) Query(c *gin.Context) {
 		if err != nil {
 			logger.Error("Failed to generate explanation",
 				zap.String("request_id", requestID.(string)),
-				zap.Error(err),
+				zap.String("error", err.Error()),
 			)
 			utils.SendError(c, models.ErrAIServiceUnavailable)
 			return

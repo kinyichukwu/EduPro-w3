@@ -42,7 +42,7 @@ func (h *UserHandler) GetOnboarding(c *gin.Context) {
 	// Parse user ID to UUID
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
-		logger.Error("Invalid user ID format", zap.String("user_id", userID), zap.Error(err))
+		logger.Error("Invalid user ID format", zap.String("user_id", userID), zap.String("error", err.Error()))
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid user ID format",
 		})
@@ -92,7 +92,7 @@ func (h *UserHandler) UpdateOnboarding(c *gin.Context) {
 	// Parse user ID to UUID
 	userUUID, err := uuid.Parse(userID)
 	if err != nil {
-		logger.Error("Invalid user ID format", zap.String("user_id", userID), zap.Error(err))
+		logger.Error("Invalid user ID format", zap.String("user_id", userID), zap.String("error", err.Error()))
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid user ID format",
 		})
@@ -102,7 +102,7 @@ func (h *UserHandler) UpdateOnboarding(c *gin.Context) {
 	// Parse request body
 	var req models.OnboardingUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.Error("Invalid request body", zap.Error(err))
+		logger.Error("Invalid request body", zap.String("error", err.Error()))
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid request body",
 		})
@@ -111,7 +111,7 @@ func (h *UserHandler) UpdateOnboarding(c *gin.Context) {
 
 	// Validate the request
 	if err := utils.ValidateStruct(&req); err != nil {
-		logger.Error("Validation failed", zap.Error(err))
+		logger.Error("Validation failed", zap.String("error", err.Error()))
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Validation failed",
 			"details": err.Error(),
@@ -131,7 +131,7 @@ func (h *UserHandler) UpdateOnboarding(c *gin.Context) {
 	// Ensure user exists in our database (auto-create if needed)
 	err = h.ensureUserExists(c, userUUID)
 	if err != nil {
-		logger.Error("Failed to ensure user exists", zap.String("user_id", userID), zap.Error(err))
+		logger.Error("Failed to ensure user exists", zap.String("user_id", userID), zap.String("error", err.Error()))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to process user data",
 		})
@@ -141,7 +141,7 @@ func (h *UserHandler) UpdateOnboarding(c *gin.Context) {
 	// Update onboarding data
 	onboarding, err := h.db.UpdateOnboarding(userUUID, &req)
 	if err != nil {
-		logger.Error("Failed to update onboarding", zap.String("user_id", userID), zap.Error(err))
+		logger.Error("Failed to update onboarding", zap.String("user_id", userID), zap.String("error", err.Error()))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to update onboarding",
 		})
@@ -178,7 +178,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	// Get user by Supabase ID first
 	user, err := h.db.GetUserBySupabaseID(userID)
 	if err != nil {
-		logger.Error("User not found by Supabase ID", zap.String("supabase_id", userID), zap.Error(err))
+		logger.Error("User not found by Supabase ID", zap.String("supabase_id", userID), zap.String("error", err.Error()))
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "User not found",
 		})
@@ -190,7 +190,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	// Parse request body
 	var req models.UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		logger.Error("Invalid request body", zap.Error(err))
+		logger.Error("Invalid request body", zap.String("error", err.Error()))
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Invalid request body",
 		})
@@ -199,7 +199,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 
 	// Validate the request
 	if err := utils.ValidateStruct(&req); err != nil {
-		logger.Error("Validation failed", zap.Error(err))
+		logger.Error("Validation failed", zap.String("error", err.Error()))
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Validation failed",
 			"details": err.Error(),
@@ -210,7 +210,7 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 	// Update user profile
 	updatedUser, err := h.db.UpdateUser(userUUID, &req)
 	if err != nil {
-		logger.Error("Failed to update user profile", zap.String("user_id", userID), zap.Error(err))
+		logger.Error("Failed to update user profile", zap.String("user_id", userID), zap.String("error", err.Error()))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Failed to update user profile",
 		})
@@ -264,7 +264,7 @@ func (h *UserHandler) ensureUserExists(c *gin.Context, userUUID uuid.UUID) error
 	
 	_, err = h.db.CreateUser(createReq)
 	if err != nil {
-		logger.Error("Failed to auto-create user", zap.Error(err))
+		logger.Error("Failed to auto-create user", zap.String("error", err.Error()))
 		return fmt.Errorf("failed to create user: %w", err)
 	}
 	

@@ -16,8 +16,10 @@ func InitLogger(level string) error {
 	if os.Getenv("ENVIRONMENT") == "development" {
 		config = zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		config.EncoderConfig.TimeKey = ""
 	} else {
 		config = zap.NewProductionConfig()
+		config.EncoderConfig.TimeKey = ""
 	}
 
 	// Set log level

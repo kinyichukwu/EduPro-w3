@@ -37,7 +37,7 @@ func (c *Client) GenerateQuiz(req *GeminiRequest) (*models.QuizResponse, error) 
 	// Call Gemini API
 	content, err := c.callGeminiAPI(prompt)
 	if err != nil {
-		logger.Error("Failed to call Gemini API for quiz", zap.Error(err))
+		logger.Error("Failed to call Gemini API for quiz", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to generate quiz: %w", err)
 	}
 	
@@ -49,7 +49,7 @@ func (c *Client) GenerateQuiz(req *GeminiRequest) (*models.QuizResponse, error) 
 	}
 	
 	if err := json.Unmarshal([]byte(cleanedContent), &quizData); err != nil {
-		logger.Error("Failed to parse quiz response", zap.Error(err), zap.String("content", content))
+		logger.Error("Failed to parse quiz response", zap.String("error", err.Error()), zap.String("content", content))
 		return nil, fmt.Errorf("failed to parse quiz response: %w", err)
 	}
 	
@@ -95,7 +95,7 @@ func (c *Client) GenerateExplanation(req *GeminiRequest) (*models.ExplanationRes
 	// Call Gemini API
 	content, err := c.callGeminiAPI(prompt)
 	if err != nil {
-		logger.Error("Failed to call Gemini API for explanation", zap.Error(err))
+		logger.Error("Failed to call Gemini API for explanation", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to generate explanation: %w", err)
 	}
 
@@ -110,7 +110,7 @@ func (c *Client) GenerateExplanation(req *GeminiRequest) (*models.ExplanationRes
 	}
 	
 	if err := json.Unmarshal([]byte(cleanedContent), &explanationData); err != nil {
-		logger.Error("Failed to parse explanation response", zap.Error(err), zap.String("content", cleanedContent))
+		logger.Error("Failed to parse explanation response", zap.String("error", err.Error()), zap.String("content", cleanedContent))
 		return nil, fmt.Errorf("failed to parse explanation response: %w", err)
 	}
 	

@@ -25,13 +25,13 @@ func NewClient(cfg *config.Config) (*Client, error) {
 
 	db, err := sql.Open("postgres", cfg.DatabaseURL)
 	if err != nil {
-		logger.Error("Failed to connect to database", zap.Error(err))
+		logger.Error("Failed to connect to database", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	// Test the connection
 	if err := db.Ping(); err != nil {
-		logger.Error("Failed to ping database", zap.Error(err))
+		logger.Error("Failed to ping database", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
@@ -70,7 +70,7 @@ func (c *Client) CreateUser(req *models.CreateUserRequest) (*models.User, error)
 	err := c.db.QueryRow(query, user.ID, user.Email, user.Username, user.FullName, user.SupabaseID).
 		Scan(&user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
-		logger.Error("Failed to create user", zap.Error(err))
+		logger.Error("Failed to create user", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
@@ -98,7 +98,7 @@ func (c *Client) GetUserBySupabaseID(supabaseID string) (*models.User, error) {
 			logger.Warn("User not found", zap.String("supabase_id", supabaseID))
 			return nil, fmt.Errorf("user not found")
 		}
-		logger.Error("Failed to get user", zap.Error(err))
+		logger.Error("Failed to get user", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
@@ -125,7 +125,7 @@ func (c *Client) GetUserByID(userID uuid.UUID) (*models.User, error) {
 			logger.Warn("User not found", zap.String("user_id", userID.String()))
 			return nil, fmt.Errorf("user not found")
 		}
-		logger.Error("Failed to get user", zap.Error(err))
+		logger.Error("Failed to get user", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
@@ -152,7 +152,7 @@ func (c *Client) UpdateUser(userID uuid.UUID, req *models.UpdateUserRequest) (*m
 		&user.Avatar, &user.SupabaseID, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
-		logger.Error("Failed to update user", zap.Error(err))
+		logger.Error("Failed to update user", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 
@@ -189,7 +189,7 @@ func (c *Client) CreateOnboarding(req *models.CreateOnboardingRequest) (*models.
 		onboarding.CustomLearningGoal, academicDetailsJSON).
 		Scan(&onboarding.CreatedAt, &onboarding.CompletedAt, &onboarding.UpdatedAt)
 	if err != nil {
-		logger.Error("Failed to create onboarding", zap.Error(err))
+		logger.Error("Failed to create onboarding", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to create onboarding: %w", err)
 	}
 
@@ -229,7 +229,7 @@ func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData
 			logger.Warn("Onboarding not found", zap.String("internal_user_id", internalUserID.String()))
 			return nil, fmt.Errorf("onboarding not found")
 		}
-		logger.Error("Failed to get onboarding", zap.Error(err))
+		logger.Error("Failed to get onboarding", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to get onboarding: %w", err)
 	}
 
@@ -248,7 +248,7 @@ func (c *Client) UpdateOnboarding(userID uuid.UUID, req *models.OnboardingUpdate
 	// First, get the internal user ID from Supabase ID
 	user, err := c.GetUserBySupabaseID(userID.String())
 	if err != nil {
-		logger.Error("User not found by Supabase ID", zap.String("supabase_id", userID.String()), zap.Error(err))
+		logger.Error("User not found by Supabase ID", zap.String("supabase_id", userID.String()), zap.String("error", err.Error()))
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
 
@@ -296,7 +296,7 @@ func (c *Client) UpdateOnboarding(userID uuid.UUID, req *models.OnboardingUpdate
 			}
 			return c.CreateOnboarding(createReq)
 		}
-		logger.Error("Failed to update onboarding", zap.Error(err))
+		logger.Error("Failed to update onboarding", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to update onboarding: %w", err)
 	}
 

@@ -29,7 +29,7 @@ type RAGHandler struct {
 	db         *database.Client
 	pgx        *database.PgxClient
 	cfg        *config.Config
-	storage    *storage.Client
+	storage    storage.StorageService
 	embeddings *embeddings.Client
 	chunker    *chunker.Client
 	extractor  *extract.Client
@@ -43,10 +43,7 @@ func NewRAGHandler(
 	cfg *config.Config,
 	aiClient ai.Service,
 ) (*RAGHandler, error) {
-	storageClient, err := storage.NewClient(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create storage client: %w", err)
-	}
+	storageService := storage.NewStorageService(cfg)
 
 	embeddingsClient := embeddings.NewClient(cfg.GeminiAPIKey)
 	chunkerClient := chunker.NewClient()
@@ -56,7 +53,7 @@ func NewRAGHandler(
 		db:         db,
 		pgx:        pgx,
 		cfg:        cfg,
-		storage:    storageClient,
+		storage:    storageService,
 		embeddings: embeddingsClient,
 		chunker:    chunkerClient,
 		extractor:  extractorClient,
@@ -106,7 +103,7 @@ func (h *RAGHandler) Upload(c *gin.Context) {
 	// Upload file to storage
 	uploadResult, err := h.storage.UploadFile(file, user.ID.String())
 	if err != nil {
-		logger.Error("Failed to upload file", zap.Error(err))
+		logger.Error("Failed to upload file", zap.String("error", err.Error()))
 		utils.SendError(c, &models.APIError{
 			Code:    http.StatusInternalServerError,
 			Message: "Failed to upload file",
@@ -1465,3 +1462,4 @@ func (h *RAGHandler) RAGHealth(c *gin.Context) {
 
 	utils.SendSuccess(c, response)
 }
+

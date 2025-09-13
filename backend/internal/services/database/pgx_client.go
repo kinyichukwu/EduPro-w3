@@ -26,7 +26,7 @@ func NewPgxClient(cfg *config.Config) (*PgxClient, error) {
 	// Configure connection pool
 	config, err := pgxpool.ParseConfig(cfg.DatabaseURL)
 	if err != nil {
-		logger.Error("Failed to parse database URL", zap.Error(err))
+		logger.Error("Failed to parse database URL", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to parse database URL: %w", err)
 	}
 
@@ -39,7 +39,7 @@ func NewPgxClient(cfg *config.Config) (*PgxClient, error) {
 	// Create connection pool
 	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
-		logger.Error("Failed to create connection pool", zap.Error(err))
+		logger.Error("Failed to create connection pool", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
 	}
 
@@ -48,7 +48,7 @@ func NewPgxClient(cfg *config.Config) (*PgxClient, error) {
 	defer cancel()
 
 	if err := pool.Ping(ctx); err != nil {
-		logger.Error("Failed to ping database", zap.Error(err))
+		logger.Error("Failed to ping database", zap.String("error", err.Error()))
 		pool.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
@@ -93,7 +93,7 @@ func (c *PgxClient) SearchSimilarChunks(ctx context.Context, embedding []float32
 
 	rows, err := c.pool.Query(ctx, query, vec, userID, limit)
 	if err != nil {
-		logger.Error("Failed to search similar chunks", zap.Error(err))
+		logger.Error("Failed to search similar chunks", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to search similar chunks: %w", err)
 	}
 	defer rows.Close()
@@ -112,14 +112,14 @@ func (c *PgxClient) SearchSimilarChunks(ctx context.Context, embedding []float32
 			&result.Distance,
 		)
 		if err != nil {
-			logger.Error("Failed to scan chunk result", zap.Error(err))
+			logger.Error("Failed to scan chunk result", zap.String("error", err.Error()))
 			continue
 		}
 		results = append(results, result)
 	}
 
 	if err := rows.Err(); err != nil {
-		logger.Error("Error iterating chunk results", zap.Error(err))
+		logger.Error("Error iterating chunk results", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("error iterating chunk results: %w", err)
 	}
 
@@ -157,7 +157,7 @@ func (c *PgxClient) InsertChunks(ctx context.Context, chunks []ChunkInsert) erro
 		_, err := results.Exec()
 		if err != nil {
 			logger.Error("Failed to insert chunk",
-				zap.Error(err),
+				zap.String("error", err.Error()),
 				zap.Int("chunk_index", i),
 			)
 			return fmt.Errorf("failed to insert chunk %d: %w", i, err)
@@ -204,7 +204,7 @@ func (c *PgxClient) SearchSimilarChunksInDocuments(ctx context.Context, embeddin
 
 	rows, err := c.pool.Query(ctx, query, args...)
 	if err != nil {
-		logger.Error("Failed to search similar chunks in documents", zap.Error(err))
+		logger.Error("Failed to search similar chunks in documents", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to search similar chunks in documents: %w", err)
 	}
 	defer rows.Close()
@@ -223,14 +223,14 @@ func (c *PgxClient) SearchSimilarChunksInDocuments(ctx context.Context, embeddin
 			&result.Distance,
 		)
 		if err != nil {
-			logger.Error("Failed to scan chunk result", zap.Error(err))
+			logger.Error("Failed to scan chunk result", zap.String("error", err.Error()))
 			continue
 		}
 		results = append(results, result)
 	}
 
 	if err := rows.Err(); err != nil {
-		logger.Error("Error iterating chunk results", zap.Error(err))
+		logger.Error("Error iterating chunk results", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("error iterating chunk results: %w", err)
 	}
 

@@ -42,7 +42,7 @@ func (c *Client) ExtractText(reader io.Reader, filename string) (*ExtractionResu
 
 	if err != nil {
 		logger.Error("Failed to extract text",
-			zap.Error(err),
+			zap.String("error", err.Error()),
 			zap.String("filename", filename),
 			zap.String("file_type", ext),
 		)
@@ -108,7 +108,7 @@ func (c *Client) extractFromPDF(reader io.Reader) (string, map[string]interface{
 			// Log error but continue with other pages
 			utils.GetLogger().Warn("Failed to extract text from PDF page",
 				zap.Int("page", i),
-				zap.Error(err),
+				zap.String("error", err.Error()),
 			)
 			continue
 		}

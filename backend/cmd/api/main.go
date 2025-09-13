@@ -157,6 +157,7 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 		api.GET("/chats/:id", middleware.JWTMiddleware(cfg), ragHandler.GetChatMessages)
 		api.POST("/ask", middleware.JWTMiddleware(cfg), ragHandler.Ask)
 
+
 		// Internal routes (for integration)
 		internal := api.Group("/internal")
 		{

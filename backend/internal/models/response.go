@@ -84,11 +84,15 @@ type ErrorResponse struct {
 
 // DocumentResponse represents a document
 type DocumentResponse struct {
-	ID        string    `json:"id"`
-	Title     string    `json:"title"`
-	SourceURL *string   `json:"source_url"`
-	MimeType  string    `json:"mime_type"`
-	CreatedAt time.Time `json:"created_at"`
+	ID               string    `json:"id"`
+	Title            string    `json:"title"`
+	SourceURL        *string   `json:"source_url"`
+	MimeType         string    `json:"mime_type"`
+	ProcessingStatus string    `json:"processing_status"`
+	Error            *string   `json:"error,omitempty"`
+	Size             *int64    `json:"size,omitempty"`
+	Checksum         *string   `json:"checksum,omitempty"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 // DocumentsResponse represents paginated documents
@@ -102,6 +106,7 @@ type DocumentsResponse struct {
 // ChatResponse represents a chat
 type ChatResponse struct {
 	ID          string    `json:"id"`
+	Title       *string   `json:"title,omitempty"`
 	LastMessage *string   `json:"last_message"`
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -153,4 +158,30 @@ type UploadResponse struct {
 	Title      string `json:"title"`
 	SourceURL  string `json:"source_url"`
 	MimeType   string `json:"mime_type"`
+}
+
+// ChunkResponse represents a document chunk
+type ChunkResponse struct {
+	ID        string      `json:"id"`
+	Ordinal   int         `json:"ordinal"`
+	Content   string      `json:"content"`
+	Metadata  interface{} `json:"metadata,omitempty"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+// DocumentChunksResponse represents paginated document chunks
+type DocumentChunksResponse struct {
+	Chunks  []ChunkResponse `json:"chunks"`
+	Page    int             `json:"page"`
+	Total   int             `json:"total"`
+	HasMore bool            `json:"has_more"`
+}
+
+// RAGHealthResponse represents RAG system health
+type RAGHealthResponse struct {
+	Status           string    `json:"status"`
+	EmbeddingsHealth bool      `json:"embeddings_health"`
+	DatabaseHealth   bool      `json:"database_health"`
+	StorageHealth    bool      `json:"storage_health"`
+	Timestamp        time.Time `json:"timestamp"`
 }

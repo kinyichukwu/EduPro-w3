@@ -61,6 +61,12 @@ type LoginRequest struct {
 
 // AskRequest represents a question to the RAG system
 type AskRequest struct {
-	Query  string `json:"query" validate:"required,min=3,max=1000"`
-	ChatID string `json:"chat_id,omitempty"`
+	Query       string   `json:"query" validate:"required,min=3,max=1000"`
+	ChatID      string   `json:"chat_id,omitempty"`
+	DocumentIDs []string `json:"document_ids,omitempty"`
+}
+
+// UpdateChatRequest represents a request to update chat details
+type UpdateChatRequest struct {
+	Title *string `json:"title,omitempty" validate:"omitempty,max=200"`
 }

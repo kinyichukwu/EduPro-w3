@@ -1,4 +1,13 @@
-import { apiService, type ChatsResponse, type ChatMessagesResponse, type DocumentsResponse, type UploadResponse, type AskResponse, type Chat, type Document } from './api';
+import {
+  apiService,
+  type ChatsResponse,
+  type ChatMessagesResponse,
+  type DocumentsResponse,
+  type UploadResponse,
+  type AskResponse,
+  type Chat,
+  type Document,
+} from "./api";
 
 export interface Citation {
   document_id: string;
@@ -23,7 +32,10 @@ class RAGService {
   /**
    * Get messages for a specific chat with pagination
    */
-  async getChatMessages(chatId: string, page: number = 1): Promise<ChatMessagesResponse> {
+  async getChatMessages(
+    chatId: string,
+    page: number = 1
+  ): Promise<ChatMessagesResponse> {
     const response = await apiService.getChatMessages(chatId, page);
     if (response.error) {
       throw new Error(response.error);
@@ -80,35 +92,55 @@ class RAGService {
   }
 
   /**
-   * Delete a chat (not implemented in backend yet)
+   * Delete a chat
    */
-  async deleteChat(_chatId: string): Promise<void> {
-    // For now, throw an error since this isn't implemented
-    throw new Error('Delete chat not implemented yet');
+  async deleteChat(chatId: string): Promise<void> {
+    const response = await apiService.deleteChat(chatId);
+    if (response.error) {
+      throw new Error(response.error);
+    }
   }
 
   /**
-   * Update chat title (not implemented in backend yet)
+   * Update chat title
    */
-  async updateChatTitle(_chatId: string, _title: string): Promise<Chat> {
-    // For now, throw an error since this isn't implemented
-    throw new Error('Update chat title not implemented yet');
+  async updateChatTitle(chatId: string, title: string): Promise<Chat> {
+    const response = await apiService.updateChat(chatId, { title });
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    return response.data!;
   }
 
   /**
-   * Get a specific document (not implemented in backend yet)
+   * Delete a document
    */
-  async getDocument(_documentId: string): Promise<Document> {
-    // For now, throw an error since this isn't implemented
-    throw new Error('Get document not implemented yet');
+  async deleteDocument(documentId: string): Promise<void> {
+    const response = await apiService.deleteDocument(documentId);
+    if (response.error) {
+      throw new Error(response.error);
+    }
   }
 
   /**
-   * Delete a document (not implemented in backend yet)
+   * Reprocess a document
    */
-  async deleteDocument(_documentId: string): Promise<void> {
-    // For now, throw an error since this isn't implemented
-    throw new Error('Delete document not implemented yet');
+  async reprocessDocument(documentId: string): Promise<void> {
+    const response = await apiService.reprocessDocument(documentId);
+    if (response.error) {
+      throw new Error(response.error);
+    }
+  }
+
+  /**
+   * Get document chunks for debugging
+   */
+  async getDocumentChunks(documentId: string, page: number = 1): Promise<any> {
+    const response = await apiService.getDocumentChunks(documentId, page);
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    return response.data!;
   }
 }
 

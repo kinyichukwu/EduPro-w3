@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -165,6 +166,81 @@ func (c *PgxClient) InsertChunks(ctx context.Context, chunks []ChunkInsert) erro
 
 	logger.Info("Chunks inserted successfully", zap.Int("count", len(chunks)))
 	return nil
+}
+
+// SearchSimilarChunksInDocuments performs vector similarity search within specific documents
+func (c *PgxClient) SearchSimilarChunksInDocuments(ctx context.Context, embedding []float32, userID string, documentIDs []string, limit int) ([]ChunkResult, error) {
+	logger := utils.GetLogger()
+
+	if len(documentIDs) == 0 {
+		return c.SearchSimilarChunks(ctx, embedding, userID, limit)
+	}
+
+	// Build placeholders for document IDs
+	placeholders := make([]string, len(documentIDs))
+	args := []interface{}{pgvector.NewVector(embedding), userID}
+	
+	for i, docID := range documentIDs {
+		placeholders[i] = fmt.Sprintf("$%d", i+3)
+		args = append(args, docID)
+	}
+
+	query := fmt.Sprintf(`
+		SELECT 
+			c.id,
+			c.document_id,
+			c.ordinal,
+			c.content,
+			c.metadata,
+			d.title,
+			d.source_url,
+			c.embedding <=> $1 as distance
+		FROM chunks c
+		JOIN documents d ON c.document_id = d.id
+		WHERE d.user_id = $2 AND d.id IN (%s)
+		ORDER BY c.embedding <=> $1
+		LIMIT %d
+	`, strings.Join(placeholders, ","), limit)
+
+	rows, err := c.pool.Query(ctx, query, args...)
+	if err != nil {
+		logger.Error("Failed to search similar chunks in documents", zap.Error(err))
+		return nil, fmt.Errorf("failed to search similar chunks in documents: %w", err)
+	}
+	defer rows.Close()
+
+	var results []ChunkResult
+	for rows.Next() {
+		var result ChunkResult
+		err := rows.Scan(
+			&result.ID,
+			&result.DocumentID,
+			&result.Ordinal,
+			&result.Content,
+			&result.Metadata,
+			&result.DocumentTitle,
+			&result.SourceURL,
+			&result.Distance,
+		)
+		if err != nil {
+			logger.Error("Failed to scan chunk result", zap.Error(err))
+			continue
+		}
+		results = append(results, result)
+	}
+
+	if err := rows.Err(); err != nil {
+		logger.Error("Error iterating chunk results", zap.Error(err))
+		return nil, fmt.Errorf("error iterating chunk results: %w", err)
+	}
+
+	logger.Info("Similar chunks search in documents completed",
+		zap.Int("results_count", len(results)),
+		zap.String("user_id", userID),
+		zap.Int("document_count", len(documentIDs)),
+	)
+
+	return results, nil
 }
 
 // ChunkResult represents a search result

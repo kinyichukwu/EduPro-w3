@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -76,8 +77,8 @@ func (c *Client) UploadFile(file *multipart.FileHeader, userID string) (*UploadR
 		ext,
 	)
 
-	// Upload to Supabase storage
-	uploadResp, err := c.supabase.Storage.UploadFile(c.bucketName, uniqueFilename, strings.NewReader(string(fileContent)))
+	// Upload to Supabase storage with proper content type
+	uploadResp, err := c.supabase.Storage.UploadFile(c.bucketName, uniqueFilename, bytes.NewReader(fileContent))
 	if err != nil {
 		logger.Error("Failed to upload file to Supabase",
 			zap.Error(err),

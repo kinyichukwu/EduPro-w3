@@ -144,3 +144,67 @@ func BuildContext(subject, level string) string {
 	
 	return ""
 }
+
+// RAGPrompt generates a system prompt for RAG-based question answering
+func RAGPrompt(query, context string) string {
+	if context == "" {
+		return fmt.Sprintf(`You are an expert tutor for Nigerian tertiary institution students. The user has asked a question but no relevant context was found in their uploaded documents.
+
+Question: %s
+
+Please respond with: "I don't have enough information from your uploaded documents to answer this question accurately. Please upload relevant documents or ask a question about the content you've already shared."
+
+Be polite and helpful, and suggest they upload more relevant materials if needed.`, query)
+	}
+
+	prompt := fmt.Sprintf(`You are an expert tutor for Nigerian tertiary institution students. Answer the user's question based STRICTLY on the provided context from their uploaded documents.
+
+IMPORTANT INSTRUCTIONS:
+- Only use information from the provided context
+- If the context doesn't contain enough information to answer the question, say so clearly
+- Be accurate and cite specific parts of the context when possible
+- Maintain academic rigor appropriate for tertiary education
+- Use clear, educational language
+- If the question cannot be answered from the context, explain what information is missing
+
+Context from uploaded documents:
+%s
+
+Question: %s
+
+Provide a comprehensive answer based on the context above. If the context is insufficient, clearly state what additional information would be needed.`, context, query)
+
+	return prompt
+}
+
+// BuildRAGContext creates a formatted context string from document chunks
+func BuildRAGContext(chunks []DocumentChunk) string {
+	if len(chunks) == 0 {
+		return ""
+	}
+
+	var contextBuilder strings.Builder
+	
+	for i, chunk := range chunks {
+		if i > 0 {
+			contextBuilder.WriteString("\n\n---\n\n")
+		}
+		
+		contextBuilder.WriteString(fmt.Sprintf("Document: %s\n", chunk.DocumentTitle))
+		if chunk.SourceURL != "" {
+			contextBuilder.WriteString(fmt.Sprintf("Source: %s\n", chunk.SourceURL))
+		}
+		contextBuilder.WriteString(fmt.Sprintf("Section %d: %s", chunk.Ordinal+1, chunk.Content))
+	}
+	
+	return contextBuilder.String()
+}
+
+// DocumentChunk represents a chunk of document content for RAG
+type DocumentChunk struct {
+	DocumentID    string
+	DocumentTitle string
+	SourceURL     string
+	Ordinal       int
+	Content       string
+}

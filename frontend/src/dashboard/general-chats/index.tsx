@@ -1,17 +1,11 @@
 import { Button } from "@/shared/components/ui";
 import { useSEO } from "@/shared/hooks";
 import { logSEOData } from "@/shared/utils/seoUtils";
-import { motion } from "framer-motion";
-import {
-  MessageSquare,
-  Sparkles,
-  Clock,
-} from "lucide-react";
+import { MessageSquare, Sparkles } from "lucide-react";
 import { useEffect } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useParams } from "react-router-dom";
 import { ChatList, ChatWindow } from "@/dashboard/components/chats";
-import LoggedInChats from "./LoggedInChats";
 
 export default function GeneralChats() {
   const user = useAuthStore((s) => s.user);
@@ -40,12 +34,20 @@ export default function GeneralChats() {
     return (
       <div className="max-h-[calc(100dvh-50px)] h-[calc(100dvh-50px)] w-full flex flex-col md:flex-row overflow-hidden">
         {/* Left Sidebar - Chat List */}
-        <aside className={`${chatId ? 'hidden md:flex' : 'flex'} w-full md:w-72 shrink-0 flex-col border-r border-white/10 bg-dark-card/30 max-h-full`}>
-          <ChatList selectedChatId={chatId} className="max-h-full" />
+        <aside
+          className={`${
+            chatId ? "hidden md:flex" : "flex"
+          } w-full md:w-72 md:min-w-[288px] md:max-w-[288px] shrink-0 flex-col border-r border-white/10 bg-dark-card/30 max-h-full overflow-hidden`}
+        >
+          <ChatList selectedChatId={chatId} className="h-full w-full" />
         </aside>
 
         {/* Main Chat Area */}
-        <div className={`${chatId ? 'flex' : 'hidden md:flex'} flex-1 flex flex-col max-h-full overflow-hidden`}>
+        <div
+          className={`${
+            chatId ? "flex" : "hidden md:flex"
+          } flex-1 flex flex-col max-h-full overflow-hidden min-w-0`}
+        >
           {/* Header */}
           <div className="flex items-center justify-between p-4 bg-dark-card/40 backdrop-blur-lg border-b border-white/10 shrink-0">
             <div className="flex items-center gap-3">
@@ -82,10 +84,12 @@ export default function GeneralChats() {
                 <div className="w-16 h-16 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center mx-auto mb-4">
                   <MessageSquare className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">Let's learn together</h3>
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  Let's learn together
+                </h3>
                 <p className="text-white/60 mb-4">
-                  Select a conversation from the sidebar or start a new chat to begin.
-                  You can upload documents and ask questions about them.
+                  Select a conversation from the sidebar or start a new chat to
+                  begin. You can upload documents and ask questions about them.
                 </p>
                 <div className="space-y-2 text-sm text-white/50">
                   <p>• Upload PDFs, DOCX, or TXT files</p>
@@ -110,18 +114,18 @@ export default function GeneralChats() {
 
   // For non-logged-in users, show a simple welcome message
   return (
-      <div className="max-h-[calc(100dvh-50px)] h-[calc(100dvh-50px)] w-full flex flex-col overflow-hidden">
-        {/* Header */}
+    <div className="max-h-[calc(100dvh-50px)] h-[calc(100dvh-50px)] w-full flex flex-col overflow-hidden">
+      {/* Header */}
       <div className="flex items-center justify-between p-4 bg-dark-card/40 backdrop-blur-lg border-b border-white/10 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center">
-              <MessageSquare className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h2 className="font-bold text-white text-lg">General Chat</h2>
-              <p className="text-sm text-white/60 flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                AI Assistant
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center">
+            <MessageSquare className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h2 className="font-bold text-white text-lg">General Chat</h2>
+            <p className="text-sm text-white/60 flex items-center gap-2">
+              <Sparkles className="w-4 h-4" />
+              AI Assistant
             </p>
           </div>
         </div>
@@ -133,12 +137,15 @@ export default function GeneralChats() {
           <div className="w-16 h-16 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center mx-auto mb-4">
             <MessageSquare className="w-8 h-8 text-white" />
           </div>
-          <h3 className="text-xl font-semibold text-white mb-2">Welcome to EduPro Chat</h3>
+          <h3 className="text-xl font-semibold text-white mb-2">
+            Welcome to EduPro Chat
+          </h3>
           <p className="text-white/60 mb-4">
-            Please log in to access the full chat experience with document upload and RAG capabilities.
+            Please log in to access the full chat experience with document
+            upload and RAG capabilities.
           </p>
           <Button
-            onClick={() => window.location.href = '/login'}
+            onClick={() => (window.location.href = "/login")}
             className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80"
           >
             Sign In to Continue

@@ -17,7 +17,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { GlassCard } from "../components/GlassCard";
-import { GridView, ListView, SearchFilterBar } from "../components/library/uploads";
+import {
+  GridView,
+  ListView,
+  SearchFilterBar,
+} from "../components/library/uploads";
 import { ragService, type Document } from "@/services/rag";
 // import { useToast } from "@/shared/hooks";
 
@@ -52,9 +56,9 @@ export default function MyUploads() {
     data: documentsResponse,
     isLoading,
     error,
-    refetch
+    refetch,
   } = useQuery({
-    queryKey: ['documents', page],
+    queryKey: ["documents", page],
     queryFn: () => ragService.listDocuments(page),
     staleTime: 30000, // 30 seconds
   });
@@ -66,7 +70,7 @@ export default function MyUploads() {
       if (page === 1) {
         setAllDocuments(newDocs);
       } else {
-        setAllDocuments(prev => [...prev, ...newDocs]);
+        setAllDocuments((prev) => [...prev, ...newDocs]);
       }
     }
   }, [documentsResponse, page]);
@@ -77,64 +81,131 @@ export default function MyUploads() {
     name: doc.title,
     type: getFileTypeFromMime(doc.mime_type),
     category: getCategoryFromMime(doc.mime_type),
-    size: 'Unknown',
+    size: doc.size ? formatFileSize(doc.size) : "Unknown",
     tags: [],
     lastModified: new Date(doc.created_at).toLocaleDateString(),
     starred: false,
     thumbnail: null,
     source_url: doc.source_url || undefined,
     document_id: doc.id,
+    processing_status: doc.processing_status,
+    error: doc.error,
   });
 
   const getFileTypeFromMime = (mimeType: string): string => {
-    if (mimeType.includes('pdf')) return 'pdf';
-    if (mimeType.includes('word') || mimeType.includes('document')) return 'doc';
-    if (mimeType.includes('image')) return 'image';
-    if (mimeType.includes('presentation')) return 'ppt';
-    return 'doc';
+    if (mimeType.includes("pdf")) return "pdf";
+    if (mimeType.includes("word") || mimeType.includes("document"))
+      return "doc";
+    if (mimeType.includes("image")) return "image";
+    if (mimeType.includes("presentation")) return "ppt";
+    return "doc";
   };
 
   const getCategoryFromMime = (mimeType: string): string => {
-    if (mimeType.includes('pdf')) return 'notes';
-    if (mimeType.includes('word') || mimeType.includes('document')) return 'assignments';
-    if (mimeType.includes('image')) return 'images';
-    if (mimeType.includes('presentation')) return 'slides';
-    return 'notes';
+    if (mimeType.includes("pdf")) return "notes";
+    if (mimeType.includes("word") || mimeType.includes("document"))
+      return "assignments";
+    if (mimeType.includes("image")) return "images";
+    if (mimeType.includes("presentation")) return "slides";
+    return "notes";
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const convertedFiles = allDocuments.map(convertDocumentToFile);
 
   // Filter files based on selected category
-  const filteredFiles = selectedCategory === "all"
-    ? convertedFiles
-    : convertedFiles.filter((file) => file.category === selectedCategory);
+  const filteredFiles =
+    selectedCategory === "all"
+      ? convertedFiles
+      : convertedFiles.filter((file) => file.category === selectedCategory);
 
   const handleChatWithDocument = async (_documentId: string, title: string) => {
     try {
       // Create a new chat and navigate to it
       const newChat = await ragService.createChat();
-      
+
       console.log("Chat created:", `Started a new conversation about ${title}`);
-      
+
       // Navigate to the new chat
       navigate(`/dashboard/chats/${newChat.id}`);
     } catch (error) {
-      console.error('Failed to create chat:', error);
-      alert(`Failed to create chat: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Failed to create chat:", error);
+      alert(
+        `Failed to create chat: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
+  const handleDeleteDocument = async (documentId: string, title: string) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${title}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await ragService.deleteDocument(documentId);
+
+      // Remove document from local state
+      setAllDocuments((prev) => prev.filter((doc) => doc.id !== documentId));
+
+      console.log("Document deleted:", title);
+    } catch (error) {
+      console.error("Failed to delete document:", error);
+      alert(
+        `Failed to delete document: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  };
+
+  const handleReprocessDocument = async (documentId: string, title: string) => {
+    if (
+      !confirm(
+        `Reprocess "${title}"? This will re-extract and re-index the document content.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await ragService.reprocessDocument(documentId);
+
+      // Update document status in local state
+      setAllDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === documentId
+            ? { ...doc, processing_status: "queued", error: null }
+            : doc
+        )
+      );
+
+      console.log("Document reprocessing started:", title);
+    } catch (error) {
+      console.error("Failed to reprocess document:", error);
+      alert(
+        `Failed to reprocess document: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   };
 
   const loadMoreDocuments = () => {
     if (documentsResponse?.has_more) {
-      setPage(prev => prev + 1);
+      setPage((prev) => prev + 1);
     }
   };
 
@@ -195,7 +266,9 @@ export default function MyUploads() {
           <div className="p-5 rounded-full bg-red-500/10 mb-4">
             <RefreshCw size={48} className="text-red-400" />
           </div>
-          <h3 className="text-xl font-bold mb-2 text-white">Failed to load documents</h3>
+          <h3 className="text-xl font-bold mb-2 text-white">
+            Failed to load documents
+          </h3>
           <p className="text-gray-500 dark:text-gray-400 max-w-md mb-6">
             There was an error loading your documents. Please try again.
           </p>
@@ -211,12 +284,22 @@ export default function MyUploads() {
 
       {/* Grid View */}
       {!isLoading && !error && viewMode === "grid" && (
-        <GridView files={filteredFiles} onChatWithDocument={handleChatWithDocument} />
+        <GridView
+          files={filteredFiles}
+          onChatWithDocument={handleChatWithDocument}
+          onDeleteDocument={handleDeleteDocument}
+          onReprocessDocument={handleReprocessDocument}
+        />
       )}
 
       {/* List View */}
       {!isLoading && !error && viewMode === "list" && (
-        <ListView files={filteredFiles} onChatWithDocument={handleChatWithDocument} />
+        <ListView
+          files={filteredFiles}
+          onChatWithDocument={handleChatWithDocument}
+          onDeleteDocument={handleDeleteDocument}
+          onReprocessDocument={handleReprocessDocument}
+        />
       )}
 
       {/* Load More Button */}
@@ -244,10 +327,9 @@ export default function MyUploads() {
           </div>
           <h3 className="text-xl font-bold mb-2">No documents found</h3>
           <p className="text-gray-500 dark:text-gray-400 max-w-md mb-6">
-            {selectedCategory === "all" 
+            {selectedCategory === "all"
               ? "You haven't uploaded any documents yet. Upload your first document to get started."
-              : "No documents match your current filter. Try adjusting your search or upload a new file."
-            }
+              : "No documents match your current filter. Try adjusting your search or upload a new file."}
           </p>
           <Button
             className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700"
@@ -298,7 +380,7 @@ export default function MyUploads() {
           </div>
         </GlassCard>
 
-        <div 
+        <div
           className="cursor-pointer"
           onClick={() => navigate("/dashboard/chats")}
         >

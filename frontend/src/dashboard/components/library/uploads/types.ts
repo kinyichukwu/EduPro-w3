@@ -10,4 +10,6 @@ export interface FileItem {
   thumbnail: null;
   source_url?: string;
   document_id?: string;
+  processing_status?: string;
+  error?: string | null;
 }

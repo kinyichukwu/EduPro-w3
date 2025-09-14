@@ -24,6 +24,8 @@ type Config struct {
 	DatabaseURL       string
 	// RAG Configuration
 	BucketName string
+	// Solana Configuration
+	SolanaConfig *SolanaConfig
 }
 
 func Load() (*Config, error) {
@@ -41,6 +43,7 @@ func Load() (*Config, error) {
 		SupabaseJWTSecret: getEnv("SUPABASE_JWT_SECRET", ""),
 		DatabaseURL:       getEnv("DATABASE_URL", ""),
 		BucketName:        getEnv("BUCKET_NAME", "documents"),
+		SolanaConfig:      NewSolanaConfig(),
 	}
 
 	// Parse allowed origins

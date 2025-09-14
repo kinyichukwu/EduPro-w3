@@ -1,4 +1,29 @@
+# Environment files - NEVER commit these!
 .env
+.env.*
+!.env.example
+*.env
+
+# Build artifacts
 tmp/
 bin/
+build/
+dist/
+
+# Logs
 *.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp

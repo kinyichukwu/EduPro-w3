@@ -14,6 +14,7 @@ import (
 	"github.com/kinyichukwu/edu-pro-backend/internal/middleware"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/ai"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/database"
+	"github.com/kinyichukwu/edu-pro-backend/internal/services/solana"
 	"github.com/kinyichukwu/edu-pro-backend/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -61,6 +62,12 @@ func main() {
 	}
 	defer pgxClient.Close()
 
+	// Initialize Solana service
+	solanaService, err := solana.NewService(cfg.SolanaConfig)
+	if err != nil {
+		logger.Fatal("Failed to initialize Solana service", zap.Error(err))
+	}
+
 	// Initialize handlers
 	healthHandler := handlers.NewHealthHandler(aiService)
 	queryHandler := handlers.NewQueryHandler(aiService)
@@ -70,9 +77,13 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to initialize RAG handler", zap.Error(err))
 	}
+	
+	// Initialize Solana handlers
+	walletHandler := handlers.NewWalletHandler(solanaService)
+	paymentHandler := handlers.NewPaymentHandler(solanaService)
 
 	// Setup router
-	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler)
+	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler)
 
 	// Create HTTP server
 	srv := &http.Server{
@@ -109,7 +120,7 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler, walletHandler *handlers.WalletHandler, paymentHandler *handlers.PaymentHandler) *gin.Engine {
 	router := gin.New()
 
 	// Setup middleware
@@ -157,6 +168,25 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 		api.GET("/chats/:id", middleware.JWTMiddleware(cfg), ragHandler.GetChatMessages)
 		api.POST("/ask", middleware.JWTMiddleware(cfg), ragHandler.Ask)
 
+		// Solana Wallet routes (protected)
+		wallet := api.Group("/wallet")
+		wallet.Use(middleware.JWTMiddleware(cfg))
+		{
+			wallet.POST("/connect", walletHandler.ConnectWallet)
+			wallet.POST("/verify", walletHandler.VerifyWallet)
+			wallet.GET("/list", walletHandler.GetWallets)
+			wallet.DELETE("/:id", walletHandler.DisconnectWallet)
+		}
+
+		// Solana Payment routes (protected)
+		payment := api.Group("/payment")
+		payment.Use(middleware.JWTMiddleware(cfg))
+		{
+			payment.POST("/generate", paymentHandler.GeneratePayment)
+			payment.POST("/submit", paymentHandler.SubmitPayment)
+			payment.GET("/tokens", paymentHandler.GetSupportedTokens)
+			payment.GET("/status/:transactionId", paymentHandler.GetPaymentStatus)
+		}
 
 		// Internal routes (for integration)
 		internal := api.Group("/internal")

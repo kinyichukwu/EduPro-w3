@@ -26,6 +26,13 @@ type Config struct {
 	BucketName string
 	// Solana Configuration
 	SolanaConfig *SolanaConfig
+	SolanaRPCURL              string
+	EduProMintAddress         string
+	EduProMintAuthoritySecret string
+	EduProPlatformFeeBPS      int
+	EduProJupiterAPIBase      string
+	EduProStakingProgramID    string
+	EduProStakingTreasury     string
 }
 
 func Load() (*Config, error) {
@@ -44,6 +51,13 @@ func Load() (*Config, error) {
 		DatabaseURL:       getEnv("DATABASE_URL", ""),
 		BucketName:        getEnv("BUCKET_NAME", "documents"),
 		SolanaConfig:      NewSolanaConfig(),
+		// Solana Configuration
+		SolanaRPCURL:              getEnv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com"),
+		EduProMintAddress:         getEnv("EDUPRO_MINT_ADDRESS", ""),
+		EduProMintAuthoritySecret: getEnv("EDUPRO_MINT_AUTHORITY_SECRET_BASE58", ""),
+		EduProJupiterAPIBase:      getEnv("EDUPRO_JUPITER_API_BASE", "https://quote-api.jup.ag/v6"),
+		EduProStakingProgramID:    getEnv("EDUPRO_STAKING_PROGRAM_ID", ""),
+		EduProStakingTreasury:     getEnv("EDUPRO_STAKING_TREASURY", ""),
 	}
 
 	// Parse allowed origins
@@ -60,6 +74,14 @@ func Load() (*Config, error) {
 		rateLimit = 100
 	}
 	config.RateLimit = rateLimit
+
+	// Parse platform fee BPS
+	platformFeeBPSStr := getEnv("EDUPRO_PLATFORM_FEE_BPS", "250") // 2.5% default
+	platformFeeBPS, err := strconv.Atoi(platformFeeBPSStr)
+	if err != nil {
+		platformFeeBPS = 250
+	}
+	config.EduProPlatformFeeBPS = platformFeeBPS
 
 	// Validate required fields
 	if config.GeminiAPIKey == "" {

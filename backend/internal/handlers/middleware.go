@@ -114,10 +114,21 @@ func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
 	}
 
 	config := cors.Config{
-		AllowOrigins:     origins,
-		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Request-ID", "X-Requested-With", "Cache-Control", "Pragma"},
-		ExposeHeaders:    []string{"X-Request-ID", "X-Response-Time"},
+		AllowOrigins: origins,
+		AllowMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{
+			"Origin", "Content-Type", "Accept", "Authorization",
+			"X-Request-ID", "X-Requested-With", "Cache-Control", "Pragma",
+			// Solana wallet adapter headers
+			"X-Solana-Wallet", "X-Wallet-Adapter", "X-Solana-Pay",
+			// Additional headers for blockchain interactions
+			"X-Transaction-Signature", "X-Wallet-Address",
+		},
+		ExposeHeaders: []string{
+			"X-Request-ID", "X-Response-Time",
+			// Expose Solana-related headers
+			"X-Transaction-Status", "X-Block-Height",
+		},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}

@@ -25,6 +25,7 @@ type Config struct {
 	// RAG Configuration
 	BucketName string
 	// Solana Configuration
+	SolanaConfig *SolanaConfig
 	SolanaRPCURL              string
 	EduProMintAddress         string
 	EduProMintAuthoritySecret string
@@ -49,6 +50,7 @@ func Load() (*Config, error) {
 		SupabaseJWTSecret: getEnv("SUPABASE_JWT_SECRET", ""),
 		DatabaseURL:       getEnv("DATABASE_URL", ""),
 		BucketName:        getEnv("BUCKET_NAME", "documents"),
+		SolanaConfig:      NewSolanaConfig(),
 		// Solana Configuration
 		SolanaRPCURL:              getEnv("SOLANA_RPC_URL", "https://api.mainnet-beta.solana.com"),
 		EduProMintAddress:         getEnv("EDUPRO_MINT_ADDRESS", ""),

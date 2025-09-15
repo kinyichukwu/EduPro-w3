@@ -215,14 +215,19 @@ export function FileUpload({
       <Button
         onClick={selectedFiles.length > 0 ? handleUpload : handleFileSelect}
         variant="ghost"
-        size="icon"
         disabled={disabled || uploading}
-        className="h-9 w-9 text-white/60 hover:text-white hover:bg-white/10"
+        className="h-9 text-sm text-white/60 hover:text-white hover:bg-white/10"
       >
         {uploading ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
+          <>
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            Uploading...
+          </>
         ) : (
-          <Upload className="w-4 h-4" />
+          <>
+            <Upload className="w-4 h-4 mr-2" />
+            Upload
+          </>
         )}
       </Button>
 

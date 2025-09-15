@@ -11,6 +11,7 @@ import { MessageBubble } from "./MessageBubble";
 import { FileUpload } from "./FileUpload";
 import { ProgressBar } from "./ProgressBar";
 // import { useToast } from '@/shared/hooks/use-toast';
+import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 
 interface ChatWindowProps {
   chatId: string;
@@ -190,7 +191,7 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
           <div className="flex items-center gap-2">
             <Bot className="w-4 h-4 text-turbo-purple" />
             <span className="text-sm text-white/70 mr-2">Agent:</span>
-            <div className="flex gap-1">
+            <div className="flex gap-1 max-sm:hidden">
               {agents.map((agent) => (
                 <Button
                   key={agent.id}
@@ -209,7 +210,22 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
                 </Button>
               ))}
             </div>
-            <div className="ml-auto text-xs text-white/40">Phase 5 Preview</div>
+            <div className="sm:hidden">
+              <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+                <SelectTrigger className="text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {agents.map((agent) => (
+                    <SelectItem className="text-sm" key={agent.id} value={agent.id}>
+                      <span className="mr-1">{agent.icon}</span>
+                      {agent.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="ml-auto text-xs text-white/40 max-sm:hidden">Phase 5 Preview</div>
           </div>
         </div>
       </div>
@@ -298,7 +314,7 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
       </ScrollArea>
 
       {/* Input Area */}
-      <div className="border-t border-white/10 bg-dark-card/40 backdrop-blur-lg shrink-0">
+      <div className="shrink-0">
         <div className="max-w-4xl mx-auto p-3 sm:p-4">
           {/* Upload Progress */}
           {uploadProgress > 0 && uploadProgress < 100 && (
@@ -312,9 +328,25 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
           )}
 
           {/* Message Input with Upload Button */}
-          <div className="flex items-end gap-3">
+          <div className="space-y-1 rounded-xl border border-white/10 bg-dark-card/40 backdrop-blur-lg">
+            {/* Text Input */}
+            <TextareaAutosize
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              maxRows={6}
+              placeholder="Ask me anything..."
+              className="w-full px-4 py-3 text-white placeholder-white/40 transition-all duration-200 resize-none outline-none"
+              disabled={isAsking}
+            />
+
             {/* Upload Button */}
-            <div className="flex-shrink-0">
+            <div className="p-3 pt-0 flex justify-between flex-shrink-0">
               <FileUpload
                 chatId={chatId}
                 onUploaded={handleFileUploaded}
@@ -323,38 +355,20 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
                 multiple={false}
                 className="mb-0"
               />
-            </div>
 
-            {/* Text Input */}
-            <div className="flex-1">
-              <TextareaAutosize
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                maxRows={4}
-                placeholder="Ask me anything..."
-                className="w-full px-4 py-3 bg-dark-card/60 backdrop-blur-lg border border-white/20 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-turbo-purple/50 focus:ring-2 focus:ring-turbo-purple/20 transition-all duration-200 resize-none"
-                disabled={isAsking}
-              />
+              {/* Send Button */}
+              <Button
+                onClick={handleSendMessage}
+                disabled={!inputText.trim() || isAsking}
+                className="w-9 h-9 p-0 bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80 disabled:opacity-50 text-white flex-shrink-0"
+              >
+                {isAsking ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
             </div>
-
-            {/* Send Button */}
-            <Button
-              onClick={handleSendMessage}
-              disabled={!inputText.trim() || isAsking}
-              className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80 disabled:opacity-50 text-white p-3 flex-shrink-0"
-            >
-              {isAsking ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
-            </Button>
           </div>
         </div>
       </div>

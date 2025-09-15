@@ -92,8 +92,8 @@ func (h *WalletHandler) GetWallets(c *gin.Context) {
 	}
 
 	// TODO: Implement wallet retrieval from database
-	wallets := []*models.Wallet{} // Replace with actual database query
-	_ = userID // Use userID to query wallets
+	wallets := []*models.UserWallet{} // Replace with actual database query
+	_ = userID                        // Use userID to query wallets
 
 	c.JSON(http.StatusOK, gin.H{
 		"wallets": wallets,

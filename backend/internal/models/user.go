@@ -8,13 +8,13 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID        uuid.UUID  `json:"id" db:"id"`
-	Email     string     `json:"email" db:"email"`
-	Username  string     `json:"username" db:"username"`
-	FullName  *string    `json:"full_name,omitempty" db:"full_name"`
-	Avatar    *string    `json:"avatar,omitempty" db:"avatar"`
-	CreatedAt time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
+	ID        uuid.UUID `json:"id" db:"id"`
+	Email     string    `json:"email" db:"email"`
+	Username  string    `json:"username" db:"username"`
+	FullName  *string   `json:"full_name,omitempty" db:"full_name"`
+	Avatar    *string   `json:"avatar,omitempty" db:"avatar"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 	// Supabase user ID for linking
 	SupabaseID string `json:"supabase_id" db:"supabase_id"`
 }
@@ -46,49 +46,125 @@ type UpdateUserRequest struct {
 	Avatar   *string `json:"avatar,omitempty"`
 }
 
-// Wallet represents a user's Solana wallet
-type Wallet struct {
-	ID         uuid.UUID  `json:"id" db:"id"`
-	UserID     string     `json:"user_id" db:"user_id"`
-	Address    string     `json:"address" db:"address"`
-	IsVerified bool       `json:"is_verified" db:"is_verified"`
-	VerifiedAt *time.Time `json:"verified_at,omitempty" db:"verified_at"`
-	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt  time.Time  `json:"updated_at" db:"updated_at"`
+// UserWallet represents a user's Solana wallet (unified structure)
+type UserWallet struct {
+	ID            uuid.UUID  `json:"id" db:"id"`
+	UserID        uuid.UUID  `json:"user_id" db:"user_id"`
+	WalletAddress string     `json:"wallet_address" db:"wallet_address"`
+	IsPrimary     bool       `json:"is_primary" db:"is_primary"`
+	IsVerified    bool       `json:"is_verified" db:"is_verified"`
+	VerifiedAt    *time.Time `json:"verified_at,omitempty" db:"verified_at"`
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
 }
 
-// PaymentTransaction represents a Solana payment transaction
+// PaymentTransaction represents a unified Solana payment transaction
 type PaymentTransaction struct {
-	ID             uuid.UUID `json:"id" db:"id"`
-	UserID         string    `json:"user_id" db:"user_id"`
-	WalletAddress  string    `json:"wallet_address" db:"wallet_address"`
-	Amount         float64   `json:"amount" db:"amount"`
-	TokenSymbol    string    `json:"token_symbol" db:"token_symbol"`
-	TransactionID  string    `json:"transaction_id" db:"transaction_id"`
-	Status         string    `json:"status" db:"status"` // pending, confirmed, failed
-	BlockHeight    *int64    `json:"block_height,omitempty" db:"block_height"`
-	CreatedAt      time.Time `json:"created_at" db:"created_at"`
-	ConfirmedAt    *time.Time `json:"confirmed_at,omitempty" db:"confirmed_at"`
+	ID                   uuid.UUID `json:"id" db:"id"`
+	UserID               uuid.UUID `json:"user_id" db:"user_id"`
+	WalletAddress        string    `json:"wallet_address" db:"wallet_address"`
+	TransactionSignature string    `json:"transaction_signature" db:"transaction_signature"`
+
+	// Payment amounts
+	AmountLamports *int64  `json:"amount_lamports,omitempty" db:"amount_lamports"`
+	AmountTokens   *int64  `json:"amount_tokens,omitempty" db:"amount_tokens"`
+	TokenSymbol    string  `json:"token_symbol" db:"token_symbol"`
+	TokenMint      *string `json:"token_mint,omitempty" db:"token_mint"`
+
+	// Transaction metadata
+	PaymentMethod string `json:"payment_method" db:"payment_method"`
+	Status        string `json:"status" db:"status"` // pending, confirmed, failed, refunded
+	BlockHeight   *int64 `json:"block_height,omitempty" db:"block_height"`
+
+	// Reference data
+	PriceID  *string    `json:"price_id,omitempty" db:"price_id"`
+	CourseID *uuid.UUID `json:"course_id,omitempty" db:"course_id"`
+	Metadata *string    `json:"metadata,omitempty" db:"metadata"` // JSON string
+
+	// Timestamps
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	ConfirmedAt *time.Time `json:"confirmed_at,omitempty" db:"confirmed_at"`
+}
+
+// Course represents a purchasable course
+type Course struct {
+	ID            uuid.UUID  `json:"id" db:"id"`
+	Title         string     `json:"title" db:"title"`
+	Description   *string    `json:"description,omitempty" db:"description"`
+	PriceLamports int64      `json:"price_lamports" db:"price_lamports"`
+	PriceEdutoken *int64     `json:"price_edutoken,omitempty" db:"price_edutoken"`
+	PriceUsdCents *int       `json:"price_usd_cents,omitempty" db:"price_usd_cents"`
+	InstructorID  *uuid.UUID `json:"instructor_id,omitempty" db:"instructor_id"`
+	IsActive      bool       `json:"is_active" db:"is_active"`
+	Metadata      *string    `json:"metadata,omitempty" db:"metadata"` // JSON string
+	CreatedAt     time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at" db:"updated_at"`
+}
+
+// UserReward represents rewards earned by users
+type UserReward struct {
+	ID                   uuid.UUID  `json:"id" db:"id"`
+	UserID               uuid.UUID  `json:"user_id" db:"user_id"`
+	RewardType           string     `json:"reward_type" db:"reward_type"`
+	RewardAmountEdutoken int64      `json:"reward_amount_edutoken" db:"reward_amount_edutoken"`
+	Description          *string    `json:"description,omitempty" db:"description"`
+	TransactionSignature *string    `json:"transaction_signature,omitempty" db:"transaction_signature"`
+	Status               string     `json:"status" db:"status"` // pending, distributed, failed
+	EarnedAt             time.Time  `json:"earned_at" db:"earned_at"`
+	DistributedAt        *time.Time `json:"distributed_at,omitempty" db:"distributed_at"`
+	Metadata             *string    `json:"metadata,omitempty" db:"metadata"` // JSON string
+}
+
+// StakingPosition represents a user's staking position
+type StakingPosition struct {
+	ID                    uuid.UUID  `json:"id" db:"id"`
+	UserID                uuid.UUID  `json:"user_id" db:"user_id"`
+	WalletAddress         string     `json:"wallet_address" db:"wallet_address"`
+	StakedAmountEdutoken  int64      `json:"staked_amount_edutoken" db:"staked_amount_edutoken"`
+	StakeAccountAddress   *string    `json:"stake_account_address,omitempty" db:"stake_account_address"`
+	StakingProgramID      string     `json:"staking_program_id" db:"staking_program_id"`
+	Status                string     `json:"status" db:"status"` // active, unstaking, withdrawn
+	StakedAt              time.Time  `json:"staked_at" db:"staked_at"`
+	UnstakedAt            *time.Time `json:"unstaked_at,omitempty" db:"unstaked_at"`
+	RewardsEarned         int64      `json:"rewards_earned" db:"rewards_earned"`
+	LastRewardCalculation time.Time  `json:"last_reward_calculation" db:"last_reward_calculation"`
+}
+
+// SwapTransaction represents a token swap transaction
+type SwapTransaction struct {
+	ID                   uuid.UUID  `json:"id" db:"id"`
+	UserID               uuid.UUID  `json:"user_id" db:"user_id"`
+	TransactionSignature string     `json:"transaction_signature" db:"transaction_signature"`
+	InputMint            string     `json:"input_mint" db:"input_mint"`
+	OutputMint           string     `json:"output_mint" db:"output_mint"`
+	InputAmount          int64      `json:"input_amount" db:"input_amount"`
+	OutputAmount         int64      `json:"output_amount" db:"output_amount"`
+	SlippageBps          int        `json:"slippage_bps" db:"slippage_bps"`
+	PlatformFeeBps       int        `json:"platform_fee_bps" db:"platform_fee_bps"`
+	Status               string     `json:"status" db:"status"` // pending, confirmed, failed
+	SwappedAt            time.Time  `json:"swapped_at" db:"swapped_at"`
+	ConfirmedAt          *time.Time `json:"confirmed_at,omitempty" db:"confirmed_at"`
 }
 
 // TokenInfo represents supported Solana tokens
 type TokenInfo struct {
-	Symbol     string `json:"symbol"`
-	Name       string `json:"name"`
-	Mint       string `json:"mint"`
-	Decimals   int    `json:"decimals"`
+	Symbol   string `json:"symbol"`
+	Name     string `json:"name"`
+	Mint     string `json:"mint"`
+	Decimals int    `json:"decimals"`
 }
 
 // ConnectWalletRequest represents wallet connection request
 type ConnectWalletRequest struct {
-	Address string `json:"address" validate:"required"`
+	Address   string `json:"address" validate:"required"`
+	IsPrimary *bool  `json:"is_primary,omitempty"`
 }
 
 // ConnectWalletResponse represents wallet connection response
 type ConnectWalletResponse struct {
-	Wallet      *Wallet `json:"wallet"`
-	Message     string  `json:"message"`
-	VerifyMessage string `json:"verify_message"`
+	Wallet        *UserWallet `json:"wallet"`
+	Message       string      `json:"message"`
+	VerifyMessage string      `json:"verify_message"`
 }
 
 // VerifyWalletRequest represents wallet verification request
@@ -100,40 +176,59 @@ type VerifyWalletRequest struct {
 
 // VerifyWalletResponse represents wallet verification response
 type VerifyWalletResponse struct {
-	Wallet  *Wallet `json:"wallet"`
-	Message string  `json:"message"`
+	Wallet  *UserWallet `json:"wallet"`
+	Message string      `json:"message"`
 }
 
 // GeneratePaymentRequest represents payment generation request
 type GeneratePaymentRequest struct {
-	PriceID   string `json:"price_id" validate:"required"`
-	Token     string `json:"token" validate:"required,oneof=SOL USDC PYUSD"`
-	UserWallet string `json:"user_wallet" validate:"required"`
+	PriceID    string     `json:"price_id" validate:"required"`
+	CourseID   *uuid.UUID `json:"course_id,omitempty"`
+	Token      string     `json:"token" validate:"required,oneof=SOL USDC PYUSD EDUTOKEN"`
+	UserWallet string     `json:"user_wallet" validate:"required"`
 }
 
 // GeneratePaymentResponse represents payment generation response
 type GeneratePaymentResponse struct {
-	Transaction string `json:"transaction"`
-	Amount      float64 `json:"amount"`
-	TokenAmount string  `json:"token_amount"`
-	TokenSymbol string  `json:"token_symbol"`
-	ExpiresAt   int64   `json:"expires_at"`
-	Instructions string `json:"instructions"`
+	Transaction    string  `json:"transaction"`
+	AmountLamports *int64  `json:"amount_lamports,omitempty"`
+	AmountTokens   *int64  `json:"amount_tokens,omitempty"`
+	TokenSymbol    string  `json:"token_symbol"`
+	TokenMint      *string `json:"token_mint,omitempty"`
+	ExpiresAt      int64   `json:"expires_at"`
+	Instructions   string  `json:"instructions"`
 }
 
 // SubmitPaymentRequest represents payment submission request
 type SubmitPaymentRequest struct {
-	SignedTransaction string `json:"signed_transaction" validate:"required"`
-	PriceID          string `json:"price_id" validate:"required"`
+	SignedTransaction string     `json:"signed_transaction" validate:"required"`
+	PriceID           string     `json:"price_id" validate:"required"`
+	CourseID          *uuid.UUID `json:"course_id,omitempty"`
 }
 
 // SubmitPaymentResponse represents payment submission response
 type SubmitPaymentResponse struct {
-	PurchaseID    string `json:"purchase_id"`
-	TransactionID string `json:"transaction_id"`
-	Status        string `json:"status"`
-	Amount        float64 `json:"amount"`
-	Currency      string `json:"currency"`
-	ProcessedAt   string `json:"processed_at"`
-	Message       string `json:"message"`
+	PaymentID            uuid.UUID `json:"payment_id"`
+	TransactionSignature string    `json:"transaction_signature"`
+	Status               string    `json:"status"`
+	AmountLamports       *int64    `json:"amount_lamports,omitempty"`
+	AmountTokens         *int64    `json:"amount_tokens,omitempty"`
+	TokenSymbol          string    `json:"token_symbol"`
+	ProcessedAt          string    `json:"processed_at"`
+	Message              string    `json:"message"`
+}
+
+// CoursePaymentRequest represents a course purchase request
+type CoursePaymentRequest struct {
+	CourseID      uuid.UUID `json:"course_id" validate:"required"`
+	PaymentMethod string    `json:"payment_method" validate:"required,oneof=SOL USDC PYUSD EDUTOKEN"`
+	UserWallet    string    `json:"user_wallet" validate:"required"`
+}
+
+// RewardDistributionRequest represents a reward distribution request
+type RewardDistributionRequest struct {
+	UserWallet string  `json:"user_wallet" validate:"required"`
+	Amount     int64   `json:"amount" validate:"required,min=1"`
+	RewardType string  `json:"reward_type" validate:"required"`
+	Metadata   *string `json:"metadata,omitempty"`
 }

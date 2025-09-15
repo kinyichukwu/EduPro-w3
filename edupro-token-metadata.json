@@ -2,7 +2,7 @@
   "name": "EDUPRO",
   "symbol": "EDUPRO",
   "description": "EDUPRO is the native utility token for the EduPro platform, enabling course payments, rewards, and platform governance.",
-  "image": "https://raw.githubusercontent.com/kinyichukwu/edupro-assets/main/edupro-logo.png",
+  "image": "https://raw.githubusercontent.com/kinyichukwu/edupro-w3/main/edupro-logo.svg",
   "external_url": "https://edupro.com",
   "attributes": [
     {
@@ -25,7 +25,7 @@
   "properties": {
     "files": [
       {
-        "uri": "https://raw.githubusercontent.com/kinyichukwu/edupro-assets/main/edupro-logo.png",
+        "uri": "https://raw.githubusercontent.com/kinyichukwu/edupro-w3/main/edupro-logo.svg",
         "type": "image/png"
       }
     ],

@@ -273,8 +273,12 @@ export const useStudyCards = (
     setLoading(true);
     setError(null);
     try {
-      const data = await flashcardAPI.getStudyCards(deckId, mode, limit);
-      setStudyData(data);
+      const cards = await flashcardAPI.getStudyCards(deckId, limit);
+      setStudyData({
+        cards,
+        mode: mode || "review",
+        count: cards.length,
+      });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to fetch study cards"

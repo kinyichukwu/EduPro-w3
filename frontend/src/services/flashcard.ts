@@ -1,4 +1,4 @@
-import { apiService } from "./index";
+import { apiService } from "./api";
 
 // Types
 export interface Deck {
@@ -16,8 +16,9 @@ export interface Deck {
   last_studied?: string;
   created_at: string;
   updated_at: string;
-  outstanding?: number; // Cards due for review
-  new?: number; // New cards not yet studied
+  // Optional UI properties
+  outstanding?: number;
+  new?: number;
 }
 
 export interface Flashcard {
@@ -25,27 +26,24 @@ export interface Flashcard {
   deck_id: string;
   front: string;
   back: string;
-  difficulty: "easy" | "medium" | "hard";
+  difficulty?: "easy" | "medium" | "hard";
+  mastery_level: number;
   times_reviewed: number;
-  times_correct: number;
-  mastery: "new" | "learning" | "review" | "mastered";
   last_reviewed?: string;
   next_review?: string;
-  tags: string[];
   created_at: string;
   updated_at: string;
 }
 
 export interface StudySession {
   id: string;
-  user_id: string;
   deck_id: string;
-  mode: "sequential" | "random" | "difficult" | "review" | "new";
-  cards_studied: number;
+  user_id: string;
+  start_time: string;
+  end_time?: string;
+  total_cards: number;
   correct_answers: number;
-  total_time: number; // in seconds
-  started_at: string;
-  completed_at?: string;
+  total_time?: number; // in seconds
   created_at: string;
 }
 
@@ -53,11 +51,11 @@ export interface FlashcardStats {
   total_decks: number;
   total_cards: number;
   mastered_cards: number;
-  cards_to_review: number;
+  cards_due_today: number;
   average_score: number;
   total_study_time: number; // in minutes
-  study_streak: number; // days
-  last_study_session?: string;
+  longest_streak: number;
+  current_streak: number;
 }
 
 // Request types
@@ -81,27 +79,24 @@ export interface CreateFlashcardRequest {
   front: string;
   back: string;
   difficulty?: "easy" | "medium" | "hard";
-  tags?: string[];
 }
 
 export interface CreateBulkFlashcardsRequest {
-  cards: CreateFlashcardRequest[];
-}
-
-export interface StartStudySessionRequest {
-  deck_id: string;
-  mode?: "sequential" | "random" | "difficult" | "review" | "new";
+  flashcards: CreateFlashcardRequest[];
 }
 
 export interface StudyCardRequest {
   card_id: string;
-  is_correct: boolean;
+  difficulty: "easy" | "medium" | "hard";
   time_spent: number; // in seconds
+  correct: boolean;
+}
+
+export interface StartStudySessionRequest {
+  deck_id: string;
 }
 
 export interface EndStudySessionRequest {
-  cards_studied: number;
-  correct_answers: number;
   total_time: number; // in seconds
   studied_cards: StudyCardRequest[];
 }
@@ -109,25 +104,32 @@ export interface EndStudySessionRequest {
 class FlashcardAPI {
   // Deck operations
   async createDeck(request: CreateDeckRequest): Promise<Deck> {
-    return await apiService.post<Deck>("/flashcards/decks", { body: request });
+    const response = await apiService.createDeck(request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
   }
 
   async getDecks(): Promise<Deck[]> {
-    return await apiService.get<Deck[]>("/flashcards/decks");
+    const response = await apiService.getDecks();
+    if (response.error) throw new Error(response.error);
+    return response.data!;
   }
 
   async getDeck(deckId: string): Promise<Deck> {
-    return await apiService.get<Deck>(`/flashcards/decks/${deckId}`);
+    const response = await apiService.getDeck(deckId);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
   }
 
   async updateDeck(deckId: string, request: UpdateDeckRequest): Promise<Deck> {
-    return await apiService.put<Deck>(`/flashcards/decks/${deckId}`, {
-      body: request,
-    });
+    const response = await apiService.updateDeck(deckId, request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
   }
 
   async deleteDeck(deckId: string): Promise<void> {
-    return await apiService.delete<void>(`/flashcards/decks/${deckId}`);
+    const response = await apiService.deleteDeck(deckId);
+    if (response.error) throw new Error(response.error);
   }
 
   // Flashcard operations
@@ -135,70 +137,55 @@ class FlashcardAPI {
     deckId: string,
     request: CreateFlashcardRequest
   ): Promise<Flashcard> {
-    return await apiService.post<Flashcard>(
-      `/flashcards/decks/${deckId}/cards`,
-      { body: request }
-    );
+    const response = await apiService.createFlashcard(deckId, request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
   }
 
   async createBulkFlashcards(
     deckId: string,
     request: CreateBulkFlashcardsRequest
   ): Promise<Flashcard[]> {
-    return await apiService.post<Flashcard[]>(
-      `/flashcards/decks/${deckId}/cards/bulk`,
-      { body: request }
-    );
+    const response = await apiService.createBulkFlashcards(deckId, request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
   }
 
   async getFlashcards(deckId: string): Promise<Flashcard[]> {
-    return await apiService.get<Flashcard[]>(
-      `/flashcards/decks/${deckId}/cards`
-    );
+    const response = await apiService.getFlashcards(deckId);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
   }
 
-  async getStudyCards(
-    deckId: string,
-    mode?: string,
-    limit?: number
-  ): Promise<{
-    cards: Flashcard[];
-    mode: string;
-    count: number;
-  }> {
-    const query: Record<string, string> = {};
-    if (mode) query.mode = mode;
-    if (limit) query.limit = limit.toString();
-
-    return await apiService.get<{
-      cards: Flashcard[];
-      mode: string;
-      count: number;
-    }>(`/flashcards/decks/${deckId}/cards/study`, { query });
+  async getStudyCards(deckId: string, limit?: number): Promise<Flashcard[]> {
+    const response = await apiService.getStudyCards(deckId, limit);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
   }
 
   // Study session operations
   async startStudySession(
     request: StartStudySessionRequest
   ): Promise<StudySession> {
-    return await apiService.post<StudySession>("/flashcards/study/sessions", {
-      body: request,
-    });
+    const response = await apiService.startStudySession(request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
   }
 
   async endStudySession(
     sessionId: string,
     request: EndStudySessionRequest
   ): Promise<StudySession> {
-    return await apiService.put<StudySession>(
-      `/flashcards/study/sessions/${sessionId}`,
-      { body: request }
-    );
+    const response = await apiService.endStudySession(sessionId, request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
   }
 
   // Statistics
   async getFlashcardStats(): Promise<FlashcardStats> {
-    return await apiService.get<FlashcardStats>("/flashcards/stats");
+    const response = await apiService.getFlashcardStats();
+    if (response.error) throw new Error(response.error);
+    return response.data!;
   }
 }
 

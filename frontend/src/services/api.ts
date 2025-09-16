@@ -460,6 +460,123 @@ class ApiService {
   async ragHealth(): Promise<ApiResponse<any>> {
     return this.request<any>("/rag/health");
   }
+
+  // Flashcard endpoints
+  async createDeck(request: any): Promise<ApiResponse<any>> {
+    return this.request<any>("/flashcards/decks", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getDecks(): Promise<ApiResponse<any>> {
+    return this.request<any>("/flashcards/decks");
+  }
+
+  async getDeck(deckId: string): Promise<ApiResponse<any>> {
+    return this.request<any>(`/flashcards/decks/${deckId}`);
+  }
+
+  async updateDeck(deckId: string, request: any): Promise<ApiResponse<any>> {
+    return this.request<any>(`/flashcards/decks/${deckId}`, {
+      method: "PUT",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async deleteDeck(deckId: string): Promise<ApiResponse<void>> {
+    return this.request<void>(`/flashcards/decks/${deckId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async createFlashcard(deckId: string, request: any): Promise<ApiResponse<any>> {
+    return this.request<any>(`/flashcards/decks/${deckId}/cards`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async createBulkFlashcards(deckId: string, request: any): Promise<ApiResponse<any>> {
+    return this.request<any>(`/flashcards/decks/${deckId}/cards/bulk`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getFlashcards(deckId: string): Promise<ApiResponse<any>> {
+    return this.request<any>(`/flashcards/decks/${deckId}/cards`);
+  }
+
+  async getStudyCards(deckId: string, limit?: number): Promise<ApiResponse<any>> {
+    const query = limit ? `?limit=${limit}` : "";
+    return this.request<any>(`/flashcards/decks/${deckId}/cards/study${query}`);
+  }
+
+  async startStudySession(request: any): Promise<ApiResponse<any>> {
+    return this.request<any>("/flashcards/study/sessions", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async endStudySession(sessionId: string, request: any): Promise<ApiResponse<any>> {
+    return this.request<any>(`/flashcards/study/sessions/${sessionId}`, {
+      method: "PUT",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getFlashcardStats(): Promise<ApiResponse<any>> {
+    return this.request<any>("/flashcards/stats");
+  }
+
+  // Solana endpoints
+  async connectWallet(request: any): Promise<ApiResponse<any>> {
+    return this.request<any>("/wallet/connect", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async verifyWallet(request: any): Promise<ApiResponse<any>> {
+    return this.request<any>("/wallet/verify", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getWallets(): Promise<ApiResponse<any>> {
+    return this.request<any>("/wallet/list");
+  }
+
+  async disconnectWallet(walletId: string): Promise<ApiResponse<void>> {
+    return this.request<void>(`/wallet/${walletId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async generatePayment(request: any): Promise<ApiResponse<any>> {
+    return this.request<any>("/payment/generate", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async submitPayment(request: any): Promise<ApiResponse<any>> {
+    return this.request<any>("/payment/submit", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getSupportedTokens(): Promise<ApiResponse<any>> {
+    return this.request<any>("/payment/tokens");
+  }
+
+  async getPaymentStatus(transactionId: string): Promise<ApiResponse<any>> {
+    return this.request<any>(`/payment/status/${transactionId}`);
+  }
 }
 
 export const apiService = new ApiService();

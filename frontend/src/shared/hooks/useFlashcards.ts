@@ -38,7 +38,7 @@ export const useDecks = () => {
     setError(null);
     try {
       const newDeck = await flashcardAPI.createDeck(request);
-      setDecks((prev) => [newDeck, ...prev]); // Add to top of list
+      setDecks((prev) => [newDeck, ...(prev || [])]); // Add to top of list, ensure prev is array
       return newDeck;
     } catch (err) {
       const errorMessage =

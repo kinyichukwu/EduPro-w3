@@ -22,22 +22,68 @@ func NewFlashcardHandler(db *database.Client) *FlashcardHandler {
 	return &FlashcardHandler{db: db}
 }
 
-// CreateDeck creates a new flashcard deck
-func (h *FlashcardHandler) CreateDeck(c *gin.Context) {
+// getUserFromContext gets the user from the JWT context and ensures they exist in our database
+func (h *FlashcardHandler) getUserFromContext(c *gin.Context) (*models.User, error) {
 	logger := utils.GetLogger()
 
 	// Get user ID from context (set by JWT middleware)
 	userIDStr, exists := c.Get("user_id")
 	if !exists {
 		logger.Error("User ID not found in context")
-		utils.SendError(c, &models.APIError{Code: http.StatusUnauthorized, Message: "User not authenticated"})
-		return
+		return nil, &models.APIError{Code: http.StatusUnauthorized, Message: "User not authenticated"}
 	}
 
-	userID, err := uuid.Parse(userIDStr.(string))
+	// Get user email from context
+	userEmail, emailExists := c.Get("user_email")
+	if !emailExists {
+		logger.Error("User email not found in context")
+		return nil, &models.APIError{Code: http.StatusUnauthorized, Message: "User email not found"}
+	}
+
+	supabaseUserID, err := uuid.Parse(userIDStr.(string))
 	if err != nil {
 		logger.Error("Invalid user ID", zap.String("error", err.Error()))
-		utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid user ID"})
+		return nil, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid user ID"}
+	}
+
+	// Try to get user from our database
+	user, err := h.db.GetUserBySupabaseID(supabaseUserID.String())
+	if err != nil {
+		// User doesn't exist in our database, create them
+		createUserReq := &models.CreateUserRequest{
+			Email:      userEmail.(string),
+			Username:   "", // Will be filled from email prefix if empty
+			SupabaseID: supabaseUserID.String(),
+		}
+
+		user, err = h.db.CreateUser(createUserReq)
+		if err != nil {
+			logger.Error("Failed to create user in database", 
+				zap.String("supabase_user_id", supabaseUserID.String()),
+				zap.String("error", err.Error()))
+			return nil, &models.APIError{
+				Code: http.StatusInternalServerError, 
+				Message: "Failed to create user record"}
+		}
+
+		logger.Info("Auto-created user record", zap.String("user_id", user.ID.String()))
+	}
+
+	return user, nil
+}
+
+// CreateDeck creates a new flashcard deck
+func (h *FlashcardHandler) CreateDeck(c *gin.Context) {
+	logger := utils.GetLogger()
+
+	// Get user from context and ensure they exist in our database
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		if apiErr, ok := err.(*models.APIError); ok {
+			utils.SendError(c, apiErr)
+		} else {
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Internal server error"})
+		}
 		return
 	}
 
@@ -48,14 +94,18 @@ func (h *FlashcardHandler) CreateDeck(c *gin.Context) {
 		return
 	}
 
-	deck, err := h.db.CreateDeck(userID, &req)
+	deck, err := h.db.CreateDeck(user.ID, &req)
 	if err != nil {
-		logger.Error("Failed to create deck", zap.String("error", err.Error()))
+		logger.Error("Failed to create deck", 
+			zap.String("user_id", user.ID.String()),
+			zap.String("error", err.Error()))
 		utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Failed to create deck"})
 		return
 	}
 
-	logger.Info("Deck created successfully", zap.String("deck_id", deck.ID.String()))
+	logger.Info("Deck created successfully", 
+		zap.String("deck_id", deck.ID.String()),
+		zap.String("user_id", user.ID.String()))
 	utils.SendSuccess(c, deck)
 }
 
@@ -63,22 +113,18 @@ func (h *FlashcardHandler) CreateDeck(c *gin.Context) {
 func (h *FlashcardHandler) GetDecks(c *gin.Context) {
 	logger := utils.GetLogger()
 
-	// Get user ID from context
-	userIDStr, exists := c.Get("user_id")
-	if !exists {
-		logger.Error("User ID not found in context")
-		utils.SendError(c, &models.APIError{Code: http.StatusUnauthorized, Message: "User not authenticated"})
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr.(string))
+	// Get user from context and ensure they exist in our database
+	user, err := h.getUserFromContext(c)
 	if err != nil {
-		logger.Error("Invalid user ID", zap.String("error", err.Error()))
-		utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid user ID"})
+		if apiErr, ok := err.(*models.APIError); ok {
+			utils.SendError(c, apiErr)
+		} else {
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Internal server error"})
+		}
 		return
 	}
 
-	decks, err := h.db.GetDecksByUserID(userID)
+	decks, err := h.db.GetDecksByUserID(user.ID)
 	if err != nil {
 		logger.Error("Failed to get decks", zap.String("error", err.Error()))
 		utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Failed to get decks"})
@@ -92,18 +138,14 @@ func (h *FlashcardHandler) GetDecks(c *gin.Context) {
 func (h *FlashcardHandler) GetDeck(c *gin.Context) {
 	logger := utils.GetLogger()
 
-	// Get user ID from context
-	userIDStr, exists := c.Get("user_id")
-	if !exists {
-		logger.Error("User ID not found in context")
-		utils.SendError(c, &models.APIError{Code: http.StatusUnauthorized, Message: "User not authenticated"})
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr.(string))
+	// Get user from context and ensure they exist in our database
+	user, err := h.getUserFromContext(c)
 	if err != nil {
-		logger.Error("Invalid user ID", zap.String("error", err.Error()))
-		utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid user ID"})
+		if apiErr, ok := err.(*models.APIError); ok {
+			utils.SendError(c, apiErr)
+		} else {
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Internal server error"})
+		}
 		return
 	}
 
@@ -116,7 +158,7 @@ func (h *FlashcardHandler) GetDeck(c *gin.Context) {
 		return
 	}
 
-	deck, err := h.db.GetDeckByID(deckID, userID)
+	deck, err := h.db.GetDeckByID(deckID, user.ID)
 	if err != nil {
 		if err.Error() == "deck not found" {
 			utils.SendError(c, &models.APIError{Code: http.StatusNotFound, Message: "Deck not found"})
@@ -134,18 +176,14 @@ func (h *FlashcardHandler) GetDeck(c *gin.Context) {
 func (h *FlashcardHandler) UpdateDeck(c *gin.Context) {
 	logger := utils.GetLogger()
 
-	// Get user ID from context
-	userIDStr, exists := c.Get("user_id")
-	if !exists {
-		logger.Error("User ID not found in context")
-		utils.SendError(c, &models.APIError{Code: http.StatusUnauthorized, Message: "User not authenticated"})
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr.(string))
+	// Get user from context and ensure they exist in our database
+	user, err := h.getUserFromContext(c)
 	if err != nil {
-		logger.Error("Invalid user ID", zap.String("error", err.Error()))
-		utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid user ID"})
+		if apiErr, ok := err.(*models.APIError); ok {
+			utils.SendError(c, apiErr)
+		} else {
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Internal server error"})
+		}
 		return
 	}
 
@@ -165,7 +203,7 @@ func (h *FlashcardHandler) UpdateDeck(c *gin.Context) {
 		return
 	}
 
-	deck, err := h.db.UpdateDeck(deckID, userID, &req)
+	deck, err := h.db.UpdateDeck(deckID, user.ID, &req)
 	if err != nil {
 		if err.Error() == "deck not found" {
 			utils.SendError(c, &models.APIError{Code: http.StatusNotFound, Message: "Deck not found"})
@@ -183,18 +221,14 @@ func (h *FlashcardHandler) UpdateDeck(c *gin.Context) {
 func (h *FlashcardHandler) DeleteDeck(c *gin.Context) {
 	logger := utils.GetLogger()
 
-	// Get user ID from context
-	userIDStr, exists := c.Get("user_id")
-	if !exists {
-		logger.Error("User ID not found in context")
-		utils.SendError(c, &models.APIError{Code: http.StatusUnauthorized, Message: "User not authenticated"})
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr.(string))
+	// Get user from context and ensure they exist in our database
+	user, err := h.getUserFromContext(c)
 	if err != nil {
-		logger.Error("Invalid user ID", zap.String("error", err.Error()))
-		utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid user ID"})
+		if apiErr, ok := err.(*models.APIError); ok {
+			utils.SendError(c, apiErr)
+		} else {
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Internal server error"})
+		}
 		return
 	}
 
@@ -207,7 +241,7 @@ func (h *FlashcardHandler) DeleteDeck(c *gin.Context) {
 		return
 	}
 
-	err = h.db.DeleteDeck(deckID, userID)
+	err = h.db.DeleteDeck(deckID, user.ID)
 	if err != nil {
 		if err.Error() == "deck not found" {
 			utils.SendError(c, &models.APIError{Code: http.StatusNotFound, Message: "Deck not found"})
@@ -318,22 +352,18 @@ func (h *FlashcardHandler) GetFlashcards(c *gin.Context) {
 func (h *FlashcardHandler) GetFlashcardStats(c *gin.Context) {
 	logger := utils.GetLogger()
 
-	// Get user ID from context
-	userIDStr, exists := c.Get("user_id")
-	if !exists {
-		logger.Error("User ID not found in context")
-		utils.SendError(c, &models.APIError{Code: http.StatusUnauthorized, Message: "User not authenticated"})
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr.(string))
+	// Get user from context and ensure they exist in our database
+	user, err := h.getUserFromContext(c)
 	if err != nil {
-		logger.Error("Invalid user ID", zap.String("error", err.Error()))
-		utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid user ID"})
+		if apiErr, ok := err.(*models.APIError); ok {
+			utils.SendError(c, apiErr)
+		} else {
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Internal server error"})
+		}
 		return
 	}
 
-	stats, err := h.db.GetFlashcardStats(userID)
+	stats, err := h.db.GetFlashcardStats(user.ID)
 	if err != nil {
 		logger.Error("Failed to get flashcard stats", zap.String("error", err.Error()))
 		utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Failed to get flashcard stats"})
@@ -347,18 +377,14 @@ func (h *FlashcardHandler) GetFlashcardStats(c *gin.Context) {
 func (h *FlashcardHandler) StartStudySession(c *gin.Context) {
 	logger := utils.GetLogger()
 
-	// Get user ID from context
-	userIDStr, exists := c.Get("user_id")
-	if !exists {
-		logger.Error("User ID not found in context")
-		utils.SendError(c, &models.APIError{Code: http.StatusUnauthorized, Message: "User not authenticated"})
-		return
-	}
-
-	userID, err := uuid.Parse(userIDStr.(string))
+	// Get user from context and ensure they exist in our database
+	user, err := h.getUserFromContext(c)
 	if err != nil {
-		logger.Error("Invalid user ID", zap.String("error", err.Error()))
-		utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid user ID"})
+		if apiErr, ok := err.(*models.APIError); ok {
+			utils.SendError(c, apiErr)
+		} else {
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Internal server error"})
+		}
 		return
 	}
 
@@ -371,7 +397,7 @@ func (h *FlashcardHandler) StartStudySession(c *gin.Context) {
 
 	// TODO: Verify that the deck belongs to the authenticated user
 
-	session, err := h.db.StartStudySession(userID, &req)
+	session, err := h.db.StartStudySession(user.ID, &req)
 	if err != nil {
 		logger.Error("Failed to start study session", zap.String("error", err.Error()))
 		utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Failed to start study session"})

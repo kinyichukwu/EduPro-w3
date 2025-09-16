@@ -548,8 +548,21 @@ class ApiService {
     flashcardId: string,
     request: any
   ): Promise<ApiResponse<any>> {
-    return this.request<any>(`/flashcards/decks/${deckId}/cards/${flashcardId}/rate`, {
-      method: "PUT",
+    return this.request<any>(
+      `/flashcards/decks/${deckId}/cards/${flashcardId}/rate`,
+      {
+        method: "PUT",
+        body: JSON.stringify(request),
+      }
+    );
+  }
+
+  async generateAIFlashcards(
+    deckId: string,
+    request: any
+  ): Promise<ApiResponse<any>> {
+    return this.request<any>(`/flashcards/decks/${deckId}/generate`, {
+      method: "POST",
       body: JSON.stringify(request),
     });
   }

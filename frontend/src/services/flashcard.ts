@@ -112,6 +112,18 @@ export interface RateFlashcardResponse {
   next_review: string;
 }
 
+export interface GenerateAIFlashcardsRequest {
+  count: number;
+  topic?: string;
+}
+
+export interface GenerateAIFlashcardsResponse {
+  message: string;
+  cards: Flashcard[];
+  topic: string;
+  count: number;
+}
+
 class FlashcardAPI {
   // Deck operations
   async createDeck(request: CreateDeckRequest): Promise<Deck> {
@@ -178,7 +190,7 @@ class FlashcardAPI {
     // TODO: Add this endpoint to the API service when backend supports it
     console.log(`Would delete flashcard ${flashcardId} from deck ${deckId}`);
     // For now, just simulate the API call
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   async rateFlashcard(
@@ -186,7 +198,20 @@ class FlashcardAPI {
     flashcardId: string,
     request: RateFlashcardRequest
   ): Promise<RateFlashcardResponse> {
-    const response = await apiService.rateFlashcard(deckId, flashcardId, request);
+    const response = await apiService.rateFlashcard(
+      deckId,
+      flashcardId,
+      request
+    );
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
+
+  async generateAIFlashcards(
+    deckId: string,
+    request: GenerateAIFlashcardsRequest
+  ): Promise<GenerateAIFlashcardsResponse> {
+    const response = await apiService.generateAIFlashcards(deckId, request);
     if (response.error) throw new Error(response.error);
     return response.data!;
   }

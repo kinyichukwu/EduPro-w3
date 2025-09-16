@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
+	"github.com/kinyichukwu/edu-pro-backend/internal/services/ai"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/database"
 	"github.com/kinyichukwu/edu-pro-backend/internal/utils"
 	"go.uber.org/zap"
@@ -15,12 +17,16 @@ import (
 
 // FlashcardHandler handles flashcard-related HTTP requests
 type FlashcardHandler struct {
-	db *database.Client
+	db       *database.Client
+	aiClient ai.Service
 }
 
 // NewFlashcardHandler creates a new flashcard handler
-func NewFlashcardHandler(db *database.Client) *FlashcardHandler {
-	return &FlashcardHandler{db: db}
+func NewFlashcardHandler(db *database.Client, aiClient ai.Service) *FlashcardHandler {
+	return &FlashcardHandler{
+		db:       db,
+		aiClient: aiClient,
+	}
 }
 
 // getUserFromContext gets the user from the JWT context and ensures they exist in our database
@@ -546,25 +552,21 @@ func (h *FlashcardHandler) RateFlashcard(c *gin.Context) {
 
 	// Calculate spaced repetition intervals based on rating
 	var intervalDays int
-	var masteryLevelChange int
 
 	switch req.Rating {
 	case "hard":
 		intervalDays = 1
-		masteryLevelChange = 0 // No mastery increase for hard rating
 	case "okay":
 		intervalDays = 3
-		masteryLevelChange = 1
 	case "easy":
 		intervalDays = 7
-		masteryLevelChange = 2
 	}
 
 	// Calculate next review date
 	nextReview := time.Now().AddDate(0, 0, intervalDays)
 
 	// Update flashcard in database
-	err = h.db.UpdateFlashcardProgress(flashcardID.String(), masteryLevelChange, nextReview)
+	err = h.db.UpdateFlashcardProgress(flashcardID.String(), req.Rating, nextReview)
 	if err != nil {
 		logger.Error("Failed to update flashcard progress",
 			zap.String("flashcard_id", flashcardID.String()),
@@ -588,3 +590,119 @@ func (h *FlashcardHandler) RateFlashcard(c *gin.Context) {
 		"next_review":   nextReview.Format(time.RFC3339),
 	})
 }
+
+// GenerateAIFlashcards generates flashcards using AI based on deck topic
+func (h *FlashcardHandler) GenerateAIFlashcards(c *gin.Context) {
+	logger := utils.GetLogger()
+
+	// Get user from context
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		if apiErr, ok := err.(*models.APIError); ok {
+			utils.SendError(c, apiErr)
+		} else {
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Failed to get user"})
+		}
+		return
+	}
+
+	// Get deck ID from URL
+	deckIDStr := c.Param("id")
+	deckID, err := uuid.Parse(deckIDStr)
+	if err != nil {
+		logger.Error("Invalid deck ID", zap.String("deck_id", deckIDStr), zap.String("error", err.Error()))
+		utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid deck ID"})
+		return
+	}
+
+	// Verify deck belongs to user and get deck info
+	deck, err := h.db.GetDeckByID(deckID, user.ID)
+	if err != nil {
+		logger.Error("Failed to get deck or deck not found", 
+			zap.String("deck_id", deckID.String()),
+			zap.String("user_id", user.ID.String()),
+			zap.String("error", err.Error()))
+		utils.SendError(c, &models.APIError{Code: http.StatusNotFound, Message: "Deck not found"})
+		return
+	}
+
+	// Parse request body
+	var req struct {
+		Count int    `json:"count" binding:"required,min=1,max=20"`
+		Topic string `json:"topic,omitempty"` // Optional, will use deck topic if not provided
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("Invalid request body", zap.String("error", err.Error()))
+		utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid request. Count must be between 1 and 20"})
+		return
+	}
+
+	// Use deck topic if no topic provided
+	topic := req.Topic
+	if topic == "" {
+		if deck.Topic != nil {
+			topic = *deck.Topic
+		}
+		if topic == "" {
+			topic = deck.Name // Fallback to deck name
+		}
+	}
+
+	// Generate flashcards using proper AI service
+	aiResponse, err := h.aiClient.GenerateFlashcards(&ai.GeminiRequest{
+		Query:   topic,
+		Subject: "", // Could be extracted from deck metadata
+		Level:   "", // Could be extracted from user profile
+		Task:    fmt.Sprintf("%d", req.Count), // Pass count as task
+	})
+	
+	var aiCards []models.CreateFlashcardRequest
+	if err != nil {
+		logger.Error("Failed to generate AI flashcards", zap.String("error", err.Error()))
+		// Fallback to mock cards if AI fails
+		for i := 0; i < req.Count; i++ {
+			difficulty := "medium"
+			aiCards = append(aiCards, models.CreateFlashcardRequest{
+				Front:      fmt.Sprintf("AI Generated Question %d about %s", i+1, topic),
+				Back:       fmt.Sprintf("AI Generated Answer %d for %s", i+1, topic),
+				Difficulty: &difficulty,
+			})
+		}
+	} else {
+		// Convert AI response to flashcard requests
+		for _, flashcard := range aiResponse.Flashcards {
+			aiCards = append(aiCards, models.CreateFlashcardRequest{
+				Front:      flashcard.Front,
+				Back:       flashcard.Back,
+				Difficulty: &flashcard.Difficulty,
+			})
+		}
+	}
+
+	// Create flashcards in bulk
+	bulkReq := &models.CreateBulkFlashcardsRequest{
+		Cards: aiCards,
+	}
+
+	cards, err := h.db.CreateBulkFlashcards(deckID, bulkReq)
+	if err != nil {
+		logger.Error("Failed to create AI-generated flashcards", zap.String("error", err.Error()))
+		utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Failed to create flashcards"})
+		return
+	}
+
+	logger.Info("AI flashcards generated successfully", 
+		zap.String("deck_id", deckID.String()),
+		zap.String("user_id", user.ID.String()),
+		zap.String("topic", topic),
+		zap.Int("count", len(cards)))
+
+	utils.SendSuccess(c, gin.H{
+		"message": fmt.Sprintf("Generated %d flashcards for %s", len(cards), topic),
+		"cards":   cards,
+		"topic":   topic,
+		"count":   len(cards),
+	})
+}
+

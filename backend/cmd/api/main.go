@@ -83,7 +83,7 @@ func main() {
 	paymentHandler := handlers.NewPaymentHandler(solanaService)
 
 	// Initialize flashcard handler
-	flashcardHandler := handlers.NewFlashcardHandler(dbClient)
+	flashcardHandler := handlers.NewFlashcardHandler(dbClient, aiService)
 
 	// Setup router
 	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler, flashcardHandler)
@@ -214,6 +214,7 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			flashcards.GET("/decks/:id/cards", flashcardHandler.GetFlashcards)
 			flashcards.GET("/decks/:id/cards/study", flashcardHandler.GetStudyCards)
 			flashcards.PUT("/decks/:id/cards/:flashcard_id/rate", flashcardHandler.RateFlashcard)
+			flashcards.POST("/decks/:id/generate", flashcardHandler.GenerateAIFlashcards)
 
 			// Study session routes
 			flashcards.POST("/study/sessions", flashcardHandler.StartStudySession)

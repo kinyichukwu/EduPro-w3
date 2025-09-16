@@ -46,6 +46,22 @@ type ExplanationResponse struct {
 	Examples    []string `json:"examples,omitempty"`
 }
 
+// FlashcardGenerationResponse contains generated flashcards
+type FlashcardGenerationResponse struct {
+	Flashcards []GeneratedFlashcard `json:"flashcards"`
+	Topic      string               `json:"topic"`
+	Subject    string               `json:"subject,omitempty"`
+	Level      string               `json:"level,omitempty"`
+	Count      int                  `json:"count"`
+}
+
+// GeneratedFlashcard represents a single generated flashcard
+type GeneratedFlashcard struct {
+	Front      string `json:"front"`
+	Back       string `json:"back"`
+	Difficulty string `json:"difficulty"`
+}
+
 // HealthResponse represents health check response
 type HealthResponse struct {
 	Status    string    `json:"status"`

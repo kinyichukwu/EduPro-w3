@@ -200,6 +200,52 @@ func BuildRAGContext(chunks []DocumentChunk) string {
 	return contextBuilder.String()
 }
 
+// FlashcardPrompt generates a system prompt for flashcard creation
+func FlashcardPrompt(topic, subject, level string, numCards int) string {
+	prompt := fmt.Sprintf(`You are an expert educator specializing in Nigerian tertiary education (universities, polytechnics, and colleges of education).
+
+Generate exactly %d educational flashcards about: %s
+
+Requirements:
+- Create flashcards appropriate for Nigerian tertiary institution students
+- Align with university-level academic standards
+- Each flashcard should have a clear, specific question on the front
+- Each flashcard should have a comprehensive answer on the back
+- Include appropriate difficulty level: "easy", "medium", or "hard"
+- Focus on key concepts, definitions, processes, and critical thinking
+- Use clear, academic language appropriate for higher education
+- Include both theoretical and practical aspects where relevant
+- Questions should test understanding, not just memorization
+
+`, numCards, topic)
+
+	if subject != "" {
+		prompt += fmt.Sprintf("Subject context: %s\n", subject)
+	}
+
+	if level != "" {
+		prompt += fmt.Sprintf("Academic level: %s (e.g., 100L, 200L, 300L, 400L, HND1, HND2, NCE, etc.)\n", level)
+	}
+
+	prompt += `
+IMPORTANT: Return ONLY valid JSON. Do not wrap in markdown code blocks or backticks.
+
+Return in this exact format:
+{
+  "flashcards": [
+    {
+      "front": "What is the definition of X?",
+      "back": "X is defined as... (comprehensive explanation)",
+      "difficulty": "medium"
+    }
+  ]
+}
+
+Topic: ` + topic
+
+	return prompt
+}
+
 // DocumentChunk represents a chunk of document content for RAG
 type DocumentChunk struct {
 	DocumentID    string

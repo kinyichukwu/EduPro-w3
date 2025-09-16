@@ -26,6 +26,7 @@ import {
   useFlashcardStudy,
   type StudyMode,
 } from "@/shared/hooks/useFlashcardStudy";
+import { flashcardAPI } from "@/services/flashcard";
 
 export default function EnhancedFlashcardApp() {
   const {
@@ -96,11 +97,24 @@ export default function EnhancedFlashcardApp() {
   };
 
   const handleGenerateAI = async () => {
+    if (!currentDeck) return;
+
     setIsGeneratingAI(true);
-    // TODO: Implement AI generation
-    setTimeout(() => {
+    try {
+      // Call the actual AI generation API
+      const response = await flashcardAPI.generateAIFlashcards(currentDeck.id, {
+        count: 5, // Generate 5 cards by default
+        topic: currentDeck.topic || currentDeck.name,
+      });
+
+      console.log(`Generated ${response.count} cards for ${response.topic}`);
+      // The cards are automatically saved to DB by the backend
+      // The useFlashcards hook will automatically refresh and show the new cards
+    } catch (error) {
+      console.error("Failed to generate AI cards:", error);
+    } finally {
       setIsGeneratingAI(false);
-    }, 2500);
+    }
   };
 
   // Loading state

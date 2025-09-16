@@ -138,6 +138,77 @@ func (c *Client) GenerateExplanation(req *GeminiRequest) (*models.ExplanationRes
 	return response, nil
 }
 
+// GenerateFlashcards creates flashcards using Gemini API
+func (c *Client) GenerateFlashcards(req *GeminiRequest) (*models.FlashcardGenerationResponse, error) {
+	logger := utils.GetLogger()
+	
+	// Sanitize inputs
+	topic := SanitizeInput(req.Query)
+	subject := SanitizeInput(req.Subject)
+	level := SanitizeInput(req.Level)
+	
+	// Default to 5 flashcards if not specified in Task
+	numCards := 5
+	if req.Task != "" {
+		// Try to parse number from task, fallback to 5
+		if strings.Contains(req.Task, "10") {
+			numCards = 10
+		} else if strings.Contains(req.Task, "3") {
+			numCards = 3
+		}
+	}
+	
+	// Generate prompt
+	prompt := FlashcardPrompt(topic, subject, level, numCards)
+	
+	logger.Info("Generating flashcards",
+		zap.String("topic", topic),
+		zap.String("subject", subject),
+		zap.String("level", level),
+		zap.Int("num_cards", numCards),
+	)
+	
+	// Call Gemini API
+	content, err := c.callGeminiAPI(prompt)
+	if err != nil {
+		logger.Error("Failed to call Gemini API for flashcards", zap.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to generate flashcards: %w", err)
+	}
+	
+	// Clean and parse response
+	cleanedContent := cleanJSONResponse(content)
+	
+	var flashcardData struct {
+		Flashcards []models.GeneratedFlashcard `json:"flashcards"`
+	}
+	
+	if err := json.Unmarshal([]byte(cleanedContent), &flashcardData); err != nil {
+		logger.Error("Failed to parse flashcard response", zap.String("error", err.Error()), zap.String("content", cleanedContent))
+		return nil, fmt.Errorf("failed to parse flashcard response: %w", err)
+	}
+	
+	// Validate response
+	if len(flashcardData.Flashcards) == 0 {
+		return nil, fmt.Errorf("no flashcards generated")
+	}
+	
+	// Build response
+	response := &models.FlashcardGenerationResponse{
+		Flashcards: flashcardData.Flashcards,
+		Topic:      topic,
+		Subject:    subject,
+		Level:      level,
+		Count:      len(flashcardData.Flashcards),
+	}
+	
+	logger.Info("Flashcards generated successfully", 
+		zap.Int("flashcards_count", len(flashcardData.Flashcards)),
+		zap.String("topic", topic),
+	)
+	
+	return response, nil
+}
+
 // IsHealthy checks if the AI service is available
 func (c *Client) IsHealthy() bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

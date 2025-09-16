@@ -614,25 +614,37 @@ func (c *Client) EndStudySession(sessionID uuid.UUID, req *models.EndStudySessio
 	return session, nil
 }
 
-// UpdateFlashcardProgress updates a flashcard's mastery level, times reviewed, and next review date
-func (c *Client) UpdateFlashcardProgress(flashcardID string, masteryLevelChange int, nextReview time.Time) error {
+// UpdateFlashcardProgress updates a flashcard's mastery, times reviewed, and next review date
+func (c *Client) UpdateFlashcardProgress(flashcardID string, rating string, nextReview time.Time) error {
 	logger := utils.GetLogger()
 	ctx := context.Background()
+
+	// Determine if the rating indicates a correct answer
+	isCorrect := rating != "hard"
 
 	query := `
 		UPDATE flashcards 
 		SET 
-			mastery_level = GREATEST(0, mastery_level + $2),
 			times_reviewed = times_reviewed + 1,
+			times_correct = times_correct + CASE WHEN $2 THEN 1 ELSE 0 END,
+			last_reviewed = NOW(),
 			next_review = $3,
+			mastery = CASE
+				WHEN $2 AND mastery = 'new' THEN 'learning'
+				WHEN $2 AND mastery = 'learning' AND times_correct >= 2 THEN 'review'
+				WHEN $2 AND mastery = 'review' AND times_correct >= 5 THEN 'mastered'
+				WHEN NOT $2 AND mastery != 'new' THEN 'learning'
+				ELSE mastery
+			END,
 			updated_at = NOW()
 		WHERE id = $1
 	`
 
-	result, err := c.pool.Exec(ctx, query, flashcardID, masteryLevelChange, nextReview)
+	result, err := c.pool.Exec(ctx, query, flashcardID, isCorrect, nextReview)
 	if err != nil {
 		logger.Error("Failed to update flashcard progress", 
 			zap.String("flashcard_id", flashcardID),
+			zap.String("rating", rating),
 			zap.String("error", err.Error()))
 		return fmt.Errorf("failed to update flashcard progress: %w", err)
 	}
@@ -645,7 +657,8 @@ func (c *Client) UpdateFlashcardProgress(flashcardID string, masteryLevelChange 
 
 	logger.Info("Flashcard progress updated successfully", 
 		zap.String("flashcard_id", flashcardID),
-		zap.Int("mastery_level_change", masteryLevelChange),
+		zap.String("rating", rating),
+		zap.Bool("is_correct", isCorrect),
 		zap.String("next_review", nextReview.Format(time.RFC3339)))
 
 	return nil

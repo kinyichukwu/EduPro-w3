@@ -163,10 +163,16 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 		// RAG routes (protected) - Apply JWT middleware individually to avoid CORS conflicts
 		api.POST("/upload", middleware.JWTMiddleware(cfg), ragHandler.Upload)
 		api.GET("/documents", middleware.JWTMiddleware(cfg), ragHandler.GetDocuments)
+		api.DELETE("/documents/:id", middleware.JWTMiddleware(cfg), ragHandler.DeleteDocument)
+		api.POST("/documents/:id/reprocess", middleware.JWTMiddleware(cfg), ragHandler.ReprocessDocument)
+		api.GET("/documents/:id/chunks", middleware.JWTMiddleware(cfg), ragHandler.GetDocumentChunks)
 		api.GET("/chats", middleware.JWTMiddleware(cfg), ragHandler.GetChats)
 		api.POST("/chats", middleware.JWTMiddleware(cfg), ragHandler.CreateChat)
 		api.GET("/chats/:id", middleware.JWTMiddleware(cfg), ragHandler.GetChatMessages)
+		api.DELETE("/chats/:id", middleware.JWTMiddleware(cfg), ragHandler.DeleteChat)
+		api.PUT("/chats/:id", middleware.JWTMiddleware(cfg), ragHandler.UpdateChat)
 		api.POST("/ask", middleware.JWTMiddleware(cfg), ragHandler.Ask)
+		api.GET("/rag/health", middleware.JWTMiddleware(cfg), ragHandler.RAGHealth)
 
 		// Solana Wallet routes (protected)
 		wallet := api.Group("/wallet")

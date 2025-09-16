@@ -37,7 +37,7 @@ type HTTPStorageClient struct {
 // NewStorageService creates a new storage service implementation
 func NewStorageService(cfg *config.Config) StorageService {
 	logger := utils.GetLogger()
-	
+
 	logger.Info("Creating HTTP storage service",
 		zap.String("supabase_url", cfg.SupabaseURL),
 		zap.String("default_bucket", cfg.BucketName),
@@ -64,17 +64,17 @@ func NewClient(cfg *config.Config) (*Client, error) {
 // makeHTTPRequest is a common method for making HTTP requests to Supabase
 func (h *HTTPStorageClient) makeHTTPRequest(method, endpoint string, body io.Reader, contentType string) (*http.Response, error) {
 	url := fmt.Sprintf("%s/storage/v1%s", h.supabaseURL, endpoint)
-	
+
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Authorization", "Bearer "+h.supabaseKey)
 	if contentType != "" {
 		req.Header.Set("Content-Type", contentType)
 	}
-	
+
 	client := &http.Client{Timeout: 30 * time.Second}
 	return client.Do(req)
 }
@@ -115,7 +115,7 @@ func (h *HTTPStorageClient) UploadFile(file *multipart.FileHeader, userID string
 
 	// Detect MIME type
 	detectedMimeType := http.DetectContentType(fileContent)
-	
+
 	// Generate unique filename
 	ext := filepath.Ext(file.Filename)
 	baseFilename := strings.TrimSuffix(file.Filename, ext)
@@ -170,7 +170,7 @@ func (h *HTTPStorageClient) GetSignedURL(path string, expiresIn int) (string, er
 	// Implementation using direct HTTP call
 	endpoint := fmt.Sprintf("/object/sign/%s/%s", h.defaultBucket, path)
 	body := fmt.Sprintf(`{"expiresIn": %d}`, expiresIn)
-	
+
 	resp, err := h.makeHTTPRequest("POST", endpoint, strings.NewReader(body), "application/json")
 	if err != nil {
 		return "", fmt.Errorf("failed to create signed URL: %w", err)
@@ -193,13 +193,19 @@ func (h *HTTPStorageClient) GetSignedURL(path string, expiresIn int) (string, er
 		return "", fmt.Errorf("failed to parse response: %w", err)
 	}
 
-	return result.SignedURL, nil
+	// Ensure absolute URL (Supabase may return a relative path)
+	signedURL := result.SignedURL
+	if !strings.HasPrefix(signedURL, "http://") && !strings.HasPrefix(signedURL, "https://") {
+		signedURL = fmt.Sprintf("%s/storage/v1%s", h.supabaseURL, signedURL)
+	}
+
+	return signedURL, nil
 }
 
 // DeleteFile implements StorageService.DeleteFile
 func (h *HTTPStorageClient) DeleteFile(path string) error {
 	endpoint := fmt.Sprintf("/object/%s/%s", h.defaultBucket, path)
-	
+
 	resp, err := h.makeHTTPRequest("DELETE", endpoint, nil, "")
 	if err != nil {
 		return fmt.Errorf("failed to delete file: %w", err)
@@ -242,18 +248,18 @@ func (h *HTTPStorageClient) ListBuckets() ([]storage_go.Bucket, error) {
 // ListFiles implements StorageService.ListFiles
 func (h *HTTPStorageClient) ListFiles(bucketName string, path string, limit int, offset int) ([]storage_go.FileObject, error) {
 	endpoint := fmt.Sprintf("/object/list/%s", bucketName)
-	
+
 	requestBody := map[string]interface{}{
 		"limit":  limit,
 		"offset": offset,
 		"prefix": path,
 	}
-	
+
 	bodyBytes, err := json.Marshal(requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
-	
+
 	resp, err := h.makeHTTPRequest("POST", endpoint, bytes.NewReader(bodyBytes), "application/json")
 	if err != nil {
 		return nil, fmt.Errorf("failed to list files: %w", err)

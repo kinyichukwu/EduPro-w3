@@ -39,7 +39,7 @@ export const useWallet = () => {
       const response = await solanaAPI.getWallets();
       setConnectionState((prev: WalletConnectionState) => ({
         ...prev,
-        wallets: response.wallets,
+        wallets: response.wallets || [],
         isLoading: false,
       }));
     } catch (error) {
@@ -65,7 +65,7 @@ export const useWallet = () => {
         const response = await solanaAPI.connectWallet({ address });
         setConnectionState((prev) => ({
           ...prev,
-          wallets: [...prev.wallets, response.wallet],
+          wallets: [...(prev.wallets || []), response.wallet],
           isLoading: false,
         }));
         return response.wallet;
@@ -101,7 +101,7 @@ export const useWallet = () => {
         // Update wallet in local state
         setConnectionState((prev) => ({
           ...prev,
-          wallets: prev.wallets.map((wallet) =>
+          wallets: (prev.wallets || []).map((wallet) =>
             wallet.id === walletId ? response.wallet : wallet
           ),
           isLoading: false,
@@ -131,7 +131,7 @@ export const useWallet = () => {
       // Remove wallet from local state
       setConnectionState((prev) => ({
         ...prev,
-        wallets: prev.wallets.filter((wallet) => wallet.id !== walletId),
+        wallets: (prev.wallets || []).filter((wallet) => wallet.id !== walletId),
         isLoading: false,
       }));
     } catch (error) {
@@ -165,8 +165,8 @@ export const useWallet = () => {
     verifyWallet,
     disconnectWallet,
     clearError,
-    hasVerifiedWallet: connectionState.wallets?.some(
-      (wallet) => wallet.is_verified
+    hasVerifiedWallet: (connectionState.wallets || []).some(
+      (wallet) => wallet?.is_verified
     ),
   };
 };

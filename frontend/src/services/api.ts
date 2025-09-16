@@ -92,6 +92,15 @@ export interface AskResponse {
 const API_BASE_URL =
   import.meta.env.VITE_APP_SERVER_URL || "http://localhost:8080/api";
 
+// Derive the API origin (scheme + host) for non-/api endpoints like /health
+let API_ORIGIN: string;
+try {
+  const url = new URL(API_BASE_URL, window.location.origin);
+  API_ORIGIN = `${url.protocol}//${url.host}`;
+} catch {
+  API_ORIGIN = window.location.origin;
+}
+
 // Types matching the backend API
 export interface User {
   id: string;
@@ -285,8 +294,8 @@ class ApiService {
     supabase_id: string;
   }): Promise<ApiResponse<User>> {
     try {
-      // For internal endpoints, we might not need auth headers since it's called during registration
-      const response = await fetch(`${API_BASE_URL}/../internal/users`, {
+      // Internal endpoint lives under /api/internal/users
+      const response = await fetch(`${API_BASE_URL}/internal/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -317,7 +326,7 @@ class ApiService {
     ApiResponse<{ status: string; message: string }>
   > {
     try {
-      const response = await fetch(`${API_BASE_URL}/../../health`);
+      const response = await fetch(`${API_ORIGIN}/health`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -352,10 +361,12 @@ class ApiService {
 
   async askQuestion(
     query: string,
-    chatId?: string
+    chatId?: string,
+    documentIds?: string[]
   ): Promise<ApiResponse<AskResponse>> {
     const body: any = { query };
     if (chatId) body.chat_id = chatId;
+    if (documentIds && documentIds.length > 0) body.document_ids = documentIds;
     return this.request<AskResponse>("/ask", {
       method: "POST",
       body: JSON.stringify(body),

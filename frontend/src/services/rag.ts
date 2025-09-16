@@ -46,8 +46,8 @@ class RAGService {
   /**
    * Ask a question in a chat
    */
-  async ask(query: string, chatId?: string): Promise<AskResponse> {
-    const response = await apiService.askQuestion(query, chatId);
+  async ask(query: string, chatId?: string, documentIds?: string[]): Promise<AskResponse> {
+    const response = await apiService.askQuestion(query, chatId, documentIds);
     if (response.error) {
       throw new Error(response.error);
     }

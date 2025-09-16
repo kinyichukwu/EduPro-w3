@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -97,8 +98,11 @@ func (h *RAGHandler) Upload(c *gin.Context) {
 		return
 	}
 
-	// Get optional chat_id
+	// Get optional chat_id (support both form field and query param)
 	chatID := c.PostForm("chat_id")
+	if chatID == "" {
+		chatID = c.Query("chat_id")
+	}
 
 	// Upload file to storage
 	uploadResult, err := h.storage.UploadFile(file, user.ID.String())
@@ -198,13 +202,13 @@ func (h *RAGHandler) GetDocuments(c *gin.Context) {
 		var errorMsg sql.NullString
 		var size sql.NullInt64
 		var checksum sql.NullString
-		
+
 		err := rows.Scan(&doc.ID, &doc.Title, &sourceURL, &doc.MimeType, &doc.ProcessingStatus, &errorMsg, &size, &checksum, &doc.CreatedAt)
 		if err != nil {
 			logger.Error("Failed to scan document", zap.Error(err))
 			continue
 		}
-		
+
 		// Handle nullable fields
 		if sourceURL.Valid {
 			doc.SourceURL = &sourceURL.String
@@ -218,7 +222,7 @@ func (h *RAGHandler) GetDocuments(c *gin.Context) {
 		if checksum.Valid {
 			doc.Checksum = &checksum.String
 		}
-		
+
 		documents = append(documents, doc)
 	}
 
@@ -306,13 +310,13 @@ func (h *RAGHandler) GetChats(c *gin.Context) {
 		var chat models.ChatResponse
 		var title sql.NullString
 		var lastMessage sql.NullString
-		
+
 		err := rows.Scan(&chat.ID, &title, &chat.CreatedAt, &lastMessage)
 		if err != nil {
 			logger.Error("Failed to scan chat", zap.Error(err))
 			continue
 		}
-		
+
 		// Handle nullable fields
 		if title.Valid {
 			chat.Title = &title.String
@@ -320,7 +324,7 @@ func (h *RAGHandler) GetChats(c *gin.Context) {
 		if lastMessage.Valid {
 			chat.LastMessage = &lastMessage.String
 		}
-		
+
 		chats = append(chats, chat)
 	}
 
@@ -582,6 +586,32 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 
 	ctx := context.Background()
 
+	// If no explicit document IDs provided, and a chat is provided, derive document IDs
+	derivedDocIDs := []string{}
+	if len(req.DocumentIDs) == 0 && chatID != "" {
+		rows, derr := h.db.GetDB().Query(`
+			SELECT metadata
+			FROM chat_messages
+			WHERE chat_id = $1 AND role = 'file'
+		`, chatID)
+		if derr == nil {
+			defer rows.Close()
+			seen := map[string]bool{}
+			for rows.Next() {
+				var metadataJSON *string
+				if err := rows.Scan(&metadataJSON); err == nil && metadataJSON != nil {
+					var meta map[string]interface{}
+					if json.Unmarshal([]byte(*metadataJSON), &meta) == nil {
+						if v, ok := meta["document_id"].(string); ok && v != "" && !seen[v] {
+							derivedDocIDs = append(derivedDocIDs, v)
+							seen[v] = true
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// Generate embedding for query
 	queryEmbedding, err := h.embeddings.GenerateEmbedding(req.Query)
 	if err != nil {
@@ -595,9 +625,13 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 
 	// Search similar chunks (with optional document filtering)
 	var chunks []database.ChunkResult
-	if len(req.DocumentIDs) > 0 {
-		// Filter by specific documents
-		chunks, err = h.pgx.SearchSimilarChunksInDocuments(ctx, queryEmbedding, user.ID.String(), req.DocumentIDs, 8)
+	filterDocIDs := req.DocumentIDs
+	if len(filterDocIDs) == 0 && len(derivedDocIDs) > 0 {
+		filterDocIDs = derivedDocIDs
+	}
+	if len(filterDocIDs) > 0 {
+		// Filter by specific documents (from request or derived from chat)
+		chunks, err = h.pgx.SearchSimilarChunksInDocuments(ctx, queryEmbedding, user.ID.String(), filterDocIDs, 8)
 	} else {
 		// Search all user documents
 		chunks, err = h.pgx.SearchSimilarChunks(ctx, queryEmbedding, user.ID.String(), 8)
@@ -620,7 +654,7 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 		if chunk.SourceURL != nil {
 			sourceURL = *chunk.SourceURL
 		}
-		
+
 		aiChunks = append(aiChunks, ai.DocumentChunk{
 			DocumentID:    chunk.DocumentID,
 			DocumentTitle: chunk.DocumentTitle,
@@ -728,8 +762,20 @@ func (h *RAGHandler) processDocument(documentID string, uploadResult *storage.Up
 		zap.String("mime_type", uploadResult.MimeType),
 	)
 
-	// Get signed URL for file access
-	signedURL, err := h.storage.GetSignedURL(uploadResult.StoragePath, 3600) // 1 hour
+	// Determine storage path and get signed URL for file access
+	path := uploadResult.StoragePath
+	if path == "" && uploadResult.PublicURL != "" {
+		// Try to derive the path from the public URL: /storage/v1/object/public/{bucket}/{path}
+		const marker = "/storage/v1/object/public/"
+		if idx := strings.Index(uploadResult.PublicURL, marker); idx != -1 {
+			rem := uploadResult.PublicURL[idx+len(marker):]
+			if slash := strings.Index(rem, "/"); slash != -1 && slash+1 < len(rem) {
+				path = rem[slash+1:]
+			}
+		}
+	}
+
+	signedURL, err := h.storage.GetSignedURL(path, 3600) // 1 hour
 	if err != nil {
 		logger.Error("Failed to get signed URL", zap.Error(err))
 		h.updateDocumentError(documentID, fmt.Sprintf("Failed to get file access: %v", err))
@@ -847,6 +893,7 @@ func (h *RAGHandler) addFileMessageToChat(chatID, userID string, uploadResult *s
 		"document_id": documentID,
 		"source_url":  uploadResult.PublicURL,
 		"mime_type":   uploadResult.MimeType,
+		"filename":    uploadResult.Filename,
 	}
 
 	metadataJSON, _ := json.Marshal(metadata)
@@ -916,14 +963,14 @@ func (h *RAGHandler) getOrCreateUser(c *gin.Context, supabaseID string) (*models
 // updateDocumentError updates document status to failed with error message
 func (h *RAGHandler) updateDocumentError(documentID, errorMsg string) {
 	logger := utils.GetLogger()
-	
+
 	_, err := h.db.GetDB().Exec(`
 		UPDATE documents 
 		SET processing_status = 'failed', error = $2 
 		WHERE id = $1
 	`, documentID, errorMsg)
 	if err != nil {
-		logger.Error("Failed to update document error status", 
+		logger.Error("Failed to update document error status",
 			zap.Error(err),
 			zap.String("document_id", documentID),
 		)
@@ -1011,7 +1058,7 @@ func (h *RAGHandler) DeleteDocument(c *gin.Context) {
 	if doc.SourceURL != nil {
 		// Extract storage path from URL (this depends on your storage implementation)
 		// For now, we'll skip this step - in production, implement proper file deletion
-		logger.Info("Document file should be deleted from storage", 
+		logger.Info("Document file should be deleted from storage",
 			zap.String("document_id", documentID),
 			zap.String("source_url", *doc.SourceURL),
 		)
@@ -1429,7 +1476,7 @@ func (h *RAGHandler) RAGHealth(c *gin.Context) {
 	// Check database health
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	databaseHealth := true
 	if err := h.pgx.GetPool().Ping(ctx); err != nil {
 		databaseHealth = false
@@ -1462,4 +1509,3 @@ func (h *RAGHandler) RAGHealth(c *gin.Context) {
 
 	utils.SendSuccess(c, response)
 }
-

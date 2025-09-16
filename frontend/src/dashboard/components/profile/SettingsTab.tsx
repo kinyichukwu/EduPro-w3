@@ -10,6 +10,7 @@ import {
   Edit3,
   Save,
   // AlertTriangle,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -26,6 +27,7 @@ import { Label } from "@/shared/components/ui/label";
 import { useGetOnboardingStatus } from "@/dashboard/hooks/useOnboarding";
 import { useAuthStore } from "@/store/useAuthStore";
 import PasswordDialog from "./PasswordDialog";
+import { WalletSection } from "./WalletSection";
 
 export const SettingsTab = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -275,6 +277,26 @@ export const SettingsTab = () => {
               </div>
               <Switch />
             </div> */}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Wallet Connection */}
+      <motion.div variants={itemVariants}>
+        <Card className="border-white/5 bg-dark-card/40 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wallet size={20} />
+              Wallet Connection
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="text-sm text-dark-muted">
+                Connect your Solana wallet to access payment features, earn rewards, and manage your digital assets.
+              </div>
+              <WalletSection />
+            </div>
           </CardContent>
         </Card>
       </motion.div>

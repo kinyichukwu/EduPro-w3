@@ -4,6 +4,7 @@ export interface Wallet {
   id: string;
   address: string;
   is_verified: boolean;
+  is_primary: boolean;
   verified_at?: string;
   created_at: string;
 }

@@ -533,7 +533,7 @@ func (h *RAGHandler) GetChatMessages(c *gin.Context) {
 // Ask handles POST /api/ask
 func (h *RAGHandler) Ask(c *gin.Context) {
 	logger := utils.GetLogger()
-	ctx := context.Background()	
+	ctx := context.Background()
 
 	// Get user ID
 	userSupabaseID, exists := middleware.GetUserIDFromContext(c)
@@ -679,27 +679,38 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 		citations = append(citations, citation)
 	}
 
-	// Build context and prompt using AI service
-	context := ai.BuildRAGContext(aiChunks)
-	prompt := ai.RAGPrompt(req.Query, context)
+	var answer string
+	if len(aiChunks) == 0 {
+		// No relevant chunks found: fall back to general AI explanation without RAG constraints
+		fallbackReq := &ai.GeminiRequest{Query: req.Query}
+		expl, gerr := h.aiClient.GenerateExplanation(fallbackReq)
+		if gerr != nil {
+			logger.Error("Failed to generate fallback answer", zap.Error(gerr))
+			utils.SendError(c, &models.APIError{
+				Code:    http.StatusInternalServerError,
+				Message: "Failed to generate answer",
+			})
+			return
+		}
+		answer = expl.Explanation
+		// Leave citations empty in fallback mode
+	} else {
+		// Build context and RAG prompt using retrieved chunks
+		context := ai.BuildRAGContext(aiChunks)
+		prompt := ai.RAGPrompt(req.Query, context)
 
-	// Generate answer using AI
-	aiReq := &ai.GeminiRequest{
-		Query: prompt,
+		aiReq := &ai.GeminiRequest{Query: prompt}
+		explanation, err := h.aiClient.GenerateExplanation(aiReq)
+		if err != nil {
+			logger.Error("Failed to generate answer", zap.Error(err))
+			utils.SendError(c, &models.APIError{
+				Code:    http.StatusInternalServerError,
+				Message: "Failed to generate answer",
+			})
+			return
+		}
+		answer = explanation.Explanation
 	}
-
-	// Use existing explanation method to get a response
-	explanation, err := h.aiClient.GenerateExplanation(aiReq)
-	if err != nil {
-		logger.Error("Failed to generate answer", zap.Error(err))
-		utils.SendError(c, &models.APIError{
-			Code:    http.StatusInternalServerError,
-			Message: "Failed to generate answer",
-		})
-		return
-	}
-
-	answer := explanation.Explanation
 
 	// Save user question
 	_, err = h.db.GetPool().Exec(ctx, `

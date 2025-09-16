@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import {
   Volume2,
@@ -13,7 +13,6 @@ import {
   Target,
   BookOpen,
   Settings,
-  BarChart3,
   Award,
   Clock,
   TrendingUp,
@@ -23,214 +22,48 @@ import {
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/shared/lib/utils";
-import { Card, StudyMode } from "./types";
-import { mockCards, mockDecks } from "../constants/flashcards";
+import {
+  useFlashcardStudy,
+  type StudyMode,
+} from "@/shared/hooks/useFlashcardStudy";
 
 export default function EnhancedFlashcardApp() {
-  const [currentDeck, _] = useState(mockDecks[0]);
-  const [allCards, setAllCards] = useState<Card[]>(mockCards);
-  const [studyCards, setStudyCards] = useState<Card[]>([]);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [showHint, setShowHint] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [__, setShowAddCard] = useState(false);
+  const {
+    // Data
+    currentDeck,
+    currentCard,
+    currentCardIndex,
+    studyCards,
+
+    // UI State
+    showHint,
+    isBookmarked,
+    showAnswer,
+    showToast,
+    toastMessage,
+
+    // Study State
+    studyMode,
+    sessionStartTime,
+    sessionStats,
+    currentStreak,
+
+    // Loading States
+    loading,
+    error,
+
+    // Actions
+    setStudyMode,
+    handleFlip,
+    handleCardRating,
+    handleDeleteCard,
+    setIsBookmarked,
+    setShowHint,
+  } = useFlashcardStudy();
+
+  // Local UI state
   const [showSettings, setShowSettings] = useState(false);
-  const [___, setShowStats] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
-
-  // Study mode and session tracking
-  const [studyMode, setStudyMode] = useState<StudyMode>("sequential");
-  const [sessionStartTime, setSessionStartTime] = useState<Date>(new Date());
-  const [sessionStats, setSessionStats] = useState({
-    cardsStudied: 0,
-    correctAnswers: 0,
-    totalTime: 0,
-    streak: 0,
-    maxStreak: 0,
-  });
-  const [currentStreak, setCurrentStreak] = useState(0);
-  const [showAnswer, setShowAnswer] = useState(false);
-
-  // Initialize study session
-  useEffect(() => {
-    initializeStudySession(studyMode);
-    setSessionStartTime(new Date());
-  }, [studyMode]);
-
-  const initializeStudySession = useCallback(
-    (mode: StudyMode) => {
-      let cards = [...allCards];
-
-      switch (mode) {
-        case "random":
-          cards = [...allCards].sort(() => Math.random() - 0.5);
-          break;
-        case "difficult":
-          cards = allCards
-            .filter(
-              (card) =>
-                card.difficulty === "hard" || card.mastery === "learning"
-            )
-            .sort(
-              (a, b) =>
-                a.timesCorrect / a.timesReviewed -
-                b.timesCorrect / b.timesReviewed
-            );
-          break;
-        case "review":
-          cards = allCards.filter((card) => {
-            if (!card.nextReview) return false;
-            return new Date() >= card.nextReview;
-          });
-          break;
-        case "new":
-          cards = allCards.filter((card) => card.mastery === "new");
-          break;
-        case "sequential":
-        default:
-          cards = [...allCards];
-          break;
-      }
-
-      setStudyCards(cards);
-      setCurrentCardIndex(0);
-      setIsFlipped(false);
-      setShowAnswer(false);
-    },
-    [allCards]
-  );
-
-  const currentCard = studyCards[currentCardIndex];
-
-  const handleFlip = () => {
-    setIsFlipped(!isFlipped);
-    setShowAnswer(!showAnswer);
-  };
-
-  const handleCardRating = (rating: "hard" | "okay" | "easy") => {
-    if (!currentCard) return;
-
-    let message = "";
-    let xpGain = 0;
-    let isCorrect = false;
-
-    if (rating === "hard") {
-      message = "Marked as difficult - you'll see this again soon!";
-      xpGain = 2;
-      isCorrect = false;
-      setCurrentStreak(0);
-    } else if (rating === "okay") {
-      message = "Good job! Keep practicing.";
-      xpGain = 5;
-      isCorrect = true;
-      setCurrentStreak((prev) => prev + 1);
-    } else if (rating === "easy") {
-      message = "Excellent! This card is mastered.";
-      xpGain = 10;
-      isCorrect = true;
-      setCurrentStreak((prev) => prev + 1);
-    }
-
-    // Update card statistics
-    const updatedCard = {
-      ...currentCard,
-      timesReviewed: currentCard.timesReviewed + 1,
-      timesCorrect: isCorrect
-        ? currentCard.timesCorrect + 1
-        : currentCard.timesCorrect,
-      lastReviewed: new Date(),
-      nextReview: new Date(
-        Date.now() +
-          (rating === "easy" ? 7 : rating === "okay" ? 3 : 1) *
-            24 *
-            60 *
-            60 *
-            1000
-      ),
-      mastery:
-        rating === "easy" && currentCard.timesCorrect >= 3
-          ? ("mastered" as const)
-          : rating === "hard"
-          ? ("learning" as const)
-          : currentCard.mastery,
-    };
-
-    // Update cards array
-    const updatedAllCards = allCards.map((card) =>
-      card.id === currentCard.id ? updatedCard : card
-    );
-    setAllCards(updatedAllCards);
-
-    // Update session stats
-    setSessionStats((prev) => ({
-      ...prev,
-      cardsStudied: prev.cardsStudied + 1,
-      correctAnswers: isCorrect ? prev.correctAnswers + 1 : prev.correctAnswers,
-      streak: isCorrect ? prev.streak + 1 : 0,
-      maxStreak: Math.max(
-        prev.maxStreak,
-        isCorrect ? prev.streak + 1 : prev.streak
-      ),
-    }));
-
-    setToastMessage(`+${xpGain} XP • ${message}`);
-    setShowToast(true);
-
-    // Move to next card with animation
-    setTimeout(() => {
-      setIsFlipped(false);
-      setShowAnswer(false);
-      if (currentCardIndex < studyCards.length - 1) {
-        setCurrentCardIndex(currentCardIndex + 1);
-      } else {
-        // Session complete
-        setShowStats(true);
-      }
-    }, 1000);
-
-    setTimeout(() => {
-      setShowToast(false);
-    }, 3000);
-  };
-
-  const handleDeleteCard = () => {
-    if (allCards.length > 1 && currentCard) {
-      const newCards = allCards.filter((card) => card.id !== currentCard.id);
-      setAllCards(newCards);
-      setToastMessage("Card deleted!");
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-
-      // Reinitialize session
-      initializeStudySession(studyMode);
-    }
-  };
-
-  const handleGenerateAI = async () => {
-    setIsGeneratingAI(true);
-    // Simulate AI generation
-    setTimeout(() => {
-      const aiCard: Card = {
-        id: Math.max(...allCards.map((c) => c.id)) + 1,
-        front: "What is the work-energy theorem?",
-        back: "The work-energy theorem states that the work done on an object is equal to the change in its kinetic energy.\n\nW = ΔKE = KE_final - KE_initial\n\nThis fundamental principle connects the concepts of work and energy in classical mechanics.",
-        hasAudio: false,
-        difficulty: "medium",
-        timesReviewed: 0,
-        timesCorrect: 0,
-        mastery: "new",
-        tags: ["physics", "energy", "work", "ai-generated"],
-      };
-      setAllCards([...allCards, aiCard]);
-      setIsGeneratingAI(false);
-      setToastMessage("AI-generated card added!");
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-    }, 2500);
-  };
 
   const getStudyModeIcon = (mode: StudyMode) => {
     switch (mode) {
@@ -262,6 +95,33 @@ export default function EnhancedFlashcardApp() {
     }
   };
 
+  const handleGenerateAI = async () => {
+    setIsGeneratingAI(true);
+    // TODO: Implement AI generation
+    setTimeout(() => {
+      setIsGeneratingAI(false);
+    }, 2500);
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <div className="text-white/60">Loading flashcards...</div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <div className="text-red-400">Error: {error}</div>
+      </div>
+    );
+  }
+
+  // No cards state
   if (!currentCard) {
     return (
       <div className="h-full w-full bg-dark-background text-dark-text flex flex-col items-center justify-center">
@@ -277,10 +137,16 @@ export default function EnhancedFlashcardApp() {
           </p>
           <div className="flex gap-3 justify-center">
             <Button
-              onClick={() => setStudyMode("sequential")}
-              className="bg-turbo-purple hover:bg-turbo-purple/80"
+              onClick={handleGenerateAI}
+              disabled={isGeneratingAI}
+              className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80"
             >
-              Study All Cards
+              {isGeneratingAI ? (
+                <RotateCcw size={16} className="mr-2 animate-spin" />
+              ) : (
+                <Sparkles size={16} className="mr-2" />
+              )}
+              {isGeneratingAI ? "Generating..." : "AI Generate Cards"}
             </Button>
             <Link to="/dashboard/flashcards">
               <Button
@@ -323,7 +189,7 @@ export default function EnhancedFlashcardApp() {
 
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-bold text-white">
-                {currentDeck.name}
+                {currentDeck?.name || "Loading..."}
               </h1>
               <span
                 className={cn(
@@ -355,15 +221,6 @@ export default function EnhancedFlashcardApp() {
               className="border-white/20 text-white/70 hover:bg-white/10"
             >
               <Settings size={16} />
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowStats(true)}
-              className="border-white/20 text-white/70 hover:bg-white/10"
-            >
-              <BarChart3 size={16} />
             </Button>
           </div>
         </div>
@@ -400,7 +257,12 @@ export default function EnhancedFlashcardApp() {
             <div className="flex items-center gap-1 sm:gap-2">
               <Clock size={16} className="text-turbo-indigo" />
               <span className="text-white">
-                {Math.floor((Date.now() - sessionStartTime.getTime()) / 60000)}m
+                {sessionStartTime
+                  ? Math.floor(
+                      (Date.now() - sessionStartTime.getTime()) / 60000
+                    )
+                  : 0}
+                m
               </span>
             </div>
           </div>
@@ -420,8 +282,8 @@ export default function EnhancedFlashcardApp() {
             <span>
               Accuracy:{" "}
               {Math.round(
-                (currentCard.timesCorrect /
-                  Math.max(currentCard.timesReviewed, 1)) *
+                (sessionStats.correctAnswers /
+                  Math.max(sessionStats.cardsStudied, 1)) *
                   100
               )}
               %
@@ -429,7 +291,7 @@ export default function EnhancedFlashcardApp() {
           </div>
           <div className="flex items-center gap-2">
             <RotateCcw size={14} />
-            <span>Reviewed {currentCard.timesReviewed} times</span>
+            <span>Reviewed {currentCard.times_reviewed} times</span>
           </div>
         </div>
 
@@ -463,8 +325,7 @@ export default function EnhancedFlashcardApp() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setShowAnswer(true);
-                        setIsFlipped(true);
+                        handleFlip();
                       }}
                       className="text-white/60 hover:text-turbo-purple"
                     >
@@ -511,8 +372,7 @@ export default function EnhancedFlashcardApp() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setShowAnswer(false);
-                        setIsFlipped(false);
+                        handleFlip();
                       }}
                       className="text-white/60 hover:text-turbo-purple"
                     >
@@ -559,7 +419,10 @@ export default function EnhancedFlashcardApp() {
                 : "hover:border-turbo-purple/30"
             )}
           >
-            <Star className="w-4 sm:w-5" fill={isBookmarked ? "currentColor" : "none"} />
+            <Star
+              className="w-4 sm:w-5"
+              fill={isBookmarked ? "currentColor" : "none"}
+            />
           </Button>
 
           <Button
@@ -577,7 +440,6 @@ export default function EnhancedFlashcardApp() {
         {/* Action Buttons */}
         <div className="flex gap-4 mt-8">
           <Button
-            onClick={() => setShowAddCard(true)}
             variant="outline"
             className="border-turbo-purple/30 text-turbo-purple hover:bg-turbo-purple/10 max-sm:text-sm"
           >

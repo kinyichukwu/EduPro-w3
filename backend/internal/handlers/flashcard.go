@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -485,5 +486,105 @@ func (h *FlashcardHandler) GetStudyCards(c *gin.Context) {
 		"cards": cards,
 		"mode":  mode,
 		"count": len(cards),
+	})
+}
+
+// RateFlashcard handles rating a flashcard and updating its spaced repetition data
+func (h *FlashcardHandler) RateFlashcard(c *gin.Context) {
+	logger := utils.GetLogger()
+
+	// Get user from context
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		if apiErr, ok := err.(*models.APIError); ok {
+			utils.SendError(c, apiErr)
+		} else {
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Failed to get user"})
+		}
+		return
+	}
+
+	// Get deck ID and flashcard ID from URL
+	deckIDStr := c.Param("id")
+	flashcardIDStr := c.Param("flashcard_id")
+
+	deckID, err := uuid.Parse(deckIDStr)
+	if err != nil {
+		logger.Error("Invalid deck ID", zap.String("deck_id", deckIDStr), zap.String("error", err.Error()))
+		utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid deck ID"})
+		return
+	}
+
+	flashcardID, err := uuid.Parse(flashcardIDStr)
+	if err != nil {
+		logger.Error("Invalid flashcard ID", zap.String("flashcard_id", flashcardIDStr), zap.String("error", err.Error()))
+		utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid flashcard ID"})
+		return
+	}
+
+	// Parse request body
+	var req struct {
+		Rating string `json:"rating" binding:"required,oneof=hard okay easy"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("Invalid request body", zap.String("error", err.Error()))
+		utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid rating. Must be 'hard', 'okay', or 'easy'"})
+		return
+	}
+
+	// Verify deck belongs to user
+	_, err = h.db.GetDeckByID(deckID, user.ID)
+	if err != nil {
+		logger.Error("Failed to get deck or deck not found", 
+			zap.String("deck_id", deckID.String()),
+			zap.String("user_id", user.ID.String()),
+			zap.String("error", err.Error()))
+		utils.SendError(c, &models.APIError{Code: http.StatusNotFound, Message: "Deck not found"})
+		return
+	}
+
+	// Calculate spaced repetition intervals based on rating
+	var intervalDays int
+	var masteryLevelChange int
+
+	switch req.Rating {
+	case "hard":
+		intervalDays = 1
+		masteryLevelChange = 0 // No mastery increase for hard rating
+	case "okay":
+		intervalDays = 3
+		masteryLevelChange = 1
+	case "easy":
+		intervalDays = 7
+		masteryLevelChange = 2
+	}
+
+	// Calculate next review date
+	nextReview := time.Now().AddDate(0, 0, intervalDays)
+
+	// Update flashcard in database
+	err = h.db.UpdateFlashcardProgress(flashcardID.String(), masteryLevelChange, nextReview)
+	if err != nil {
+		logger.Error("Failed to update flashcard progress",
+			zap.String("flashcard_id", flashcardID.String()),
+			zap.String("error", err.Error()))
+		utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Failed to update flashcard progress"})
+		return
+	}
+
+	logger.Info("Flashcard rated successfully",
+		zap.String("flashcard_id", flashcardID.String()),
+		zap.String("deck_id", deckID.String()),
+		zap.String("user_id", user.ID.String()),
+		zap.String("rating", req.Rating),
+		zap.Int("interval_days", intervalDays),
+		zap.String("next_review", nextReview.Format(time.RFC3339)))
+
+	utils.SendSuccess(c, gin.H{
+		"message":       "Flashcard rated successfully",
+		"rating":        req.Rating,
+		"interval_days": intervalDays,
+		"next_review":   nextReview.Format(time.RFC3339),
 	})
 }

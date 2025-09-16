@@ -154,7 +154,7 @@ export const useFlashcards = (deckId: string | null) => {
     setError(null);
     try {
       const newCard = await flashcardAPI.createFlashcard(deckId, request);
-      setFlashcards((prev) => [newCard, ...prev]); // Add to top of list
+      setFlashcards((prev) => [newCard, ...(prev || [])]); // Add to top of list, ensure prev is array
       return newCard;
     } catch (err) {
       const errorMessage =
@@ -170,7 +170,7 @@ export const useFlashcards = (deckId: string | null) => {
     setError(null);
     try {
       const newCards = await flashcardAPI.createBulkFlashcards(deckId, request);
-      setFlashcards((prev) => [...newCards, ...prev]); // Add to top of list
+      setFlashcards((prev) => [...newCards, ...(prev || [])]); // Add to top of list, ensure prev is array
       return newCards;
     } catch (err) {
       const errorMessage =

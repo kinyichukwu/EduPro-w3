@@ -543,6 +543,17 @@ class ApiService {
     return this.request<any>("/flashcards/stats");
   }
 
+  async rateFlashcard(
+    deckId: string,
+    flashcardId: string,
+    request: any
+  ): Promise<ApiResponse<any>> {
+    return this.request<any>(`/flashcards/decks/${deckId}/cards/${flashcardId}/rate`, {
+      method: "PUT",
+      body: JSON.stringify(request),
+    });
+  }
+
   // Solana endpoints
   async connectWallet(request: any): Promise<ApiResponse<any>> {
     return this.request<any>("/wallet/connect", {

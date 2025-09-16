@@ -213,6 +213,7 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			flashcards.POST("/decks/:id/cards/bulk", flashcardHandler.CreateBulkFlashcards)
 			flashcards.GET("/decks/:id/cards", flashcardHandler.GetFlashcards)
 			flashcards.GET("/decks/:id/cards/study", flashcardHandler.GetStudyCards)
+			flashcards.PUT("/decks/:id/cards/:flashcard_id/rate", flashcardHandler.RateFlashcard)
 
 			// Study session routes
 			flashcards.POST("/study/sessions", flashcardHandler.StartStudySession)

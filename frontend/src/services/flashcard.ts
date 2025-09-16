@@ -101,6 +101,17 @@ export interface EndStudySessionRequest {
   studied_cards: StudyCardRequest[];
 }
 
+export interface RateFlashcardRequest {
+  rating: "hard" | "okay" | "easy";
+}
+
+export interface RateFlashcardResponse {
+  message: string;
+  rating: string;
+  interval_days: number;
+  next_review: string;
+}
+
 class FlashcardAPI {
   // Deck operations
   async createDeck(request: CreateDeckRequest): Promise<Deck> {
@@ -159,6 +170,23 @@ class FlashcardAPI {
 
   async getStudyCards(deckId: string, limit?: number): Promise<Flashcard[]> {
     const response = await apiService.getStudyCards(deckId, limit);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
+
+  async deleteFlashcard(deckId: string, flashcardId: string): Promise<void> {
+    // TODO: Add this endpoint to the API service when backend supports it
+    console.log(`Would delete flashcard ${flashcardId} from deck ${deckId}`);
+    // For now, just simulate the API call
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  async rateFlashcard(
+    deckId: string,
+    flashcardId: string,
+    request: RateFlashcardRequest
+  ): Promise<RateFlashcardResponse> {
+    const response = await apiService.rateFlashcard(deckId, flashcardId, request);
     if (response.error) throw new Error(response.error);
     return response.data!;
   }

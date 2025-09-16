@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -611,4 +612,41 @@ func (c *Client) EndStudySession(sessionID uuid.UUID, req *models.EndStudySessio
 
 	logger.Info("Study session ended successfully", zap.String("session_id", sessionID.String()))
 	return session, nil
+}
+
+// UpdateFlashcardProgress updates a flashcard's mastery level, times reviewed, and next review date
+func (c *Client) UpdateFlashcardProgress(flashcardID string, masteryLevelChange int, nextReview time.Time) error {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	query := `
+		UPDATE flashcards 
+		SET 
+			mastery_level = GREATEST(0, mastery_level + $2),
+			times_reviewed = times_reviewed + 1,
+			next_review = $3,
+			updated_at = NOW()
+		WHERE id = $1
+	`
+
+	result, err := c.pool.Exec(ctx, query, flashcardID, masteryLevelChange, nextReview)
+	if err != nil {
+		logger.Error("Failed to update flashcard progress", 
+			zap.String("flashcard_id", flashcardID),
+			zap.String("error", err.Error()))
+		return fmt.Errorf("failed to update flashcard progress: %w", err)
+	}
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		logger.Error("No flashcard found to update", zap.String("flashcard_id", flashcardID))
+		return fmt.Errorf("flashcard not found")
+	}
+
+	logger.Info("Flashcard progress updated successfully", 
+		zap.String("flashcard_id", flashcardID),
+		zap.Int("mastery_level_change", masteryLevelChange),
+		zap.String("next_review", nextReview.Format(time.RFC3339)))
+
+	return nil
 }

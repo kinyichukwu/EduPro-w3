@@ -208,11 +208,11 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			flashcards.PUT("/decks/:id", flashcardHandler.UpdateDeck)
 			flashcards.DELETE("/decks/:id", flashcardHandler.DeleteDeck)
 
-			// Card routes
-			flashcards.POST("/decks/:deckId/cards", flashcardHandler.CreateFlashcard)
-			flashcards.POST("/decks/:deckId/cards/bulk", flashcardHandler.CreateBulkFlashcards)
-			flashcards.GET("/decks/:deckId/cards", flashcardHandler.GetFlashcards)
-			flashcards.GET("/decks/:deckId/cards/study", flashcardHandler.GetStudyCards)
+			// Card routes - use :id consistently
+			flashcards.POST("/decks/:id/cards", flashcardHandler.CreateFlashcard)
+			flashcards.POST("/decks/:id/cards/bulk", flashcardHandler.CreateBulkFlashcards)
+			flashcards.GET("/decks/:id/cards", flashcardHandler.GetFlashcards)
+			flashcards.GET("/decks/:id/cards/study", flashcardHandler.GetStudyCards)
 
 			// Study session routes
 			flashcards.POST("/study/sessions", flashcardHandler.StartStudySession)

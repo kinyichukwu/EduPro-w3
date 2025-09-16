@@ -1,6 +1,6 @@
 // import { useAuthStore } from "@/store/useAuthStore";
 
-import { useAuthStore } from '@/store/useAuthStore';
+import { useAuthStore } from "@/store/useAuthStore";
 
 // Utility function to get the correct API base URL
 export const getApiBaseUrl = (): string => {
@@ -13,9 +13,12 @@ export const getApiBaseUrl = (): string => {
   }
 
   // 2. Check for build-time environment variable
-  const baseUrl = import.meta.env.VITE_APP_SERVER_URL || "";
+  const baseUrl =
+    import.meta.env.VITE_APP_SERVER_URL || import.meta.env.VITE_API_BASE_URL;
   if (baseUrl) {
-    return `${baseUrl}/api`;
+    // Remove /api suffix if present, as we add it back
+    const cleanBaseUrl = baseUrl.replace(/\/api$/, "");
+    return `${cleanBaseUrl}/api`;
   }
 
   // 3. Fallback to relative path
@@ -53,9 +56,11 @@ class ApiService {
     }
 
     // 2. Check for build-time environment variable
-    const envBaseUrl = import.meta.env.VITE_APP_SERVER_URL;
+    const envBaseUrl =
+      import.meta.env.VITE_APP_SERVER_URL || import.meta.env.VITE_API_BASE_URL;
     if (envBaseUrl && typeof envBaseUrl === "string") {
-      return envBaseUrl.trim();
+      // Remove /api suffix if present, as we add it later
+      return envBaseUrl.replace(/\/api$/, "").trim();
     }
 
     // 3. Fallback to empty (will use relative path)
@@ -64,14 +69,14 @@ class ApiService {
 
   private getHeaders(): Record<string, string> {
     const headers = { ...this.defaultHeaders };
-  
+
     // Get token from Zustand store (or any auth store you're using)
     const token = useAuthStore.getState().user?.access_token; // adjust `user` if needed
-  
+
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
-  
+
     return headers;
   }
 
@@ -119,16 +124,16 @@ class ApiService {
       }
 
       const data = await response.json();
-      
+
       // Handle APIResponse wrapper from backend
-      if (data && typeof data === 'object' && 'success' in data) {
+      if (data && typeof data === "object" && "success" in data) {
         if (data.success) {
           return data.data as T;
         } else {
-          throw new Error(data.error || 'API request failed');
+          throw new Error(data.error || "API request failed");
         }
       }
-      
+
       return data as T;
     } catch (error) {
       console.error(`API request failed: ${method} ${url}`, error);
@@ -162,5 +167,5 @@ class ApiService {
 export const apiService = new ApiService();
 
 // Export the new enhanced API service
-export { apiService as enhancedApiService } from './api';
-export * from './api';
+export { apiService as enhancedApiService } from "./api";
+export * from "./api";

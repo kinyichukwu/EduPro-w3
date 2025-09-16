@@ -226,7 +226,7 @@ func (h *FlashcardHandler) CreateFlashcard(c *gin.Context) {
 	logger := utils.GetLogger()
 
 	// Get deck ID from URL parameter
-	deckIDStr := c.Param("deckId")
+	deckIDStr := c.Param("id")
 	deckID, err := uuid.Parse(deckIDStr)
 	if err != nil {
 		logger.Error("Invalid deck ID", zap.String("error", err.Error()))
@@ -259,7 +259,7 @@ func (h *FlashcardHandler) CreateBulkFlashcards(c *gin.Context) {
 	logger := utils.GetLogger()
 
 	// Get deck ID from URL parameter
-	deckIDStr := c.Param("deckId")
+	deckIDStr := c.Param("id")
 	deckID, err := uuid.Parse(deckIDStr)
 	if err != nil {
 		logger.Error("Invalid deck ID", zap.String("error", err.Error()))
@@ -294,7 +294,7 @@ func (h *FlashcardHandler) GetFlashcards(c *gin.Context) {
 	logger := utils.GetLogger()
 
 	// Get deck ID from URL parameter
-	deckIDStr := c.Param("deckId")
+	deckIDStr := c.Param("id")
 	deckID, err := uuid.Parse(deckIDStr)
 	if err != nil {
 		logger.Error("Invalid deck ID", zap.String("error", err.Error()))
@@ -420,7 +420,7 @@ func (h *FlashcardHandler) GetStudyCards(c *gin.Context) {
 	logger := utils.GetLogger()
 
 	// Get deck ID from URL parameter
-	deckIDStr := c.Param("deckId")
+	deckIDStr := c.Param("id")
 	deckID, err := uuid.Parse(deckIDStr)
 	if err != nil {
 		logger.Error("Invalid deck ID", zap.String("error", err.Error()))

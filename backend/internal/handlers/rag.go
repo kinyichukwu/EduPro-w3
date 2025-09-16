@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/kinyichukwu/edu-pro-backend/internal/config"
 	"github.com/kinyichukwu/edu-pro-backend/internal/middleware"
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
@@ -65,6 +66,7 @@ func NewRAGHandler(
 // Upload handles POST /api/upload
 func (h *RAGHandler) Upload(c *gin.Context) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// Get user ID from JWT
 	userSupabaseID, exists := middleware.GetUserIDFromContext(c)
@@ -118,7 +120,7 @@ func (h *RAGHandler) Upload(c *gin.Context) {
 
 	// Insert document record
 	documentID := uuid.New()
-	_, err = h.db.GetDB().Exec(`
+	_, err = h.db.GetPool().Exec(ctx, `	
 		INSERT INTO documents (id, user_id, title, source_url, mime_type, processing_status)
 		VALUES ($1, $2, $3, $4, $5, 'queued')
 	`, documentID, user.ID, uploadResult.Filename, uploadResult.PublicURL, uploadResult.MimeType)
@@ -152,6 +154,7 @@ func (h *RAGHandler) Upload(c *gin.Context) {
 // GetDocuments handles GET /api/documents
 func (h *RAGHandler) GetDocuments(c *gin.Context) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// Get user ID
 	userSupabaseID, exists := middleware.GetUserIDFromContext(c)
@@ -178,7 +181,7 @@ func (h *RAGHandler) GetDocuments(c *gin.Context) {
 	offset := (page - 1) * limit
 
 	// Get documents with pagination
-	rows, err := h.db.GetDB().Query(`
+	rows, err := h.db.GetPool().Query(ctx, `
 		SELECT id, title, source_url, mime_type, processing_status, error, size, checksum, created_at
 		FROM documents
 		WHERE user_id = $1
@@ -234,7 +237,7 @@ func (h *RAGHandler) GetDocuments(c *gin.Context) {
 
 	// Get total count
 	var total int
-	err = h.db.GetDB().QueryRow("SELECT COUNT(*) FROM documents WHERE user_id = $1", user.ID).Scan(&total)
+	err = h.db.GetPool().QueryRow(ctx, "SELECT COUNT(*) FROM documents WHERE user_id = $1", user.ID).Scan(&total)
 	if err != nil {
 		total = len(documents)
 	}
@@ -252,6 +255,7 @@ func (h *RAGHandler) GetDocuments(c *gin.Context) {
 // GetChats handles GET /api/chats
 func (h *RAGHandler) GetChats(c *gin.Context) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// Get user ID
 	userSupabaseID, exists := middleware.GetUserIDFromContext(c)
@@ -278,7 +282,7 @@ func (h *RAGHandler) GetChats(c *gin.Context) {
 	offset := (page - 1) * limit
 
 	// Get chats with last message (get one extra to check if there are more)
-	rows, err := h.db.GetDB().Query(`
+	rows, err := h.db.GetPool().Query(ctx, `
 		SELECT 
 			c.id,
 			c.title,
@@ -336,7 +340,7 @@ func (h *RAGHandler) GetChats(c *gin.Context) {
 
 	// Get total count
 	var total int
-	err = h.db.GetDB().QueryRow("SELECT COUNT(*) FROM chats WHERE user_id = $1", user.ID).Scan(&total)
+	err = h.db.GetPool().QueryRow(ctx, "SELECT COUNT(*) FROM chats WHERE user_id = $1", user.ID).Scan(&total)
 	if err != nil {
 		total = len(chats)
 	}
@@ -354,6 +358,7 @@ func (h *RAGHandler) GetChats(c *gin.Context) {
 // CreateChat handles POST /api/chats
 func (h *RAGHandler) CreateChat(c *gin.Context) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// Get user ID
 	userSupabaseID, exists := middleware.GetUserIDFromContext(c)
@@ -376,7 +381,7 @@ func (h *RAGHandler) CreateChat(c *gin.Context) {
 
 	// Create new chat
 	chatID := uuid.New()
-	_, err = h.db.GetDB().Exec(`
+	_, err = h.db.GetPool().Exec(ctx, `
 		INSERT INTO chats (id, user_id)
 		VALUES ($1, $2)
 	`, chatID, user.ID)
@@ -402,6 +407,7 @@ func (h *RAGHandler) CreateChat(c *gin.Context) {
 // GetChatMessages handles GET /api/chats/:id
 func (h *RAGHandler) GetChatMessages(c *gin.Context) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// Get user ID
 	userSupabaseID, exists := middleware.GetUserIDFromContext(c)
@@ -433,9 +439,9 @@ func (h *RAGHandler) GetChatMessages(c *gin.Context) {
 
 	// Verify chat belongs to user
 	var chatUserID string
-	err = h.db.GetDB().QueryRow("SELECT user_id FROM chats WHERE id = $1", chatID).Scan(&chatUserID)
+	err = h.db.GetPool().QueryRow(ctx, "SELECT user_id FROM chats WHERE id = $1", chatID).Scan(&chatUserID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			utils.SendError(c, &models.APIError{
 				Code:    http.StatusNotFound,
 				Message: "Chat not found",
@@ -464,7 +470,7 @@ func (h *RAGHandler) GetChatMessages(c *gin.Context) {
 	offset := (page - 1) * limit
 
 	// Get messages (get one extra to check if there are more)
-	rows, err := h.db.GetDB().Query(`
+	rows, err := h.db.GetPool().Query(ctx, `
 		SELECT id, role, content, metadata, created_at
 		FROM chat_messages
 		WHERE chat_id = $1
@@ -509,7 +515,7 @@ func (h *RAGHandler) GetChatMessages(c *gin.Context) {
 
 	// Get total count
 	var total int
-	err = h.db.GetDB().QueryRow("SELECT COUNT(*) FROM chat_messages WHERE chat_id = $1", chatID).Scan(&total)
+	err = h.db.GetPool().QueryRow(ctx, "SELECT COUNT(*) FROM chat_messages WHERE chat_id = $1", chatID).Scan(&total)
 	if err != nil {
 		total = len(messages)
 	}
@@ -527,6 +533,7 @@ func (h *RAGHandler) GetChatMessages(c *gin.Context) {
 // Ask handles POST /api/ask
 func (h *RAGHandler) Ask(c *gin.Context) {
 	logger := utils.GetLogger()
+	ctx := context.Background()	
 
 	// Get user ID
 	userSupabaseID, exists := middleware.GetUserIDFromContext(c)
@@ -573,7 +580,7 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 	if chatID == "" {
 		chatUUID := uuid.New()
 		chatID = chatUUID.String()
-		_, err = h.db.GetDB().Exec("INSERT INTO chats (id, user_id) VALUES ($1, $2)", chatID, user.ID)
+		_, err = h.db.GetPool().Exec(ctx, "INSERT INTO chats (id, user_id) VALUES ($1, $2)", chatID, user.ID.String())
 		if err != nil {
 			logger.Error("Failed to create chat", zap.Error(err))
 			utils.SendError(c, &models.APIError{
@@ -584,12 +591,10 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 		}
 	}
 
-	ctx := context.Background()
-
 	// If no explicit document IDs provided, and a chat is provided, derive document IDs
 	derivedDocIDs := []string{}
 	if len(req.DocumentIDs) == 0 && chatID != "" {
-		rows, derr := h.db.GetDB().Query(`
+		rows, derr := h.db.GetPool().Query(ctx, `
 			SELECT metadata
 			FROM chat_messages
 			WHERE chat_id = $1 AND role = 'file'
@@ -697,7 +702,7 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 	answer := explanation.Explanation
 
 	// Save user question
-	_, err = h.db.GetDB().Exec(`
+	_, err = h.db.GetPool().Exec(ctx, `
 		INSERT INTO chat_messages (id, chat_id, role, content)
 		VALUES ($1, $2, 'user', $3)
 	`, uuid.New(), chatID, req.Query)
@@ -706,7 +711,7 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 	}
 
 	// Save assistant answer
-	_, err = h.db.GetDB().Exec(`
+	_, err = h.db.GetPool().Exec(ctx, `
 		INSERT INTO chat_messages (id, chat_id, role, content)
 		VALUES ($1, $2, 'assistant', $3)
 	`, uuid.New(), chatID, answer)
@@ -745,7 +750,7 @@ func (h *RAGHandler) processDocument(documentID string, uploadResult *storage.Up
 	ctx := context.Background()
 
 	// Update status to processing
-	_, err := h.db.GetDB().Exec(`
+	_, err := h.db.GetPool().Exec(ctx, `
 		UPDATE documents 
 		SET processing_status = 'processing', error = NULL 
 		WHERE id = $1
@@ -869,7 +874,7 @@ func (h *RAGHandler) processDocument(documentID string, uploadResult *storage.Up
 
 	// Update document status to completed
 	processingDuration := time.Since(startTime)
-	_, err = h.db.GetDB().Exec(`
+	_, err = h.db.GetPool().Exec(ctx, `
 		UPDATE documents 
 		SET processing_status = 'completed', error = NULL 
 		WHERE id = $1
@@ -888,7 +893,7 @@ func (h *RAGHandler) processDocument(documentID string, uploadResult *storage.Up
 
 func (h *RAGHandler) addFileMessageToChat(chatID, userID string, uploadResult *storage.UploadResult, documentID string) {
 	logger := utils.GetLogger()
-
+	ctx := context.Background()
 	metadata := map[string]interface{}{
 		"document_id": documentID,
 		"source_url":  uploadResult.PublicURL,
@@ -898,7 +903,7 @@ func (h *RAGHandler) addFileMessageToChat(chatID, userID string, uploadResult *s
 
 	metadataJSON, _ := json.Marshal(metadata)
 
-	_, err := h.db.GetDB().Exec(`
+	_, err := h.db.GetPool().Exec(ctx, `
 		INSERT INTO chat_messages (id, chat_id, role, content, metadata)
 		VALUES ($1, $2, 'file', $3, $4)
 	`, uuid.New(), chatID, uploadResult.Filename, string(metadataJSON))
@@ -911,7 +916,6 @@ func (h *RAGHandler) addFileMessageToChat(chatID, userID string, uploadResult *s
 // getOrCreateUser gets a user by Supabase ID or creates them if they don't exist
 func (h *RAGHandler) getOrCreateUser(c *gin.Context, supabaseID string) (*models.User, error) {
 	logger := utils.GetLogger()
-
 	// Try to get existing user
 	user, err := h.db.GetUserBySupabaseID(supabaseID)
 	if err == nil {
@@ -963,8 +967,9 @@ func (h *RAGHandler) getOrCreateUser(c *gin.Context, supabaseID string) (*models
 // updateDocumentError updates document status to failed with error message
 func (h *RAGHandler) updateDocumentError(documentID, errorMsg string) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
-	_, err := h.db.GetDB().Exec(`
+	_, err := h.db.GetPool().Exec(ctx, `
 		UPDATE documents 
 		SET processing_status = 'failed', error = $2 
 		WHERE id = $1
@@ -980,6 +985,7 @@ func (h *RAGHandler) updateDocumentError(documentID, errorMsg string) {
 // DeleteDocument handles DELETE /api/documents/:id
 func (h *RAGHandler) DeleteDocument(c *gin.Context) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// Get user ID
 	userSupabaseID, exists := middleware.GetUserIDFromContext(c)
@@ -1014,13 +1020,13 @@ func (h *RAGHandler) DeleteDocument(c *gin.Context) {
 		UserID    string
 		SourceURL *string
 	}
-	err = h.db.GetDB().QueryRow(`
+	err = h.db.GetPool().QueryRow(ctx, `
 		SELECT user_id, source_url 
 		FROM documents 
 		WHERE id = $1
 	`, documentID).Scan(&doc.UserID, &doc.SourceURL)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			utils.SendError(c, &models.APIError{
 				Code:    http.StatusNotFound,
 				Message: "Document not found",
@@ -1044,7 +1050,7 @@ func (h *RAGHandler) DeleteDocument(c *gin.Context) {
 	}
 
 	// Delete document from database (cascades to chunks)
-	_, err = h.db.GetDB().Exec("DELETE FROM documents WHERE id = $1", documentID)
+	_, err = h.db.GetPool().Exec(ctx, "DELETE FROM documents WHERE id = $1", documentID)
 	if err != nil {
 		logger.Error("Failed to delete document", zap.Error(err))
 		utils.SendError(c, &models.APIError{
@@ -1071,6 +1077,7 @@ func (h *RAGHandler) DeleteDocument(c *gin.Context) {
 // ReprocessDocument handles POST /api/documents/:id/reprocess
 func (h *RAGHandler) ReprocessDocument(c *gin.Context) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// Get user ID
 	userSupabaseID, exists := middleware.GetUserIDFromContext(c)
@@ -1107,13 +1114,13 @@ func (h *RAGHandler) ReprocessDocument(c *gin.Context) {
 		SourceURL *string
 		MimeType  string
 	}
-	err = h.db.GetDB().QueryRow(`
+	err = h.db.GetPool().QueryRow(ctx, `
 		SELECT user_id, title, source_url, mime_type 
 		FROM documents 
 		WHERE id = $1
 	`, documentID).Scan(&doc.UserID, &doc.Title, &doc.SourceURL, &doc.MimeType)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			utils.SendError(c, &models.APIError{
 				Code:    http.StatusNotFound,
 				Message: "Document not found",
@@ -1137,7 +1144,7 @@ func (h *RAGHandler) ReprocessDocument(c *gin.Context) {
 	}
 
 	// Delete existing chunks
-	_, err = h.db.GetDB().Exec("DELETE FROM chunks WHERE document_id = $1", documentID)
+	_, err = h.db.GetPool().Exec(ctx, "DELETE FROM chunks WHERE document_id = $1", documentID)
 	if err != nil {
 		logger.Error("Failed to delete existing chunks", zap.Error(err))
 		utils.SendError(c, &models.APIError{
@@ -1148,7 +1155,7 @@ func (h *RAGHandler) ReprocessDocument(c *gin.Context) {
 	}
 
 	// Reset document status
-	_, err = h.db.GetDB().Exec(`
+	_, err = h.db.GetPool().Exec(ctx, `
 		UPDATE documents 
 		SET processing_status = 'queued', error = NULL 
 		WHERE id = $1
@@ -1181,6 +1188,7 @@ func (h *RAGHandler) ReprocessDocument(c *gin.Context) {
 // GetDocumentChunks handles GET /api/documents/:id/chunks
 func (h *RAGHandler) GetDocumentChunks(c *gin.Context) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// Get user ID
 	userSupabaseID, exists := middleware.GetUserIDFromContext(c)
@@ -1212,9 +1220,9 @@ func (h *RAGHandler) GetDocumentChunks(c *gin.Context) {
 
 	// Verify document ownership
 	var docUserID string
-	err = h.db.GetDB().QueryRow("SELECT user_id FROM documents WHERE id = $1", documentID).Scan(&docUserID)
+	err = h.db.GetPool().QueryRow(ctx, "SELECT user_id FROM documents WHERE id = $1", documentID).Scan(&docUserID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			utils.SendError(c, &models.APIError{
 				Code:    http.StatusNotFound,
 				Message: "Document not found",
@@ -1243,7 +1251,7 @@ func (h *RAGHandler) GetDocumentChunks(c *gin.Context) {
 	offset := (page - 1) * limit
 
 	// Get chunks with pagination
-	rows, err := h.db.GetDB().Query(`
+	rows, err := h.db.GetPool().Query(ctx, `
 		SELECT id, ordinal, content, metadata, created_at
 		FROM chunks
 		WHERE document_id = $1
@@ -1288,7 +1296,7 @@ func (h *RAGHandler) GetDocumentChunks(c *gin.Context) {
 
 	// Get total count
 	var total int
-	err = h.db.GetDB().QueryRow("SELECT COUNT(*) FROM chunks WHERE document_id = $1", documentID).Scan(&total)
+	err = h.db.GetPool().QueryRow(ctx, "SELECT COUNT(*) FROM chunks WHERE document_id = $1", documentID).Scan(&total)
 	if err != nil {
 		total = len(chunks)
 	}
@@ -1306,6 +1314,7 @@ func (h *RAGHandler) GetDocumentChunks(c *gin.Context) {
 // DeleteChat handles DELETE /api/chats/:id
 func (h *RAGHandler) DeleteChat(c *gin.Context) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// Get user ID
 	userSupabaseID, exists := middleware.GetUserIDFromContext(c)
@@ -1336,7 +1345,7 @@ func (h *RAGHandler) DeleteChat(c *gin.Context) {
 	}
 
 	// Verify chat ownership and delete
-	result, err := h.db.GetDB().Exec("DELETE FROM chats WHERE id = $1 AND user_id = $2", chatID, user.ID)
+	result, err := h.db.GetPool().Exec(ctx, "DELETE FROM chats WHERE id = $1 AND user_id = $2", chatID, user.ID)
 	if err != nil {
 		logger.Error("Failed to delete chat", zap.Error(err))
 		utils.SendError(c, &models.APIError{
@@ -1346,7 +1355,7 @@ func (h *RAGHandler) DeleteChat(c *gin.Context) {
 		return
 	}
 
-	rowsAffected, _ := result.RowsAffected()
+	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
 		utils.SendError(c, &models.APIError{
 			Code:    http.StatusNotFound,
@@ -1362,6 +1371,7 @@ func (h *RAGHandler) DeleteChat(c *gin.Context) {
 // UpdateChat handles PUT /api/chats/:id
 func (h *RAGHandler) UpdateChat(c *gin.Context) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// Get user ID
 	userSupabaseID, exists := middleware.GetUserIDFromContext(c)
@@ -1413,7 +1423,7 @@ func (h *RAGHandler) UpdateChat(c *gin.Context) {
 	}
 
 	// Update chat
-	result, err := h.db.GetDB().Exec(`
+	result, err := h.db.GetPool().Exec(ctx, `
 		UPDATE chats 
 		SET title = $3 
 		WHERE id = $1 AND user_id = $2
@@ -1427,7 +1437,7 @@ func (h *RAGHandler) UpdateChat(c *gin.Context) {
 		return
 	}
 
-	rowsAffected, _ := result.RowsAffected()
+	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
 		utils.SendError(c, &models.APIError{
 			Code:    http.StatusNotFound,
@@ -1438,7 +1448,7 @@ func (h *RAGHandler) UpdateChat(c *gin.Context) {
 
 	// Get updated chat
 	var chat models.ChatResponse
-	err = h.db.GetDB().QueryRow(`
+	err = h.db.GetPool().QueryRow(ctx, `
 		SELECT 
 			c.id,
 			c.title,
@@ -1469,6 +1479,7 @@ func (h *RAGHandler) UpdateChat(c *gin.Context) {
 // RAGHealth handles GET /api/rag/health
 func (h *RAGHandler) RAGHealth(c *gin.Context) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// Check embeddings health
 	embeddingsHealth := h.embeddings.IsHealthy()

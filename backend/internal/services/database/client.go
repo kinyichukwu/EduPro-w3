@@ -1,62 +1,75 @@
 package database
 
 import (
-	"database/sql"
+	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kinyichukwu/edu-pro-backend/internal/config"
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
 	"github.com/kinyichukwu/edu-pro-backend/internal/utils"
 	"go.uber.org/zap"
-
-	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
 // Client represents the database client
 type Client struct {
-	db *sql.DB
+	pool *pgxpool.Pool
 }
 
 // NewClient creates a new database client
 func NewClient(cfg *config.Config) (*Client, error) {
 	logger := utils.GetLogger()
 
-	db, err := sql.Open("postgres", cfg.DatabaseURL)
+	// Parse connection config
+	poolConfig, err := pgxpool.ParseConfig(cfg.DatabaseURL)
 	if err != nil {
-		logger.Error("Failed to connect to database", zap.String("error", err.Error()))
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+		logger.Error("Failed to parse database URL", zap.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to parse database URL: %w", err)
 	}
 
-	// Configure connection pool
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(0) // No limit on connection lifetime
+	// Configure connection pool similar to your working setup
+	poolConfig.MaxConns = 10
+	poolConfig.MinConns = 2
+	poolConfig.MaxConnLifetime = time.Minute * 5
+	poolConfig.MaxConnIdleTime = time.Minute * 1
+
+	// Create connection pool
+	ctx := context.Background()
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
+	if err != nil {
+		logger.Error("Failed to create connection pool", zap.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to create connection pool: %w", err)
+	}
 
 	// Validate the connection
-	if err := db.Ping(); err != nil {
+	if err := pool.Ping(ctx); err != nil {
 		logger.Error("Failed to ping database", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	logger.Info("Database connection established successfully")
-	return &Client{db: db}, nil
+	logger.Info("Database connection pool established successfully")
+	return &Client{pool: pool}, nil
 }
 
-// Close closes the database connection
-func (c *Client) Close() error {
-	return c.db.Close()
+// Close closes the database connection pool
+func (c *Client) Close() {
+	c.pool.Close()
 }
 
-// GetDB returns the underlying database connection
-func (c *Client) GetDB() *sql.DB {
-	return c.db
+// GetPool returns the underlying connection pool
+func (c *Client) GetPool() *pgxpool.Pool {
+	return c.pool
 }
 
 // CreateUser creates a new user in the database
 func (c *Client) CreateUser(req *models.CreateUserRequest) (*models.User, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
+	
 	// TODO: what is the difference between the username and the full name?
 	user := &models.User{
 		ID:         uuid.New(),
@@ -72,7 +85,7 @@ func (c *Client) CreateUser(req *models.CreateUserRequest) (*models.User, error)
 		RETURNING created_at, updated_at
 	`
 
-	err := c.db.QueryRow(query, user.ID, user.Email, user.Username, user.FullName, user.SupabaseID).
+	err := c.pool.QueryRow(ctx, query, user.ID, user.Email, user.Username, user.FullName, user.SupabaseID).
 		Scan(&user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		logger.Error("Failed to create user", zap.String("error", err.Error()))
@@ -86,6 +99,7 @@ func (c *Client) CreateUser(req *models.CreateUserRequest) (*models.User, error)
 // GetUserBySupabaseID retrieves a user by their Supabase ID
 func (c *Client) GetUserBySupabaseID(supabaseID string) (*models.User, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	user := &models.User{}
 	query := `
@@ -100,18 +114,18 @@ func (c *Client) GetUserBySupabaseID(supabaseID string) (*models.User, error) {
 		zap.String("supabase_id", supabaseID))
 
 	// Validate database connection before executing query
-	if err := c.db.Ping(); err != nil {
+	if err := c.pool.Ping(ctx); err != nil {
 		logger.Error("Database connection lost for user query", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("database connection error: %w", err)
 	}
 
-	// Use direct query instead of prepared statement to avoid naming conflicts
-	err := c.db.QueryRow(query, supabaseID).Scan(
+	// Use pgx QueryRow - no more prepared statement issues
+	err := c.pool.QueryRow(ctx, query, supabaseID).Scan(
 		&user.ID, &user.Email, &user.Username, &user.FullName,
 		&user.Avatar, &user.SupabaseID, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			logger.Warn("User not found", zap.String("supabase_id", supabaseID))
 			return nil, fmt.Errorf("user not found")
 		}
@@ -125,6 +139,7 @@ func (c *Client) GetUserBySupabaseID(supabaseID string) (*models.User, error) {
 // GetUserByID retrieves a user by their ID
 func (c *Client) GetUserByID(userID uuid.UUID) (*models.User, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	user := &models.User{}
 	query := `
@@ -133,12 +148,12 @@ func (c *Client) GetUserByID(userID uuid.UUID) (*models.User, error) {
 		WHERE id = $1
 	`
 
-	err := c.db.QueryRow(query, userID).Scan(
+	err := c.pool.QueryRow(ctx, query, userID).Scan(
 		&user.ID, &user.Email, &user.Username, &user.FullName,
 		&user.Avatar, &user.SupabaseID, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			logger.Warn("User not found", zap.String("user_id", userID.String()))
 			return nil, fmt.Errorf("user not found")
 		}
@@ -152,6 +167,7 @@ func (c *Client) GetUserByID(userID uuid.UUID) (*models.User, error) {
 // UpdateUser updates a user's information
 func (c *Client) UpdateUser(userID uuid.UUID, req *models.UpdateUserRequest) (*models.User, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	query := `
 		UPDATE users 
@@ -164,7 +180,7 @@ func (c *Client) UpdateUser(userID uuid.UUID, req *models.UpdateUserRequest) (*m
 	`
 
 	user := &models.User{}
-	err := c.db.QueryRow(query, userID, req.Username, req.FullName, req.Avatar).Scan(
+	err := c.pool.QueryRow(ctx, query, userID, req.Username, req.FullName, req.Avatar).Scan(
 		&user.ID, &user.Email, &user.Username, &user.FullName,
 		&user.Avatar, &user.SupabaseID, &user.CreatedAt, &user.UpdatedAt,
 	)
@@ -180,6 +196,7 @@ func (c *Client) UpdateUser(userID uuid.UUID, req *models.UpdateUserRequest) (*m
 // CreateOnboarding creates onboarding data for a user
 func (c *Client) CreateOnboarding(req *models.CreateOnboardingRequest) (*models.OnboardingData, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// Handle academic details JSON
 	var academicDetailsJSON *string
@@ -202,7 +219,7 @@ func (c *Client) CreateOnboarding(req *models.CreateOnboardingRequest) (*models.
 		RETURNING created_at, completed_at, updated_at
 	`
 
-	err := c.db.QueryRow(query, onboarding.ID, onboarding.UserID, onboarding.Role,
+	err := c.pool.QueryRow(ctx, query, onboarding.ID, onboarding.UserID, onboarding.Role,
 		onboarding.CustomLearningGoal, academicDetailsJSON).
 		Scan(&onboarding.CreatedAt, &onboarding.CompletedAt, &onboarding.UpdatedAt)
 	if err != nil {
@@ -217,6 +234,7 @@ func (c *Client) CreateOnboarding(req *models.CreateOnboardingRequest) (*models.
 // GetOnboardingByUserID retrieves onboarding data for a user (userID can be Supabase ID)
 func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// First, get the internal user ID from Supabase ID
 	user, err := c.GetUserBySupabaseID(userID.String())
@@ -242,19 +260,19 @@ func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData
 		zap.String("internal_user_id", internalUserID.String()))
 
 	// Validate database connection before executing query
-	if err := c.db.Ping(); err != nil {
+	if err := c.pool.Ping(ctx); err != nil {
 		logger.Error("Database connection lost for onboarding query", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("database connection error: %w", err)
 	}
 
-	// Use direct query instead of prepared statement to avoid naming conflicts
-	err = c.db.QueryRow(query, internalUserID).Scan(
+	// Use pgx QueryRow - no more prepared statement issues
+	err = c.pool.QueryRow(ctx, query, internalUserID).Scan(
 		&onboarding.ID, &onboarding.UserID, &onboarding.Role,
 		&onboarding.CustomLearningGoal, &academicDetailsJSON,
 		&onboarding.CreatedAt, &onboarding.CompletedAt, &onboarding.UpdatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			logger.Warn("Onboarding not found", zap.String("internal_user_id", internalUserID.String()))
 			return nil, fmt.Errorf("onboarding not found")
 		}
@@ -273,6 +291,7 @@ func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData
 // UpdateOnboarding updates onboarding data for a user (userID can be Supabase ID)
 func (c *Client) UpdateOnboarding(userID uuid.UUID, req *models.OnboardingUpdateRequest) (*models.OnboardingData, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	// First, get the internal user ID from Supabase ID
 	user, err := c.GetUserBySupabaseID(userID.String())
@@ -309,13 +328,13 @@ func (c *Client) UpdateOnboarding(userID uuid.UUID, req *models.OnboardingUpdate
 	onboarding := &models.OnboardingData{}
 	var academicDetailsResult *string
 
-	err = c.db.QueryRow(query, internalUserID, req.Role, req.CustomLearningGoal, academicDetailsJSON).Scan(
+	err = c.pool.QueryRow(ctx, query, internalUserID, req.Role, req.CustomLearningGoal, academicDetailsJSON).Scan(
 		&onboarding.ID, &onboarding.UserID, &onboarding.Role,
 		&onboarding.CustomLearningGoal, &academicDetailsResult,
 		&onboarding.CreatedAt, &onboarding.CompletedAt, &onboarding.UpdatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			// If no existing onboarding, create a new one using internal user ID
 			createReq := &models.CreateOnboardingRequest{
 				UserID:             internalUserID,
@@ -345,6 +364,7 @@ func (c *Client) UpdateOnboarding(userID uuid.UUID, req *models.OnboardingUpdate
 // CreateWallet creates a new wallet for a user
 func (c *Client) CreateWallet(userID uuid.UUID, address string, isPrimary bool) (*models.UserWallet, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	wallet := &models.UserWallet{
 		ID:            uuid.New(),
@@ -360,7 +380,7 @@ func (c *Client) CreateWallet(userID uuid.UUID, address string, isPrimary bool) 
 		RETURNING created_at, updated_at
 	`
 
-	err := c.db.QueryRow(query, wallet.ID, wallet.UserID, wallet.WalletAddress, wallet.IsPrimary, wallet.IsVerified).
+	err := c.pool.QueryRow(ctx, query, wallet.ID, wallet.UserID, wallet.WalletAddress, wallet.IsPrimary, wallet.IsVerified).
 		Scan(&wallet.CreatedAt, &wallet.UpdatedAt)
 	if err != nil {
 		logger.Error("Failed to create wallet", zap.String("error", err.Error()))
@@ -374,6 +394,7 @@ func (c *Client) CreateWallet(userID uuid.UUID, address string, isPrimary bool) 
 // GetWalletsByUserID retrieves all wallets for a user
 func (c *Client) GetWalletsByUserID(userID uuid.UUID) ([]*models.UserWallet, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	query := `
 		SELECT id, user_id, wallet_address, is_primary, is_verified, verified_at, created_at, updated_at
@@ -382,7 +403,7 @@ func (c *Client) GetWalletsByUserID(userID uuid.UUID) ([]*models.UserWallet, err
 		ORDER BY is_primary DESC, created_at DESC
 	`
 
-	rows, err := c.db.Query(query, userID)
+	rows, err := c.pool.Query(ctx, query, userID)
 	if err != nil {
 		logger.Error("Failed to get wallets", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to get wallets: %w", err)
@@ -415,6 +436,7 @@ func (c *Client) GetWalletsByUserID(userID uuid.UUID) ([]*models.UserWallet, err
 // GetWalletByID retrieves a wallet by its ID
 func (c *Client) GetWalletByID(walletID uuid.UUID) (*models.UserWallet, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	wallet := &models.UserWallet{}
 	query := `
@@ -423,13 +445,13 @@ func (c *Client) GetWalletByID(walletID uuid.UUID) (*models.UserWallet, error) {
 		WHERE id = $1
 	`
 
-	err := c.db.QueryRow(query, walletID).Scan(
+	err := c.pool.QueryRow(ctx, query, walletID).Scan(
 		&wallet.ID, &wallet.UserID, &wallet.WalletAddress,
 		&wallet.IsPrimary, &wallet.IsVerified, &wallet.VerifiedAt,
 		&wallet.CreatedAt, &wallet.UpdatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			logger.Warn("Wallet not found", zap.String("wallet_id", walletID.String()))
 			return nil, fmt.Errorf("wallet not found")
 		}
@@ -443,6 +465,7 @@ func (c *Client) GetWalletByID(walletID uuid.UUID) (*models.UserWallet, error) {
 // UpdateWallet updates a wallet's verification status
 func (c *Client) UpdateWallet(walletID uuid.UUID, isVerified bool) (*models.UserWallet, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	query := `
 		UPDATE user_wallets 
@@ -454,7 +477,7 @@ func (c *Client) UpdateWallet(walletID uuid.UUID, isVerified bool) (*models.User
 	`
 
 	wallet := &models.UserWallet{}
-	err := c.db.QueryRow(query, walletID, isVerified).Scan(
+	err := c.pool.QueryRow(ctx, query, walletID, isVerified).Scan(
 		&wallet.ID, &wallet.UserID, &wallet.WalletAddress,
 		&wallet.IsPrimary, &wallet.IsVerified, &wallet.VerifiedAt,
 		&wallet.CreatedAt, &wallet.UpdatedAt,
@@ -471,23 +494,20 @@ func (c *Client) UpdateWallet(walletID uuid.UUID, isVerified bool) (*models.User
 // DeleteWallet removes a wallet
 func (c *Client) DeleteWallet(walletID uuid.UUID, userID uuid.UUID) error {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	query := `
 		DELETE FROM user_wallets 
 		WHERE id = $1 AND user_id = $2
 	`
 
-	result, err := c.db.Exec(query, walletID, userID)
+	result, err := c.pool.Exec(ctx, query, walletID, userID)
 	if err != nil {
 		logger.Error("Failed to delete wallet", zap.String("error", err.Error()))
 		return fmt.Errorf("failed to delete wallet: %w", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		logger.Error("Failed to get rows affected", zap.String("error", err.Error()))
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
+	rowsAffected := result.RowsAffected()
 
 	if rowsAffected == 0 {
 		logger.Warn("No wallet found to delete", zap.String("wallet_id", walletID.String()))

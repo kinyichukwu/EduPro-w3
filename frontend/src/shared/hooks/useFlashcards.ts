@@ -383,7 +383,7 @@ export const useFlashcardManager = () => {
   const getCalculatedStats = () => {
     // Ensure decks is always an array, never null
     const safeDecks = decksHook.decks || [];
-    
+
     const totalCards =
       statsHook.stats?.total_cards ||
       safeDecks.reduce((sum, deck) => sum + (deck.total_cards || 0), 0);
@@ -392,8 +392,10 @@ export const useFlashcardManager = () => {
       statsHook.stats?.average_score ||
       (safeDecks.length > 0
         ? Math.round(
-            safeDecks.reduce((sum, deck) => sum + (deck.average_score || 0), 0) /
-              safeDecks.length
+            safeDecks.reduce(
+              (sum, deck) => sum + (deck.average_score || 0),
+              0
+            ) / safeDecks.length
           )
         : 0);
 

@@ -1,11 +1,12 @@
 package database
 
 import (
-	"database/sql"
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
 	"github.com/kinyichukwu/edu-pro-backend/internal/utils"
 	"go.uber.org/zap"
@@ -14,6 +15,7 @@ import (
 // CreateDeck creates a new flashcard deck
 func (c *Client) CreateDeck(userID uuid.UUID, req *models.CreateDeckRequest) (*models.Deck, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	deck := &models.Deck{
 		ID:     uuid.New(),
@@ -41,7 +43,7 @@ func (c *Client) CreateDeck(userID uuid.UUID, req *models.CreateDeckRequest) (*m
 		RETURNING total_cards, mastered_cards, average_score, study_time, last_studied, created_at, updated_at
 	`
 
-	err := c.db.QueryRow(query, deck.ID, deck.UserID, deck.Name, deck.Description, 
+	err := c.pool.QueryRow(ctx, query, deck.ID, deck.UserID, deck.Name, deck.Description, 
 		deck.Topic, deck.Difficulty, deck.Color).Scan(
 		&deck.TotalCards, &deck.MasteredCards, &deck.AverageScore, 
 		&deck.StudyTime, &deck.LastStudied, &deck.CreatedAt, &deck.UpdatedAt)
@@ -57,6 +59,7 @@ func (c *Client) CreateDeck(userID uuid.UUID, req *models.CreateDeckRequest) (*m
 // GetDecksByUserID retrieves all decks for a user
 func (c *Client) GetDecksByUserID(userID uuid.UUID) ([]*models.DeckWithStats, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	query := `
 		SELECT 
@@ -76,13 +79,13 @@ func (c *Client) GetDecksByUserID(userID uuid.UUID) ([]*models.DeckWithStats, er
 		zap.String("user_id", userID.String()))
 
 	// Validate database connection before executing query
-	if err := c.db.Ping(); err != nil {
+	if err := c.pool.Ping(ctx); err != nil {
 		logger.Error("Database connection lost", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("database connection error: %w", err)
 	}
 
-	// Use direct query instead of prepared statement to avoid naming conflicts
-	rows, err := c.db.Query(query, userID)
+	// Use pgx Query - no more prepared statement issues!
+	rows, err := c.pool.Query(ctx, query, userID)
 	if err != nil {
 		logger.Error("Failed to get decks", 
 			zap.String("error", err.Error()),
@@ -116,6 +119,7 @@ func (c *Client) GetDecksByUserID(userID uuid.UUID) ([]*models.DeckWithStats, er
 // GetDeckByID retrieves a deck by ID
 func (c *Client) GetDeckByID(deckID, userID uuid.UUID) (*models.DeckWithStats, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	query := `
 		SELECT 
@@ -142,14 +146,14 @@ func (c *Client) GetDeckByID(deckID, userID uuid.UUID) (*models.DeckWithStats, e
 	`
 
 	deck := &models.DeckWithStats{}
-	err := c.db.QueryRow(query, deckID, userID).Scan(
+	err := c.pool.QueryRow(ctx, query, deckID, userID).Scan(
 		&deck.ID, &deck.UserID, &deck.Name, &deck.Description, &deck.Topic,
 		&deck.Difficulty, &deck.Color, &deck.TotalCards, &deck.MasteredCards,
 		&deck.AverageScore, &deck.StudyTime, &deck.LastStudied,
 		&deck.CreatedAt, &deck.UpdatedAt, &deck.Outstanding, &deck.New,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			logger.Warn("Deck not found", zap.String("deck_id", deckID.String()))
 			return nil, fmt.Errorf("deck not found")
 		}
@@ -163,6 +167,7 @@ func (c *Client) GetDeckByID(deckID, userID uuid.UUID) (*models.DeckWithStats, e
 // UpdateDeck updates a deck
 func (c *Client) UpdateDeck(deckID, userID uuid.UUID, req *models.UpdateDeckRequest) (*models.Deck, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	query := `
 		UPDATE flashcard_decks 
@@ -180,7 +185,7 @@ func (c *Client) UpdateDeck(deckID, userID uuid.UUID, req *models.UpdateDeckRequ
 	`
 
 	deck := &models.Deck{}
-	err := c.db.QueryRow(query, deckID, userID, req.Name, req.Description, 
+	err := c.pool.QueryRow(ctx, query, deckID, userID, req.Name, req.Description, 
 		req.Topic, req.Difficulty, req.Color).Scan(
 		&deck.ID, &deck.UserID, &deck.Name, &deck.Description, &deck.Topic,
 		&deck.Difficulty, &deck.Color, &deck.TotalCards, &deck.MasteredCards,
@@ -188,7 +193,7 @@ func (c *Client) UpdateDeck(deckID, userID uuid.UUID, req *models.UpdateDeckRequ
 		&deck.CreatedAt, &deck.UpdatedAt,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == pgx.ErrNoRows {
 			logger.Warn("Deck not found for update", zap.String("deck_id", deckID.String()))
 			return nil, fmt.Errorf("deck not found")
 		}
@@ -203,19 +208,16 @@ func (c *Client) UpdateDeck(deckID, userID uuid.UUID, req *models.UpdateDeckRequ
 // DeleteDeck deletes a deck and all its cards
 func (c *Client) DeleteDeck(deckID, userID uuid.UUID) error {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	query := `DELETE FROM flashcard_decks WHERE id = $1 AND user_id = $2`
-	result, err := c.db.Exec(query, deckID, userID)
+	result, err := c.pool.Exec(ctx, query, deckID, userID)		
 	if err != nil {
 		logger.Error("Failed to delete deck", zap.String("error", err.Error()))
 		return fmt.Errorf("failed to delete deck: %w", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		logger.Error("Failed to get rows affected", zap.String("error", err.Error()))
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
+	rowsAffected := result.RowsAffected()
 
 	if rowsAffected == 0 {
 		logger.Warn("Deck not found for deletion", zap.String("deck_id", deckID.String()))
@@ -229,6 +231,7 @@ func (c *Client) DeleteDeck(deckID, userID uuid.UUID) error {
 // CreateFlashcard creates a new flashcard in a deck
 func (c *Client) CreateFlashcard(deckID uuid.UUID, req *models.CreateFlashcardRequest) (*models.Flashcard, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	card := &models.Flashcard{
 		ID:     uuid.New(),
@@ -263,7 +266,7 @@ func (c *Client) CreateFlashcard(deckID uuid.UUID, req *models.CreateFlashcardRe
 		RETURNING times_reviewed, times_correct, last_reviewed, next_review, created_at, updated_at
 	`
 
-	err := c.db.QueryRow(query, card.ID, card.DeckID, card.Front, card.Back, 
+	err := c.pool.QueryRow(ctx, query, card.ID, card.DeckID, card.Front, card.Back, 
 		card.Difficulty, card.Mastery, tagsJSON).Scan(
 		&card.TimesReviewed, &card.TimesCorrect, &card.LastReviewed, 
 		&card.NextReview, &card.CreatedAt, &card.UpdatedAt)
@@ -279,13 +282,14 @@ func (c *Client) CreateFlashcard(deckID uuid.UUID, req *models.CreateFlashcardRe
 // CreateBulkFlashcards creates multiple flashcards in a deck
 func (c *Client) CreateBulkFlashcards(deckID uuid.UUID, req *models.CreateBulkFlashcardsRequest) ([]*models.Flashcard, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
-	tx, err := c.db.Begin()
+	tx, err := c.pool.Begin(ctx)
 	if err != nil {
 		logger.Error("Failed to begin transaction", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
 	var cards []*models.Flashcard
 	for _, cardReq := range req.Cards {
@@ -321,7 +325,7 @@ func (c *Client) CreateBulkFlashcards(deckID uuid.UUID, req *models.CreateBulkFl
 			RETURNING times_reviewed, times_correct, last_reviewed, next_review, created_at, updated_at
 		`
 
-		err = tx.QueryRow(query, card.ID, card.DeckID, card.Front, card.Back,
+		err = tx.QueryRow(ctx, query, card.ID, card.DeckID, card.Front, card.Back,
 			card.Difficulty, card.Mastery, tagsJSON).Scan(
 			&card.TimesReviewed, &card.TimesCorrect, &card.LastReviewed,
 			&card.NextReview, &card.CreatedAt, &card.UpdatedAt)
@@ -333,7 +337,7 @@ func (c *Client) CreateBulkFlashcards(deckID uuid.UUID, req *models.CreateBulkFl
 		cards = append(cards, card)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err = tx.Commit(ctx); err != nil {
 		logger.Error("Failed to commit transaction", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
@@ -347,6 +351,7 @@ func (c *Client) CreateBulkFlashcards(deckID uuid.UUID, req *models.CreateBulkFl
 // GetFlashcardsByDeckID retrieves all flashcards in a deck
 func (c *Client) GetFlashcardsByDeckID(deckID uuid.UUID) ([]*models.Flashcard, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	query := `
 		SELECT id, deck_id, front, back, difficulty, times_reviewed, times_correct,
@@ -356,7 +361,7 @@ func (c *Client) GetFlashcardsByDeckID(deckID uuid.UUID) ([]*models.Flashcard, e
 		ORDER BY created_at DESC
 	`
 
-	rows, err := c.db.Query(query, deckID)
+	rows, err := c.pool.Query(ctx, query, deckID)
 	if err != nil {
 		logger.Error("Failed to get flashcards", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to get flashcards: %w", err)
@@ -397,6 +402,7 @@ func (c *Client) GetFlashcardsByDeckID(deckID uuid.UUID) ([]*models.Flashcard, e
 // GetFlashcardStats retrieves statistics for a user's flashcards
 func (c *Client) GetFlashcardStats(userID uuid.UUID) (*models.FlashcardStats, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	query := `
 		SELECT 
@@ -418,13 +424,13 @@ func (c *Client) GetFlashcardStats(userID uuid.UUID) (*models.FlashcardStats, er
 		zap.String("user_id", userID.String()))
 	
 	// Validate database connection before executing query
-	if err := c.db.Ping(); err != nil {
+	if err := c.pool.Ping(ctx); err != nil {
 		logger.Error("Database connection lost for stats", zap.String("error", err.Error()))
 		return models.NewEmptyFlashcardStats(), nil
 	}
 	
-	// Use direct query instead of prepared statement to avoid naming conflicts
-	err := c.db.QueryRow(query, userID).Scan(
+	// Use pgx QueryRow - no more prepared statement issues!
+	err := c.pool.QueryRow(ctx, query, userID).Scan(
 		&stats.TotalDecks, &stats.TotalCards, &stats.MasteredCards,
 		&stats.TotalStudyTime, &stats.AverageScore, &stats.LastStudySession,
 	)
@@ -447,7 +453,7 @@ func (c *Client) GetFlashcardStats(userID uuid.UUID) (*models.FlashcardStats, er
 		AND (f.next_review IS NULL OR f.next_review <= NOW())
 	`
 
-	err = c.db.QueryRow(reviewQuery, userID).Scan(&stats.CardsToReview)
+	err = c.pool.QueryRow(ctx, reviewQuery, userID).Scan(&stats.CardsToReview)
 	if err != nil {
 		logger.Warn("Failed to get cards to review count", zap.String("error", err.Error()))
 		stats.CardsToReview = 0
@@ -462,7 +468,7 @@ func (c *Client) GetFlashcardStats(userID uuid.UUID) (*models.FlashcardStats, er
 		AND started_at >= NOW() - INTERVAL '30 days'
 	`
 
-	err = c.db.QueryRow(streakQuery, userID).Scan(&stats.StudyStreak)
+	err = c.pool.QueryRow(ctx, streakQuery, userID).Scan(&stats.StudyStreak)
 	if err != nil {
 		logger.Warn("Failed to get study streak", zap.String("error", err.Error()))
 		stats.StudyStreak = 0
@@ -474,6 +480,7 @@ func (c *Client) GetFlashcardStats(userID uuid.UUID) (*models.FlashcardStats, er
 // StartStudySession creates a new study session
 func (c *Client) StartStudySession(userID uuid.UUID, req *models.StartStudySessionRequest) (*models.StudySession, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
 	session := &models.StudySession{
 		ID:     uuid.New(),
@@ -492,7 +499,7 @@ func (c *Client) StartStudySession(userID uuid.UUID, req *models.StartStudySessi
 		RETURNING started_at, created_at
 	`
 
-	err := c.db.QueryRow(query, session.ID, session.UserID, session.DeckID, session.Mode).Scan(
+	err := c.pool.QueryRow(ctx, query, session.ID, session.UserID, session.DeckID, session.Mode).Scan(
 		&session.StartedAt, &session.CreatedAt)
 	if err != nil {
 		logger.Error("Failed to start study session", zap.String("error", err.Error()))
@@ -506,13 +513,14 @@ func (c *Client) StartStudySession(userID uuid.UUID, req *models.StartStudySessi
 // EndStudySession ends a study session and updates statistics
 func (c *Client) EndStudySession(sessionID uuid.UUID, req *models.EndStudySessionRequest) (*models.StudySession, error) {
 	logger := utils.GetLogger()
+	ctx := context.Background()
 
-	tx, err := c.db.Begin()
+	tx, err := c.pool.Begin(ctx)
 	if err != nil {
 		logger.Error("Failed to begin transaction", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer tx.Rollback(ctx)
 
 	// Update study session
 	query := `
@@ -524,7 +532,7 @@ func (c *Client) EndStudySession(sessionID uuid.UUID, req *models.EndStudySessio
 	`
 
 	session := &models.StudySession{}
-	err = tx.QueryRow(query, sessionID, req.CardsStudied, req.CorrectAnswers, req.TotalTime).Scan(
+	err = tx.QueryRow(ctx, query, sessionID, req.CardsStudied, req.CorrectAnswers, req.TotalTime).Scan(
 		&session.ID, &session.UserID, &session.DeckID, &session.Mode,
 		&session.CardsStudied, &session.CorrectAnswers, &session.TotalTime,
 		&session.StartedAt, &session.CompletedAt, &session.CreatedAt,
@@ -564,7 +572,7 @@ func (c *Client) EndStudySession(sessionID uuid.UUID, req *models.EndStudySessio
 			WHERE id = $1
 		`
 
-		_, err = tx.Exec(updateCardQuery, studiedCard.CardID, studiedCard.IsCorrect)
+		_, err = tx.Exec(ctx, updateCardQuery, studiedCard.CardID, studiedCard.IsCorrect)
 		if err != nil {
 			logger.Error("Failed to update card statistics", zap.String("error", err.Error()))
 			return nil, fmt.Errorf("failed to update card statistics: %w", err)
@@ -590,13 +598,13 @@ func (c *Client) EndStudySession(sessionID uuid.UUID, req *models.EndStudySessio
 		WHERE id = $1
 	`
 
-	_, err = tx.Exec(updateDeckQuery, session.DeckID, req.TotalTime/60) // Convert seconds to minutes
+	_, err = tx.Exec(ctx, updateDeckQuery, session.DeckID, req.TotalTime/60) // Convert seconds to minutes
 	if err != nil {
 		logger.Error("Failed to update deck statistics", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to update deck statistics: %w", err)
 	}
 
-	if err = tx.Commit(); err != nil {
+	if err = tx.Commit(ctx); err != nil {
 		logger.Error("Failed to commit transaction", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}

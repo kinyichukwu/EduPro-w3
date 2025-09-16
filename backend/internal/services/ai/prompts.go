@@ -216,6 +216,8 @@ Requirements:
 - Use clear, academic language appropriate for higher education
 - Include both theoretical and practical aspects where relevant
 - Questions should test understanding, not just memorization
+- AVOID complex mathematical notation, LaTeX, or special characters that could break JSON parsing
+- Use simple text descriptions instead of mathematical symbols
 
 `, numCards, topic)
 

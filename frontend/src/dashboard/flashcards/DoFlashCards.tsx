@@ -60,11 +60,14 @@ export default function EnhancedFlashcardApp() {
     handleDeleteCard,
     setIsBookmarked,
     setShowHint,
+    refreshCards,
   } = useFlashcardStudy();
 
   // Local UI state
   const [showSettings, setShowSettings] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [generatedCount, setGeneratedCount] = useState(0);
 
   const getStudyModeIcon = (mode: StudyMode) => {
     switch (mode) {
@@ -108,6 +111,11 @@ export default function EnhancedFlashcardApp() {
       });
 
       console.log(`Generated ${response.count} cards for ${response.topic}`);
+
+      // Show success popup
+      setGeneratedCount(response.count);
+      setShowSuccessPopup(true);
+
       // The cards are automatically saved to DB by the backend
       // The useFlashcards hook will automatically refresh and show the new cards
     } catch (error) {
@@ -115,6 +123,18 @@ export default function EnhancedFlashcardApp() {
     } finally {
       setIsGeneratingAI(false);
     }
+  };
+
+  const handleStartStudying = async () => {
+    setShowSuccessPopup(false);
+    // Refresh the flashcards to load the new AI-generated cards
+    await refreshCards();
+    // The useEffect in useFlashcardStudy will automatically update due cards
+  };
+
+  const handleContinueAdding = () => {
+    setShowSuccessPopup(false);
+    // Just close the popup, user can generate more or add manually
   };
 
   // Loading state
@@ -139,7 +159,7 @@ export default function EnhancedFlashcardApp() {
   if (!currentCard) {
     return (
       <div className="h-full w-full bg-dark-background text-dark-text flex flex-col items-center justify-center">
-        <div className="text-center p-8">
+        <div className="text-center p-4 md:p-8">
           <BookOpen className="w-16 h-16 text-turbo-purple mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">No cards available</h2>
           <p className="text-white/60 mb-6">
@@ -316,7 +336,7 @@ export default function EnhancedFlashcardApp() {
           animate={{ opacity: 1, x: 0, rotateY: 0 }}
           exit={{ opacity: 0, x: -100 }}
           transition={{ duration: 0.4, type: "spring" }}
-          className="w-full max-w-2xl sm:aspect-[4/3] min-h-[350px] relative cursor-pointer"
+          className="w-full max-w-2xl sm:aspect-[4/3] min-h-[500px] sm:min-h-[350px] relative cursor-pointer"
           onClick={handleFlip}
         >
           <div className="absolute inset-0 bg-dark-card/80 backdrop-blur-lg rounded-2xl border border-white/20 shadow-2xl">
@@ -324,9 +344,9 @@ export default function EnhancedFlashcardApp() {
               {!showAnswer ? (
                 <motion.div
                   key="front"
-                  initial={{ rotateY: 0 }}
-                  animate={{ rotateY: 0 }}
-                  exit={{ rotateY: 90 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                   transition={{ duration: 0.3 }}
                   className="absolute inset-0 flex flex-col p-5 sm:p-8"
                 >
@@ -372,9 +392,9 @@ export default function EnhancedFlashcardApp() {
               ) : (
                 <motion.div
                   key="back"
-                  initial={{ rotateY: -90 }}
-                  animate={{ rotateY: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3 }}
                   className="absolute inset-0 flex flex-col p-5 sm:p-8"
                 >
                   <div className="flex items-center justify-between mb-4">
@@ -394,14 +414,10 @@ export default function EnhancedFlashcardApp() {
                     </Button>
                   </div>
 
-                  <div className="flex-1 flex items-center justify-center overflow-y-auto">
+                  <div className="flex-1 overflow-y-auto">
                     <div className="text-lg text-white leading-relaxed whitespace-pre-line text-center">
                       {currentCard.back}
                     </div>
-                  </div>
-
-                  <div className="text-center text-sm text-white/60">
-                    Rate your understanding
                   </div>
                 </motion.div>
               )}
@@ -452,7 +468,7 @@ export default function EnhancedFlashcardApp() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-4 mt-8">
+        <div className="flex gap-4 mt-4 md:mt-8">
           <Button
             variant="outline"
             className="border-turbo-purple/30 text-turbo-purple hover:bg-turbo-purple/10 max-sm:text-sm"
@@ -476,63 +492,87 @@ export default function EnhancedFlashcardApp() {
         </div>
       </div>
 
-      {/* Rating Footer - Enhanced */}
-      <AnimatePresence>
-        {showAnswer && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="w-full p-6 bg-dark-card/90 backdrop-blur-lg border-t border-white/10"
-          >
-            <div className="max-w-4xl mx-auto">
-              <div className="text-center mb-4">
-                <p className="text-white/80 font-medium">
-                  How well did you know this?
-                </p>
-                <p className="text-sm text-white/60 mt-1">
-                  Your answer affects when you'll see this card again
-                </p>
-              </div>
+      {/* Rating Footer - Flexible Height */}
+      <div className="w-full min-h-[14rem] sm:min-h-[10rem] bg-dark-card/90 backdrop-blur-lg border-t border-white/10">
+        <div className="max-w-4xl mx-auto flex flex-col justify-center p-6 min-h-[inherit]">
+          <AnimatePresence mode="wait">
+            {showAnswer ? (
+              <motion.div
+                key="rating"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-4"
+              >
+                <div className="text-center">
+                  <p className="text-white/80 font-medium">
+                    How well did you know this?
+                  </p>
+                  <p className="text-sm text-white/60 mt-1">
+                    Your answer affects when you'll see this card again
+                  </p>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Button
-                  size="lg"
-                  className="bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 backdrop-blur-lg h-16"
-                  onClick={() => handleCardRating("hard")}
-                >
-                  <div className="text-center">
-                    <div className="font-medium">Hard</div>
-                    <div className="text-xs opacity-80">See again soon</div>
-                  </div>
-                </Button>
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  <Button
+                    className="bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 backdrop-blur-lg h-12 sm:h-16"
+                    onClick={() => handleCardRating("hard")}
+                  >
+                    <div className="flex items-center justify-center sm:justify-between w-full">
+                      <span className="font-medium text-sm sm:text-lg">
+                        Hard
+                      </span>
+                      <span className="text-xs opacity-80 hidden sm:inline">
+                        1 day
+                      </span>
+                    </div>
+                  </Button>
 
-                <Button
-                  size="lg"
-                  className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 backdrop-blur-lg h-16"
-                  onClick={() => handleCardRating("okay")}
-                >
-                  <div className="text-center">
-                    <div className="font-medium">Good</div>
-                    <div className="text-xs opacity-80">Normal interval</div>
-                  </div>
-                </Button>
+                  <Button
+                    className="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 backdrop-blur-lg h-12 sm:h-16"
+                    onClick={() => handleCardRating("okay")}
+                  >
+                    <div className="flex items-center justify-center sm:justify-between w-full">
+                      <span className="font-medium text-sm sm:text-lg">
+                        Good
+                      </span>
+                      <span className="text-xs opacity-80 hidden sm:inline">
+                        3 days
+                      </span>
+                    </div>
+                  </Button>
 
-                <Button
-                  size="lg"
-                  className="bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/30 backdrop-blur-lg h-16"
-                  onClick={() => handleCardRating("easy")}
-                >
-                  <div className="text-center">
-                    <div className="font-medium">Easy</div>
-                    <div className="text-xs opacity-80">Longer interval</div>
-                  </div>
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  <Button
+                    className="bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/30 backdrop-blur-lg h-12 sm:h-16"
+                    onClick={() => handleCardRating("easy")}
+                  >
+                    <div className="flex items-center justify-center sm:justify-between w-full">
+                      <span className="font-medium text-sm sm:text-lg">
+                        Easy
+                      </span>
+                      <span className="text-xs opacity-80 hidden sm:inline">
+                        7 days
+                      </span>
+                    </div>
+                  </Button>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="placeholder"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="text-center text-white/40"
+              >
+                <p>Click the card to reveal the answer</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
 
       {/* Study Mode Settings Modal */}
       <AnimatePresence>
@@ -593,6 +633,65 @@ export default function EnhancedFlashcardApp() {
                     </div>
                   </button>
                 ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Success Popup Modal */}
+      <AnimatePresence>
+        {showSuccessPopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowSuccessPopup(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-dark-card/90 backdrop-blur-lg border border-white/10 rounded-2xl p-8 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                {/* Success Icon */}
+                <div className="mx-auto w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-6">
+                  <Sparkles className="w-8 h-8 text-green-400" />
+                </div>
+
+                {/* Success Message */}
+                <h3 className="text-2xl font-bold text-white mb-2">
+                  Cards Generated Successfully! 🎉
+                </h3>
+                <p className="text-white/70 mb-6">
+                  Generated {generatedCount} new flashcards for{" "}
+                  <span className="text-turbo-purple font-medium">
+                    {currentDeck?.name}
+                  </span>
+                </p>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col gap-3">
+                  <Button
+                    onClick={handleStartStudying}
+                    className="w-full bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80"
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Start Studying Now
+                  </Button>
+
+                  <Button
+                    onClick={handleContinueAdding}
+                    variant="outline"
+                    className="w-full border-white/20 text-white/80 hover:bg-white/10"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add More Cards
+                  </Button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

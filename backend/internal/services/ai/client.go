@@ -297,6 +297,19 @@ func cleanJSONResponse(content string) string {
 		content = strings.TrimSuffix(content, "```")
 	}
 	
+	// Fix common JSON escaping issues with LaTeX and special characters
+	// Handle problematic escape sequences that break JSON parsing
+	content = strings.ReplaceAll(content, `\vec{`, `\\vec{`)
+	content = strings.ReplaceAll(content, `\Delta`, `\\Delta`)
+	content = strings.ReplaceAll(content, `\lambda`, `\\lambda`)
+	content = strings.ReplaceAll(content, `\n\n`, `\n`)
+	
+	// Fix other common LaTeX commands that might appear
+	content = strings.ReplaceAll(content, `\int`, `\\int`)
+	content = strings.ReplaceAll(content, `\sum`, `\\sum`)
+	content = strings.ReplaceAll(content, `\frac`, `\\frac`)
+	content = strings.ReplaceAll(content, `\sqrt`, `\\sqrt`)
+	
 	// Trim whitespace
 	content = strings.TrimSpace(content)
 	

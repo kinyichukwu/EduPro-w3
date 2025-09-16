@@ -264,5 +264,6 @@ export const useFlashcardStudy = () => {
     setShowHint,
     createNewCard,
     deleteCard,
+    refreshCards: fetchFlashcards, // Expose fetchFlashcards for manual refresh
   };
 };

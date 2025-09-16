@@ -178,11 +178,11 @@ export const WalletSection: React.FC = () => {
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-medium">Connected Wallets</h4>
                 <div className="flex items-center gap-2 text-xs text-dark-muted">
-                  <span>{wallets.length} wallet{wallets.length !== 1 ? 's' : ''}</span>
+                  <span>{wallets?.length || 0} wallet{(wallets?.length || 0) !== 1 ? 's' : ''}</span>
                 </div>
               </div>
               
-              {wallets.map((wallet, idx) => {
+              {(wallets || []).map((wallet, idx) => {
                 if (!wallet) {
                   // Defensive: skip undefined wallet entries
                   return (
@@ -208,13 +208,14 @@ export const WalletSection: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-mono">
-                          {formatAddress(wallet.wallet_address)}
+                          {wallet.wallet_address ? formatAddress(wallet.wallet_address) : 'Unknown address'}
                         </p>
                         <Button
                           size="sm"
                           variant="ghost"
                           className="h-6 w-6 p-0"
-                          onClick={() => copyToClipboard(wallet.wallet_address)}
+                          onClick={() => wallet.wallet_address && copyToClipboard(wallet.wallet_address)}
+                          disabled={!wallet.wallet_address}
                         >
                           {copiedAddress === wallet.wallet_address ? (
                             <CheckCircle className="h-3 w-3 text-green-400" />

@@ -63,7 +63,7 @@ func main() {
 	defer pgxClient.Close()
 
 	// Initialize Solana service
-	solanaService, err := solana.NewService(cfg.SolanaConfig)
+	solanaService, err := solana.NewService(cfg.SolanaConfig, dbClient)
 	if err != nil {
 		logger.Fatal("Failed to initialize Solana service", zap.Error(err))
 	}
@@ -77,7 +77,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to initialize RAG handler", zap.Error(err))
 	}
-	
+
 	// Initialize Solana handlers
 	walletHandler := handlers.NewWalletHandler(solanaService)
 	paymentHandler := handlers.NewPaymentHandler(solanaService)

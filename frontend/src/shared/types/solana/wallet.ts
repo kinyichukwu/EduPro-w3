@@ -2,11 +2,13 @@
 
 export interface Wallet {
   id: string;
-  address: string;
+  user_id: string;
+  wallet_address: string;
   is_verified: boolean;
   is_primary: boolean;
   verified_at?: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface WalletListResponse {

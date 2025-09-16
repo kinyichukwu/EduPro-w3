@@ -91,9 +91,11 @@ func (h *WalletHandler) GetWallets(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement wallet retrieval from database
-	wallets := []*models.UserWallet{} // Replace with actual database query
-	_ = userID                        // Use userID to query wallets
+	wallets, err := h.solanaService.GetWalletsByUserID(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get wallets", "details": err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"wallets": wallets,
@@ -117,9 +119,17 @@ func (h *WalletHandler) DisconnectWallet(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement wallet disconnection logic
-	// TODO: Remove wallet from database
-	_ = userID // Use userID to ensure user owns the wallet
+	walletUUID, err := uuid.Parse(walletID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid wallet ID"})
+		return
+	}
+
+	err = h.solanaService.DisconnectWallet(c.Request.Context(), walletUUID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to disconnect wallet", "details": err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Wallet disconnected successfully"})
 }

@@ -165,7 +165,7 @@ export const useWallet = () => {
     verifyWallet,
     disconnectWallet,
     clearError,
-    hasVerifiedWallet: connectionState.wallets.some(
+    hasVerifiedWallet: connectionState.wallets?.some(
       (wallet) => wallet.is_verified
     ),
   };

@@ -12,50 +12,70 @@ import (
 	"github.com/google/uuid"
 	"github.com/kinyichukwu/edu-pro-backend/internal/config"
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
+	"github.com/kinyichukwu/edu-pro-backend/internal/services/database"
 )
 
 // Service handles Solana blockchain operations
 type Service struct {
-	config     *config.SolanaConfig
-	rpcClient  *rpc.Client
+	config    *config.SolanaConfig
+	rpcClient *rpc.Client
+	dbClient  *database.Client
 }
 
 // NewService creates a new Solana service
-func NewService(cfg *config.SolanaConfig) (*Service, error) {
+func NewService(cfg *config.SolanaConfig, dbClient *database.Client) (*Service, error) {
 	rpcClient := rpc.New(cfg.RPCEndpoint)
 
 	return &Service{
 		config:    cfg,
 		rpcClient: rpcClient,
+		dbClient:  dbClient,
 	}, nil
 }
 
 // ConnectWallet creates a new wallet record for a user
-func (s *Service) ConnectWallet(ctx context.Context, userID, address string) (*models.Wallet, error) {
-	wallet := &models.Wallet{
-		ID:         uuid.New(),
-		UserID:     userID,
-		Address:    address,
-		IsVerified: false,
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+func (s *Service) ConnectWallet(ctx context.Context, userID, address string) (*models.UserWallet, error) {
+	// Parse userID string to UUID
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
 	}
 
-	// TODO: Save wallet to database
+	// Check if wallet already exists for this user
+	existingWallets, err := s.dbClient.GetWalletsByUserID(userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check existing wallets: %w", err)
+	}
+
+	// Check if this address is already connected
+	for _, existingWallet := range existingWallets {
+		if existingWallet.WalletAddress == address {
+			return existingWallet, nil // Return existing wallet
+		}
+	}
+
+	// Determine if this should be the primary wallet (first wallet for user)
+	isPrimary := len(existingWallets) == 0
+
+	// Create new wallet in database
+	wallet, err := s.dbClient.CreateWallet(userUUID, address, isPrimary)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create wallet: %w", err)
+	}
 
 	return wallet, nil
 }
 
 // VerifyWallet verifies a wallet signature
-func (s *Service) VerifyWallet(ctx context.Context, walletID uuid.UUID, message, signature string) (*models.Wallet, error) {
-	// TODO: Retrieve wallet from database
-	wallet := &models.Wallet{
-		ID:      walletID,
-		Address: "placeholder", // This should come from database
+func (s *Service) VerifyWallet(ctx context.Context, walletID uuid.UUID, message, signature string) (*models.UserWallet, error) {
+	// Retrieve wallet from database
+	wallet, err := s.dbClient.GetWalletByID(walletID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wallet: %w", err)
 	}
 
 	// Verify the signature
-	pubKey, err := solana.PublicKeyFromBase58(wallet.Address)
+	pubKey, err := solana.PublicKeyFromBase58(wallet.WalletAddress)
 	if err != nil {
 		return nil, fmt.Errorf("invalid wallet address: %w", err)
 	}
@@ -65,19 +85,54 @@ func (s *Service) VerifyWallet(ctx context.Context, walletID uuid.UUID, message,
 		return nil, fmt.Errorf("invalid signature: %w", err)
 	}
 
-	// TODO: Implement signature verification
+	// TODO: Implement proper signature verification
 	// This would require crypto libraries for Solana signature verification
+	// For now, we'll accept any signature as valid (demo purposes)
 	_ = pubKey
 	_ = sigBytes
+	_ = message
 
-	wallet.IsVerified = true
-	wallet.VerifiedAt = &time.Time{}
-	*wallet.VerifiedAt = time.Now()
-	wallet.UpdatedAt = time.Now()
+	// Update wallet verification status in database
+	verifiedWallet, err := s.dbClient.UpdateWallet(walletID, true)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update wallet verification: %w", err)
+	}
 
-	// TODO: Update wallet in database
+	return verifiedWallet, nil
+}
 
-	return wallet, nil
+// GetWalletsByUserID retrieves all wallets for a user
+func (s *Service) GetWalletsByUserID(ctx context.Context, userID string) ([]*models.UserWallet, error) {
+	// Parse userID string to UUID
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// Get wallets from database
+	wallets, err := s.dbClient.GetWalletsByUserID(userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get wallets: %w", err)
+	}
+
+	return wallets, nil
+}
+
+// DisconnectWallet removes a wallet connection
+func (s *Service) DisconnectWallet(ctx context.Context, walletID uuid.UUID, userID string) error {
+	// Parse userID string to UUID
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// Delete wallet from database
+	err = s.dbClient.DeleteWallet(walletID, userUUID)
+	if err != nil {
+		return fmt.Errorf("failed to delete wallet: %w", err)
+	}
+
+	return nil
 }
 
 // GeneratePayment creates a Solana payment transaction
@@ -91,7 +146,6 @@ func (s *Service) GeneratePayment(ctx context.Context, req *models.GeneratePayme
 	// Calculate token amount based on USD price
 	// TODO: Implement price calculation logic
 	tokenAmount := "1000000" // Example amount in smallest units
-	amount := 10.0           // USD amount
 
 	// Create transaction
 	transaction, err := s.createPaymentTransaction(req.UserWallet, tokenInfo, tokenAmount)
@@ -109,12 +163,13 @@ func (s *Service) GeneratePayment(ctx context.Context, req *models.GeneratePayme
 	expiresAt := time.Now().Add(10 * time.Minute).Unix()
 
 	return &models.GeneratePaymentResponse{
-		Transaction: txBase64,
-		Amount:      amount,
-		TokenAmount: tokenAmount,
-		TokenSymbol: req.Token,
-		ExpiresAt:   expiresAt,
-		Instructions: "Please sign this transaction to complete your payment",
+		Transaction:    txBase64,
+		AmountLamports: nil, // Will be set based on token type
+		AmountTokens:   nil, // Will be set based on token type
+		TokenSymbol:    req.Token,
+		TokenMint:      &tokenInfo.Mint,
+		ExpiresAt:      expiresAt,
+		Instructions:   "Please sign this transaction to complete your payment",
 	}, nil
 }
 
@@ -139,26 +194,31 @@ func (s *Service) SubmitPayment(ctx context.Context, signedTx string, priceID st
 
 	// Create payment record
 	payment := &models.PaymentTransaction{
-		ID:            uuid.New(),
-		UserID:        "user_id", // TODO: Get from context
-		WalletAddress: "wallet_address", // TODO: Get from transaction
-		Amount:        10.0, // TODO: Calculate from transaction
-		TokenSymbol:   "SOL", // TODO: Get from transaction
-		TransactionID: sig.String(),
-		Status:        "pending",
-		CreatedAt:     time.Now(),
+		ID:                   uuid.New(),
+		UserID:               uuid.New(),       // TODO: Get from context
+		WalletAddress:        "wallet_address", // TODO: Get from transaction
+		TransactionSignature: sig.String(),
+		AmountLamports:       nil,   // TODO: Calculate from transaction
+		AmountTokens:         nil,   // TODO: Calculate from transaction
+		TokenSymbol:          "SOL", // TODO: Get from transaction
+		TokenMint:            nil,
+		PaymentMethod:        "SOL",
+		Status:               "pending",
+		PriceID:              &priceID,
+		CreatedAt:            time.Now(),
 	}
 
 	// TODO: Save payment to database
 
 	return &models.SubmitPaymentResponse{
-		PurchaseID:    payment.ID.String(),
-		TransactionID: payment.TransactionID,
-		Status:        payment.Status,
-		Amount:        payment.Amount,
-		Currency:      "USD",
-		ProcessedAt:   payment.CreatedAt.Format(time.RFC3339),
-		Message:       "Payment submitted successfully",
+		PaymentID:            payment.ID,
+		TransactionSignature: payment.TransactionSignature,
+		Status:               payment.Status,
+		AmountLamports:       payment.AmountLamports,
+		AmountTokens:         payment.AmountTokens,
+		TokenSymbol:          payment.TokenSymbol,
+		ProcessedAt:          payment.CreatedAt.Format(time.RFC3339),
+		Message:              "Payment submitted successfully",
 	}, nil
 }
 

@@ -308,3 +308,163 @@ func (c *Client) UpdateOnboarding(userID uuid.UUID, req *models.OnboardingUpdate
 	logger.Info("Onboarding updated successfully", zap.String("user_id", userID.String()))
 	return onboarding, nil
 }
+
+// =====================================================
+// WALLET METHODS
+// =====================================================
+
+// CreateWallet creates a new wallet for a user
+func (c *Client) CreateWallet(userID uuid.UUID, address string, isPrimary bool) (*models.UserWallet, error) {
+	logger := utils.GetLogger()
+
+	wallet := &models.UserWallet{
+		ID:            uuid.New(),
+		UserID:        userID,
+		WalletAddress: address,
+		IsPrimary:     isPrimary,
+		IsVerified:    false,
+	}
+
+	query := `
+		INSERT INTO user_wallets (id, user_id, wallet_address, is_primary, is_verified, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+		RETURNING created_at, updated_at
+	`
+
+	err := c.db.QueryRow(query, wallet.ID, wallet.UserID, wallet.WalletAddress, wallet.IsPrimary, wallet.IsVerified).
+		Scan(&wallet.CreatedAt, &wallet.UpdatedAt)
+	if err != nil {
+		logger.Error("Failed to create wallet", zap.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to create wallet: %w", err)
+	}
+
+	logger.Info("Wallet created successfully", zap.String("wallet_id", wallet.ID.String()))
+	return wallet, nil
+}
+
+// GetWalletsByUserID retrieves all wallets for a user
+func (c *Client) GetWalletsByUserID(userID uuid.UUID) ([]*models.UserWallet, error) {
+	logger := utils.GetLogger()
+
+	query := `
+		SELECT id, user_id, wallet_address, is_primary, is_verified, verified_at, created_at, updated_at
+		FROM user_wallets
+		WHERE user_id = $1
+		ORDER BY is_primary DESC, created_at DESC
+	`
+
+	rows, err := c.db.Query(query, userID)
+	if err != nil {
+		logger.Error("Failed to get wallets", zap.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to get wallets: %w", err)
+	}
+	defer rows.Close()
+
+	var wallets []*models.UserWallet
+	for rows.Next() {
+		wallet := &models.UserWallet{}
+		err := rows.Scan(
+			&wallet.ID, &wallet.UserID, &wallet.WalletAddress,
+			&wallet.IsPrimary, &wallet.IsVerified, &wallet.VerifiedAt,
+			&wallet.CreatedAt, &wallet.UpdatedAt,
+		)
+		if err != nil {
+			logger.Error("Failed to scan wallet", zap.String("error", err.Error()))
+			return nil, fmt.Errorf("failed to scan wallet: %w", err)
+		}
+		wallets = append(wallets, wallet)
+	}
+
+	if err := rows.Err(); err != nil {
+		logger.Error("Failed to iterate wallets", zap.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to iterate wallets: %w", err)
+	}
+
+	return wallets, nil
+}
+
+// GetWalletByID retrieves a wallet by its ID
+func (c *Client) GetWalletByID(walletID uuid.UUID) (*models.UserWallet, error) {
+	logger := utils.GetLogger()
+
+	wallet := &models.UserWallet{}
+	query := `
+		SELECT id, user_id, wallet_address, is_primary, is_verified, verified_at, created_at, updated_at
+		FROM user_wallets
+		WHERE id = $1
+	`
+
+	err := c.db.QueryRow(query, walletID).Scan(
+		&wallet.ID, &wallet.UserID, &wallet.WalletAddress,
+		&wallet.IsPrimary, &wallet.IsVerified, &wallet.VerifiedAt,
+		&wallet.CreatedAt, &wallet.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			logger.Warn("Wallet not found", zap.String("wallet_id", walletID.String()))
+			return nil, fmt.Errorf("wallet not found")
+		}
+		logger.Error("Failed to get wallet", zap.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to get wallet: %w", err)
+	}
+
+	return wallet, nil
+}
+
+// UpdateWallet updates a wallet's verification status
+func (c *Client) UpdateWallet(walletID uuid.UUID, isVerified bool) (*models.UserWallet, error) {
+	logger := utils.GetLogger()
+
+	query := `
+		UPDATE user_wallets 
+		SET is_verified = $2,
+			verified_at = CASE WHEN $2 = TRUE THEN NOW() ELSE NULL END,
+			updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, user_id, wallet_address, is_primary, is_verified, verified_at, created_at, updated_at
+	`
+
+	wallet := &models.UserWallet{}
+	err := c.db.QueryRow(query, walletID, isVerified).Scan(
+		&wallet.ID, &wallet.UserID, &wallet.WalletAddress,
+		&wallet.IsPrimary, &wallet.IsVerified, &wallet.VerifiedAt,
+		&wallet.CreatedAt, &wallet.UpdatedAt,
+	)
+	if err != nil {
+		logger.Error("Failed to update wallet", zap.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to update wallet: %w", err)
+	}
+
+	logger.Info("Wallet updated successfully", zap.String("wallet_id", walletID.String()))
+	return wallet, nil
+}
+
+// DeleteWallet removes a wallet
+func (c *Client) DeleteWallet(walletID uuid.UUID, userID uuid.UUID) error {
+	logger := utils.GetLogger()
+
+	query := `
+		DELETE FROM user_wallets 
+		WHERE id = $1 AND user_id = $2
+	`
+
+	result, err := c.db.Exec(query, walletID, userID)
+	if err != nil {
+		logger.Error("Failed to delete wallet", zap.String("error", err.Error()))
+		return fmt.Errorf("failed to delete wallet: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		logger.Error("Failed to get rows affected", zap.String("error", err.Error()))
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		logger.Warn("No wallet found to delete", zap.String("wallet_id", walletID.String()))
+		return fmt.Errorf("wallet not found or not owned by user")
+	}
+
+	logger.Info("Wallet deleted successfully", zap.String("wallet_id", walletID.String()))
+	return nil
+}

@@ -145,7 +145,7 @@ export const WalletSection: React.FC = () => {
           </div>
 
           {/* Backend Connection Status */}
-          {wallets.length === 0 ? (
+          {!wallets || wallets.length === 0 ? (
             <div className="p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/20">
               <div className="flex items-center justify-between">
                 <div>
@@ -182,80 +182,99 @@ export const WalletSection: React.FC = () => {
                 </div>
               </div>
               
-              {wallets.map((wallet) => (
-                <div
-                  key={wallet.id}
-                  className="flex items-center justify-between p-3 bg-dark-accent/20 rounded-lg border border-white/5"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-mono">
-                        {formatAddress(wallet.address)}
-                      </p>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-6 w-6 p-0"
-                        onClick={() => copyToClipboard(wallet.address)}
-                      >
-                        {copiedAddress === wallet.address ? (
-                          <CheckCircle className="h-3 w-3 text-green-400" />
+              {wallets.map((wallet, idx) => {
+                if (!wallet) {
+                  // Defensive: skip undefined wallet entries
+                  return (
+                    <div
+                      key={`undefined-wallet-${idx}`}
+                      className="flex items-center justify-between p-3 bg-dark-accent/20 rounded-lg border border-white/5 opacity-50"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-mono text-dark-muted">
+                            (Wallet data unavailable)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div
+                    key={wallet.id}
+                    className="flex items-center justify-between p-3 bg-dark-accent/20 rounded-lg border border-white/5"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-mono">
+                          {formatAddress(wallet.wallet_address)}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0"
+                          onClick={() => copyToClipboard(wallet.wallet_address)}
+                        >
+                          {copiedAddress === wallet.wallet_address ? (
+                            <CheckCircle className="h-3 w-3 text-green-400" />
+                          ) : (
+                            <Copy className="h-3 w-3 text-dark-muted" />
+                          )}
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1">
+                        {wallet.is_verified ? (
+                          <span className="text-xs text-green-400 flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            Verified
+                          </span>
                         ) : (
-                          <Copy className="h-3 w-3 text-dark-muted" />
+                          <span className="text-xs text-yellow-400 flex items-center gap-1">
+                            <XCircle className="h-3 w-3" />
+                            Unverified
+                          </span>
                         )}
-                      </Button>
+                        {wallet.is_primary && (
+                          <span className="text-xs text-blue-400 px-2 py-0.5 bg-blue-500/20 rounded-full">
+                            Primary
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 mt-1">
-                      {wallet.is_verified ? (
-                        <span className="text-xs text-green-400 flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3" />
-                          Verified
-                        </span>
-                      ) : (
-                        <span className="text-xs text-yellow-400 flex items-center gap-1">
-                          <XCircle className="h-3 w-3" />
-                          Unverified
-                        </span>
+                    <div className="flex gap-2">
+                      {!wallet.is_verified && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleVerifyWallet(wallet.id)}
+                          disabled={verifyingWallet === wallet.id}
+                          className="border-white/10 hover:border-turbo-purple/50 text-xs"
+                        >
+                          {verifyingWallet === wallet.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            "Verify"
+                          )}
+                        </Button>
                       )}
-                      {wallet.is_primary && (
-                        <span className="text-xs text-blue-400 px-2 py-0.5 bg-blue-500/20 rounded-full">
-                          Primary
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {!wallet.is_verified && (
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleVerifyWallet(wallet.id)}
-                        disabled={verifyingWallet === wallet.id}
-                        className="border-white/10 hover:border-turbo-purple/50 text-xs"
+                        onClick={() => handleDisconnectWallet(wallet.id)}
+                        disabled={disconnectingWallet === wallet.id}
+                        className="border-red/30 text-red hover:bg-red/10 text-xs"
                       >
-                        {verifyingWallet === wallet.id ? (
+                        {disconnectingWallet === wallet.id ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
                         ) : (
-                          "Verify"
+                          "Remove"
                         )}
                       </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDisconnectWallet(wallet.id)}
-                      disabled={disconnectingWallet === wallet.id}
-                      className="border-red/30 text-red hover:bg-red/10 text-xs"
-                    >
-                      {disconnectingWallet === wallet.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        "Remove"
-                      )}
-                    </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

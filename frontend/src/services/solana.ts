@@ -13,33 +13,55 @@ import type {
   TokenInfo,
 } from "../shared/types/solana/wallet";
 import type { PaymentStatusResponse } from "../shared/types/solana/solana-pay";
+import { supabase } from "../lib/supabaseClient";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+  import.meta.env.VITE_APP_SERVER_URL || "http://localhost:8080/api";
 
 class SolanaAPI {
+  private async getAuthHeaders(): Promise<HeadersInit> {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error("No authentication token found");
+    }
+
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    };
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    try {
+      const headers = await this.getAuthHeaders();
+      const url = `${API_BASE_URL}${endpoint}`;
 
-    const response = await fetch(url, {
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-      ...options,
-    });
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...headers,
+          ...options.headers,
+        },
+      });
 
-    if (!response.ok) {
-      const error = await response
-        .json()
-        .catch(() => ({ message: "Network error" }));
-      throw new Error(error.message || `HTTP ${response.status}`);
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ message: "Network error" }));
+        throw new Error(error.message || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error("Solana API request failed:", error);
+      throw error instanceof Error ? error : new Error("Unknown error occurred");
     }
-
-    return response.json();
   }
 
   // Wallet endpoints

@@ -133,3 +133,17 @@ type FlashcardStats struct {
 	StudyStreak      int     `json:"study_streak"`       // days
 	LastStudySession *time.Time `json:"last_study_session"`
 }
+
+// NewEmptyFlashcardStats returns a FlashcardStats with zero values
+func NewEmptyFlashcardStats() *FlashcardStats {
+	return &FlashcardStats{
+		TotalDecks:       0,
+		TotalCards:       0,
+		MasteredCards:    0,
+		CardsToReview:    0,
+		AverageScore:     0,
+		TotalStudyTime:   0,
+		StudyStreak:      0,
+		LastStudySession: nil,
+	}
+}

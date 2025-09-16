@@ -79,6 +79,10 @@ func (h *UserHandler) GetOnboarding(c *gin.Context) {
 func (h *UserHandler) UpdateOnboarding(c *gin.Context) {
 	logger := utils.GetLogger()
 	
+	// Get request ID for tracking
+	requestID := c.GetString("request_id")
+	logger.Info("Starting onboarding update", zap.String("request_id", requestID))
+	
 	// Get user ID from JWT token
 	userID, exists := middleware.GetUserIDFromContext(c)
 	if !exists {
@@ -109,9 +113,20 @@ func (h *UserHandler) UpdateOnboarding(c *gin.Context) {
 		return
 	}
 
+	// Log the exact request data received
+	logger.Info("Onboarding update request received", 
+		zap.String("user_id", userID),
+		zap.String("role", req.Role),
+		zap.Any("custom_learning_goal", req.CustomLearningGoal),
+		zap.Any("academic_details", req.AcademicDetails))
+
 	// Validate the request
 	if err := utils.ValidateStruct(&req); err != nil {
-		logger.Error("Validation failed", zap.String("error", err.Error()))
+		logger.Error("Validation failed", 
+			zap.String("request_id", requestID),
+			zap.String("user_id", userID),
+			zap.String("error", err.Error()),
+			zap.String("received_role", req.Role))
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Validation failed",
 			"details": err.Error(),
@@ -157,7 +172,10 @@ func (h *UserHandler) UpdateOnboarding(c *gin.Context) {
 		Message:        "Onboarding updated successfully",
 	}
 
-	logger.Info("Onboarding updated successfully", zap.String("user_id", userID))
+	logger.Info("Onboarding updated successfully", 
+		zap.String("request_id", requestID),
+		zap.String("user_id", userID),
+		zap.Bool("is_completed", isCompleted))
 	c.JSON(http.StatusOK, response)
 }
 
@@ -224,19 +242,30 @@ func (h *UserHandler) UpdateProfile(c *gin.Context) {
 // ensureUserExists checks if user exists in our database and creates them if needed
 func (h *UserHandler) ensureUserExists(c *gin.Context, userUUID uuid.UUID) error {
 	logger := utils.GetLogger()
+	requestID := c.GetString("request_id")
+	
+	logger.Debug("Checking if user exists", 
+		zap.String("request_id", requestID),
+		zap.String("user_uuid", userUUID.String()))
 	
 	// First, try to get the user by UUID (our internal UUID)
 	_, err := h.db.GetUserByID(userUUID)
 	if err == nil {
 		// User exists, nothing to do
+		logger.Debug("User found by internal UUID", zap.String("request_id", requestID))
 		return nil
 	}
 	
 	// User doesn't exist by internal UUID, try by Supabase ID
 	supabaseID := userUUID.String() // The UUID from JWT is actually the Supabase ID
+	logger.Debug("User not found by internal UUID, trying Supabase ID", 
+		zap.String("request_id", requestID),
+		zap.String("supabase_id", supabaseID))
+	
 	_, err = h.db.GetUserBySupabaseID(supabaseID)
 	if err == nil {
 		// User exists by Supabase ID, nothing to do
+		logger.Debug("User found by Supabase ID", zap.String("request_id", requestID))
 		return nil
 	}
 	
@@ -250,6 +279,7 @@ func (h *UserHandler) ensureUserExists(c *gin.Context, userUUID uuid.UUID) error
 	username := utils.ExtractUsernameFromEmail(email)
 	
 	logger.Info("Auto-creating user from JWT data", 
+		zap.String("request_id", requestID),
 		zap.String("supabase_id", supabaseID),
 		zap.String("email", email),
 		zap.String("username", username),
@@ -264,10 +294,15 @@ func (h *UserHandler) ensureUserExists(c *gin.Context, userUUID uuid.UUID) error
 	
 	_, err = h.db.CreateUser(createReq)
 	if err != nil {
-		logger.Error("Failed to auto-create user", zap.String("error", err.Error()))
+		logger.Error("Failed to auto-create user", 
+			zap.String("request_id", requestID),
+			zap.String("error", err.Error()),
+			zap.String("supabase_id", supabaseID))
 		return fmt.Errorf("failed to create user: %w", err)
 	}
 	
-	logger.Info("User auto-created successfully", zap.String("supabase_id", supabaseID))
+	logger.Info("User auto-created successfully", 
+		zap.String("request_id", requestID),
+		zap.String("supabase_id", supabaseID))
 	return nil
 }

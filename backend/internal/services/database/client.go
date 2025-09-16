@@ -29,7 +29,12 @@ func NewClient(cfg *config.Config) (*Client, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	// Test the connection
+	// Configure connection pool
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(0) // No limit on connection lifetime
+
+	// Validate the connection
 	if err := db.Ping(); err != nil {
 		logger.Error("Failed to ping database", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to ping database: %w", err)
@@ -89,6 +94,18 @@ func (c *Client) GetUserBySupabaseID(supabaseID string) (*models.User, error) {
 		WHERE supabase_id = $1
 	`
 
+	// Log the query being executed for debugging
+	logger.Debug("Executing get user by supabase ID query", 
+		zap.String("query", query),
+		zap.String("supabase_id", supabaseID))
+
+	// Validate database connection before executing query
+	if err := c.db.Ping(); err != nil {
+		logger.Error("Database connection lost for user query", zap.String("error", err.Error()))
+		return nil, fmt.Errorf("database connection error: %w", err)
+	}
+
+	// Use direct query instead of prepared statement to avoid naming conflicts
 	err := c.db.QueryRow(query, supabaseID).Scan(
 		&user.ID, &user.Email, &user.Username, &user.FullName,
 		&user.Avatar, &user.SupabaseID, &user.CreatedAt, &user.UpdatedAt,
@@ -219,6 +236,18 @@ func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData
 		WHERE user_id = $1
 	`
 
+	// Log the query being executed for debugging
+	logger.Debug("Executing get onboarding query", 
+		zap.String("query", query),
+		zap.String("internal_user_id", internalUserID.String()))
+
+	// Validate database connection before executing query
+	if err := c.db.Ping(); err != nil {
+		logger.Error("Database connection lost for onboarding query", zap.String("error", err.Error()))
+		return nil, fmt.Errorf("database connection error: %w", err)
+	}
+
+	// Use direct query instead of prepared statement to avoid naming conflicts
 	err = c.db.QueryRow(query, internalUserID).Scan(
 		&onboarding.ID, &onboarding.UserID, &onboarding.Role,
 		&onboarding.CustomLearningGoal, &academicDetailsJSON,

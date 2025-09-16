@@ -27,6 +27,8 @@ export const useDecks = () => {
       setDecks(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch decks");
+      // Set empty array so the UI doesn't break
+      setDecks([]);
     } finally {
       setLoading(false);
     }
@@ -316,6 +318,17 @@ export const useFlashcardStats = () => {
       setError(
         err instanceof Error ? err.message : "Failed to fetch flashcard stats"
       );
+      // Set empty stats so the UI doesn't break
+      setStats({
+        total_decks: 0,
+        total_cards: 0,
+        mastered_cards: 0,
+        cards_due_today: 0,
+        average_score: 0,
+        total_study_time: 0,
+        longest_streak: 0,
+        current_streak: 0,
+      });
     } finally {
       setLoading(false);
     }
@@ -368,25 +381,28 @@ export const useFlashcardManager = () => {
 
   // Calculate stats with fallbacks
   const getCalculatedStats = () => {
+    // Ensure decks is always an array, never null
+    const safeDecks = decksHook.decks || [];
+    
     const totalCards =
       statsHook.stats?.total_cards ||
-      decksHook.decks.reduce((sum, deck) => sum + deck.total_cards, 0);
+      safeDecks.reduce((sum, deck) => sum + (deck.total_cards || 0), 0);
 
     const averageScore =
       statsHook.stats?.average_score ||
-      (decksHook.decks.length > 0
+      (safeDecks.length > 0
         ? Math.round(
-            decksHook.decks.reduce((sum, deck) => sum + deck.average_score, 0) /
-              decksHook.decks.length
+            safeDecks.reduce((sum, deck) => sum + (deck.average_score || 0), 0) /
+              safeDecks.length
           )
         : 0);
 
     const totalStudyTime =
       statsHook.stats?.total_study_time ||
-      decksHook.decks.reduce((sum, deck) => sum + deck.study_time, 0);
+      safeDecks.reduce((sum, deck) => sum + (deck.study_time || 0), 0);
 
     return {
-      totalDecks: decksHook.decks.length,
+      totalDecks: safeDecks.length,
       totalCards,
       averageScore,
       totalStudyTime: Math.round(totalStudyTime / 60), // Convert to hours
@@ -395,7 +411,7 @@ export const useFlashcardManager = () => {
 
   return {
     // Data
-    decks: decksHook.decks,
+    decks: decksHook.decks || [],
     stats: statsHook.stats,
     calculatedStats: getCalculatedStats(),
 

@@ -11,6 +11,7 @@ import { DashboardHome } from "./dashboard/home";
 import ChatView from "./dashboard/chat";
 // import GeneralChats from "./dashboard/general-chats";
 import { Flashcards } from "./dashboard/flashcards";
+import ErrorBoundary from "./shared/components/ErrorBoundary";
 import QuizView from "./dashboard/quizzes";
 import DoFlashCards from "./dashboard/flashcards/DoFlashCards";
 import LibraryHub from "./dashboard/library";
@@ -57,37 +58,41 @@ export const AppRoutes = () => {
           <Route path="/features" element={<Courses />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/about" element={<About />} />
-          <Route 
-            path="/register" 
+          <Route
+            path="/register"
             element={
               <PublicOnlyRoute>
                 <SignUp />
               </PublicOnlyRoute>
-            } 
+            }
           />
-          <Route 
-            path="/login" 
+          <Route
+            path="/login"
             element={
               <PublicOnlyRoute>
                 <LoginPage />
               </PublicOnlyRoute>
-            } 
+            }
           />
           <Route path="/callback" element={<Callback />} />
         </Route>
 
         {/* Dashboard routes - publicly accessible; protect specific routes as needed */}
-        <Route 
-          path="/dashboard" 
-          element={<DashboardLayout />}
-        >
+        <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardHome />} />
           <Route path="ai-tutor" element={<ChatView />} />
           <Route path="ai-tutor/:id" element={<Topic />} />
           <Route path="ai-tutor/:id/:id" element={<Tutor />} />
           <Route path="chats" element={<GeneralChats />} />
           <Route path="chats/:chatId" element={<GeneralChats />} />
-          <Route path="flashcards" element={<Flashcards />} />
+          <Route
+            path="flashcards"
+            element={
+              <ErrorBoundary>
+                <Flashcards />
+              </ErrorBoundary>
+            }
+          />
           <Route path="flashcards/:id" element={<DoFlashCards />} />
           <Route path="quizzes" element={<QuizView />} />
           <Route path="quizzes/:id" element={<Quiz />} />
@@ -96,14 +101,14 @@ export const AppRoutes = () => {
           <Route path="library/uploads" element={<MyUploads />} />
           <Route path="library/analytics" element={<LibraryAnalytics />} />
           <Route path="library/upload" element={<UploadNew />} />
-          <Route 
-            path="profile" 
+          <Route
+            path="profile"
             element={
               <ProtectedRoute>
                 <ProfilePage />
               </ProtectedRoute>
             }
-          /> 
+          />
         </Route>
 
         {/* Admin routes - wrapped in AdminLayout */}

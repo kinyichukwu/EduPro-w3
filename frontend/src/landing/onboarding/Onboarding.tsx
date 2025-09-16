@@ -36,64 +36,71 @@ const OnboardingPage = () => {
 
   const completeOnboarding = async () => {
     setIsPending(true);
-    
+
     // Create flexible academic details based on role
     const academicDetails: any = {};
-    
+
     // Common fields
     if (formData.university) academicDetails.university = formData.university;
     if (formData.course) academicDetails.course = formData.course;
-    
+
     // Role-specific details
-    if (selectedRole === 'jamb') {
+    if (selectedRole === "jamb") {
       academicDetails.jamb_details = {
-        preferred_university: formData.preferredUniversity || formData.university,
+        preferred_university:
+          formData.preferredUniversity || formData.university,
         preferred_course: formData.preferredCourse || formData.course,
         target_score: formData.targetScore,
         jamb_year: formData.jambYear,
-        jamb_subjects: formData.jambSubjects || []
+        jamb_subjects: formData.jambSubjects || [],
       };
     }
-    
-    if (selectedRole === 'undergraduate' || selectedRole === 'university' || selectedRole === 'masters') {
+
+    if (
+      selectedRole === "undergraduate" ||
+      selectedRole === "university" ||
+      selectedRole === "masters"
+    ) {
       academicDetails.university_details = {
         current_university: formData.university,
         current_course: formData.course,
         current_level: formData.level,
-        matric_number: formData.matricNumber
+        matric_number: formData.matricNumber,
       };
     }
-    
-    if (selectedRole === 'lecturer') {
+
+    if (selectedRole === "lecturer") {
       academicDetails.lecturer_details = {
         institution: formData.university,
         department: formData.course,
         experience: formData.experience,
-        academic_title: formData.title
+        academic_title: formData.title,
       };
     }
-    
-    if (selectedRole === 'custom') {
+
+    if (selectedRole === "custom") {
       academicDetails.custom_details = {
         learning_goal: customLearningGoal,
         education_level: formData.educationLevel,
         experience_level: formData.experienceLevel,
-        additional_details: formData.additionalDetails
+        additional_details: formData.additionalDetails,
       };
     }
-    
+
     const onboardingData = {
       role: selectedRole,
       custom_learning_goal: customLearningGoal,
-      academic_details: academicDetails
+      academic_details: academicDetails,
     };
 
     try {
       await apiService.updateOnboarding(onboardingData);
-      void queryClient.invalidateQueries({ queryKey: ['onboarding'] });
+      // Only invalidate queries on successful update
+      void queryClient.invalidateQueries({ queryKey: ["onboarding"] });
       // navigate("/dashboard/chats");
     } catch (error) {
       console.error("Failed to complete onboarding:", error);
+      // Don't invalidate queries on error - this was causing the GET request after failed PUT
     } finally {
       setIsPending(false);
     }
@@ -114,6 +121,11 @@ const OnboardingPage = () => {
   };
 
   const handleSkip = () => {
+    // If no role selected, set a default role for skipping
+    if (!selectedRole || selectedRole === "") {
+      setSelectedRole("custom");
+      setCustomLearningGoal("General learning");
+    }
     void completeOnboarding();
   };
 

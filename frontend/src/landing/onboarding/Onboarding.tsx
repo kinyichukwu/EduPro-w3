@@ -8,7 +8,11 @@ import OnboardingStep2 from "./OnboardingStep2";
 import OnboardingStep3 from "./OnboardingStep3";
 import { apiService } from "@/services/api";
 import { useQueryClient } from "@tanstack/react-query";
-import { DEFAULT_USER_ROLE, DEFAULT_LEARNING_GOAL } from "@/shared/constants/user";
+import {
+  DEFAULT_USER_ROLE,
+  DEFAULT_LEARNING_GOAL,
+} from "@/shared/constants/user";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const OnboardingPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -37,6 +41,15 @@ const OnboardingPage = () => {
 
   const completeOnboarding = async () => {
     setIsPending(true);
+
+    // Check if user is authenticated first
+    const user = useAuthStore.getState().user;
+    if (!user) {
+      console.error("User not authenticated, redirecting to login");
+      navigate("/login");
+      setIsPending(false);
+      return;
+    }
 
     // Create flexible academic details based on role
     const academicDetails: any = {};
@@ -98,9 +111,19 @@ const OnboardingPage = () => {
       await apiService.updateOnboarding(onboardingData);
       // Only invalidate queries on successful update
       void queryClient.invalidateQueries({ queryKey: ["onboarding"] });
-      // navigate("/dashboard/chats");
+      navigate("/dashboard/chats");
     } catch (error) {
       console.error("Failed to complete onboarding:", error);
+
+      // If it's an auth error, redirect to login
+      if (
+        error instanceof Error &&
+        (error.message.includes("401") ||
+          error.message.includes("unauthorized") ||
+          error.message.includes("token"))
+      ) {
+        navigate("/login");
+      }
       // Don't invalidate queries on error - this was causing the GET request after failed PUT
     } finally {
       setIsPending(false);

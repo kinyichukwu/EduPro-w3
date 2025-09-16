@@ -490,14 +490,20 @@ class ApiService {
     });
   }
 
-  async createFlashcard(deckId: string, request: any): Promise<ApiResponse<any>> {
+  async createFlashcard(
+    deckId: string,
+    request: any
+  ): Promise<ApiResponse<any>> {
     return this.request<any>(`/flashcards/decks/${deckId}/cards`, {
       method: "POST",
       body: JSON.stringify(request),
     });
   }
 
-  async createBulkFlashcards(deckId: string, request: any): Promise<ApiResponse<any>> {
+  async createBulkFlashcards(
+    deckId: string,
+    request: any
+  ): Promise<ApiResponse<any>> {
     return this.request<any>(`/flashcards/decks/${deckId}/cards/bulk`, {
       method: "POST",
       body: JSON.stringify(request),
@@ -508,7 +514,10 @@ class ApiService {
     return this.request<any>(`/flashcards/decks/${deckId}/cards`);
   }
 
-  async getStudyCards(deckId: string, limit?: number): Promise<ApiResponse<any>> {
+  async getStudyCards(
+    deckId: string,
+    limit?: number
+  ): Promise<ApiResponse<any>> {
     const query = limit ? `?limit=${limit}` : "";
     return this.request<any>(`/flashcards/decks/${deckId}/cards/study${query}`);
   }
@@ -520,7 +529,10 @@ class ApiService {
     });
   }
 
-  async endStudySession(sessionId: string, request: any): Promise<ApiResponse<any>> {
+  async endStudySession(
+    sessionId: string,
+    request: any
+  ): Promise<ApiResponse<any>> {
     return this.request<any>(`/flashcards/study/sessions/${sessionId}`, {
       method: "PUT",
       body: JSON.stringify(request),

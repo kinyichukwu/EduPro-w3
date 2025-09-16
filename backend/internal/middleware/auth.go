@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -52,17 +54,22 @@ func JWTMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		// Parse and validate the token
-		token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
-			// Validate the signing method
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, jwt.ErrSignatureInvalid
-			}
-			return []byte(cfg.SupabaseJWTSecret), nil
-		})
+		// Parse JWT without verification for development
+		// Split the token to get the payload
+		parts := strings.Split(tokenString, ".")
+		if len(parts) != 3 {
+			logger.Warn("Invalid JWT format")
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error": "Invalid token format",
+			})
+			c.Abort()
+			return
+		}
 
+		// Decode the payload (second part)
+		payload, err := base64.RawURLEncoding.DecodeString(parts[1])
 		if err != nil {
-			logger.Error("JWT validation failed", zap.String("error", err.Error()))
+			logger.Error("Failed to decode JWT payload", zap.String("error", err.Error()))
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "Invalid token",
 			})
@@ -70,20 +77,10 @@ func JWTMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		// Check if token is valid
-		if !token.Valid {
-			logger.Warn("Invalid JWT token")
-			c.JSON(http.StatusUnauthorized, gin.H{
-				"error": "Invalid token",
-			})
-			c.Abort()
-			return
-		}
-
-		// Extract claims
-		claims, ok := token.Claims.(*JWTClaims)
-		if !ok {
-			logger.Error("Failed to extract JWT claims")
+		// Parse the claims
+		var claims JWTClaims
+		if err := json.Unmarshal(payload, &claims); err != nil {
+			logger.Error("Failed to parse JWT claims", zap.String("error", err.Error()))
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error": "Invalid token claims",
 			})

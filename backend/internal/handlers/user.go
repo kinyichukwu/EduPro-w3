@@ -10,6 +10,7 @@ import (
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/database"
 	"github.com/kinyichukwu/edu-pro-backend/internal/utils"
+	"github.com/kinyichukwu/edu-pro-backend/pkg/constants"
 	"go.uber.org/zap"
 )
 
@@ -120,7 +121,18 @@ func (h *UserHandler) UpdateOnboarding(c *gin.Context) {
 		zap.Any("custom_learning_goal", req.CustomLearningGoal),
 		zap.Any("academic_details", req.AcademicDetails))
 
-	// Validate the request
+	// Validate the request - but be more lenient for empty fields during skip
+	if req.Role == "" {
+		// If no role provided, set a default for skipping
+		req.Role = constants.DefaultUserRole
+		defaultGoal := constants.DefaultLearningGoal
+		req.CustomLearningGoal = &defaultGoal
+		logger.Info("Set default role and goal for skip", 
+			zap.String("user_id", userID),
+			zap.String("default_role", constants.DefaultUserRole),
+			zap.String("default_goal", constants.DefaultLearningGoal))
+	}
+	
 	if err := utils.ValidateStruct(&req); err != nil {
 		logger.Error("Validation failed", 
 			zap.String("request_id", requestID),
@@ -134,13 +146,14 @@ func (h *UserHandler) UpdateOnboarding(c *gin.Context) {
 		return
 	}
 
-	// Validate custom learning goal for custom role
-	if req.Role == "custom" && (req.CustomLearningGoal == nil || *req.CustomLearningGoal == "") {
-		logger.Error("Custom learning goal is required for custom role")
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Custom learning goal is required for custom role",
-		})
-		return
+	// Validate custom learning goal for custom role (but allow empty for skip)
+	if req.Role == constants.RoleCustom && req.CustomLearningGoal != nil && *req.CustomLearningGoal == "" {
+		// Set a default learning goal if empty for custom role
+		defaultGoal := constants.DefaultLearningGoal
+		req.CustomLearningGoal = &defaultGoal
+		logger.Info("Set default learning goal for custom role", 
+			zap.String("user_id", userID),
+			zap.String("default_goal", constants.DefaultLearningGoal))
 	}
 
 	// Ensure user exists in our database (auto-create if needed)

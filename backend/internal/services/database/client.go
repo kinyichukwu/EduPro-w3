@@ -36,7 +36,9 @@ func NewClient(cfg *config.Config) (*Client, error) {
 	poolConfig.MinConns = 2
 	poolConfig.MaxConnLifetime = time.Minute * 5
 	poolConfig.MaxConnIdleTime = time.Minute * 1
-
+	
+	// Disable prepared statement caching to avoid conflicts
+	poolConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
 	// Create connection pool
 	ctx := context.Background()
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)

@@ -8,6 +8,7 @@ import OnboardingStep2 from "./OnboardingStep2";
 import OnboardingStep3 from "./OnboardingStep3";
 import { apiService } from "@/services/api";
 import { useQueryClient } from "@tanstack/react-query";
+import { DEFAULT_USER_ROLE, DEFAULT_LEARNING_GOAL } from "@/shared/constants/user";
 
 const OnboardingPage = () => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -123,8 +124,8 @@ const OnboardingPage = () => {
   const handleSkip = () => {
     // If no role selected, set a default role for skipping
     if (!selectedRole || selectedRole === "") {
-      setSelectedRole("custom");
-      setCustomLearningGoal("General learning");
+      setSelectedRole(DEFAULT_USER_ROLE);
+      setCustomLearningGoal(DEFAULT_LEARNING_GOAL);
     }
     void completeOnboarding();
   };

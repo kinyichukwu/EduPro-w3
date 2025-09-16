@@ -1,18 +1,20 @@
 export interface Deck {
-  id: number;
+  id: string;
   name: string;
-  outstanding: number;
-  new: number;
-  description: string;
-  topic: string;
-  totalCards: number;
-  masteredCards: number;
-  lastStudied?: Date;
-  averageScore: number;
-  studyTime: number; // in minutes
-  difficulty: "easy" | "medium" | "hard";
-  color: string;
-};
+  outstanding?: number;
+  new?: number;
+  description?: string;
+  topic?: string;
+  total_cards: number;
+  mastered_cards: number;
+  last_studied?: string;
+  average_score: number;
+  study_time: number; // in minutes
+  difficulty?: "easy" | "medium" | "hard";
+  color?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface Card {
   id: number;
@@ -26,7 +28,7 @@ export interface Card {
   nextReview?: Date;
   mastery: "new" | "learning" | "review" | "mastered";
   tags?: string[];
-};
+}
 
 export interface StudySession {
   id: number;
@@ -37,7 +39,7 @@ export interface StudySession {
   correctAnswers: number;
   totalTime: number; // in seconds
   mode: "sequential" | "random" | "difficult" | "review";
-};
+}
 
 export interface Topic {
   id: string;
@@ -46,7 +48,7 @@ export interface Topic {
   color: string;
   description: string;
   subcategories?: string[];
-};
+}
 
 export type StudyMode =
   | "sequential"

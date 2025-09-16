@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { 
-  flashcardAPI, 
-  Deck, 
-  Flashcard, 
+import { useState, useEffect } from "react";
+import {
+  flashcardAPI,
+  Deck,
+  Flashcard,
   FlashcardStats,
   StudySession,
   CreateDeckRequest,
@@ -10,8 +10,8 @@ import {
   CreateFlashcardRequest,
   CreateBulkFlashcardsRequest,
   StartStudySessionRequest,
-  EndStudySessionRequest
-} from '@/services/flashcard';
+  EndStudySessionRequest,
+} from "@/services/flashcard";
 
 // Hook for managing decks
 export const useDecks = () => {
@@ -26,7 +26,7 @@ export const useDecks = () => {
       const data = await flashcardAPI.getDecks();
       setDecks(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch decks');
+      setError(err instanceof Error ? err.message : "Failed to fetch decks");
     } finally {
       setLoading(false);
     }
@@ -36,10 +36,11 @@ export const useDecks = () => {
     setError(null);
     try {
       const newDeck = await flashcardAPI.createDeck(request);
-      setDecks(prev => [newDeck, ...prev]); // Add to top of list
+      setDecks((prev) => [newDeck, ...prev]); // Add to top of list
       return newDeck;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create deck';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to create deck";
       setError(errorMessage);
       throw new Error(errorMessage);
     }
@@ -49,12 +50,13 @@ export const useDecks = () => {
     setError(null);
     try {
       const updatedDeck = await flashcardAPI.updateDeck(deckId, request);
-      setDecks(prev => prev.map(deck => 
-        deck.id === deckId ? updatedDeck : deck
-      ));
+      setDecks((prev) =>
+        prev.map((deck) => (deck.id === deckId ? updatedDeck : deck))
+      );
       return updatedDeck;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update deck';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update deck";
       setError(errorMessage);
       throw new Error(errorMessage);
     }
@@ -64,9 +66,10 @@ export const useDecks = () => {
     setError(null);
     try {
       await flashcardAPI.deleteDeck(deckId);
-      setDecks(prev => prev.filter(deck => deck.id !== deckId));
+      setDecks((prev) => prev.filter((deck) => deck.id !== deckId));
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete deck';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete deck";
       setError(errorMessage);
       throw new Error(errorMessage);
     }
@@ -95,14 +98,14 @@ export const useDeck = (deckId: string | null) => {
 
   const fetchDeck = async () => {
     if (!deckId) return;
-    
+
     setLoading(true);
     setError(null);
     try {
       const data = await flashcardAPI.getDeck(deckId);
       setDeck(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch deck');
+      setError(err instanceof Error ? err.message : "Failed to fetch deck");
     } finally {
       setLoading(false);
     }
@@ -128,44 +131,48 @@ export const useFlashcards = (deckId: string | null) => {
 
   const fetchFlashcards = async () => {
     if (!deckId) return;
-    
+
     setLoading(true);
     setError(null);
     try {
       const data = await flashcardAPI.getFlashcards(deckId);
       setFlashcards(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch flashcards');
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch flashcards"
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const createFlashcard = async (request: CreateFlashcardRequest) => {
-    if (!deckId) throw new Error('No deck selected');
-    
+    if (!deckId) throw new Error("No deck selected");
+
     setError(null);
     try {
       const newCard = await flashcardAPI.createFlashcard(deckId, request);
-      setFlashcards(prev => [newCard, ...prev]); // Add to top of list
+      setFlashcards((prev) => [newCard, ...prev]); // Add to top of list
       return newCard;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create flashcard';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to create flashcard";
       setError(errorMessage);
       throw new Error(errorMessage);
     }
   };
 
   const createBulkFlashcards = async (request: CreateBulkFlashcardsRequest) => {
-    if (!deckId) throw new Error('No deck selected');
-    
+    if (!deckId) throw new Error("No deck selected");
+
     setError(null);
     try {
       const newCards = await flashcardAPI.createBulkFlashcards(deckId, request);
-      setFlashcards(prev => [...newCards, ...prev]); // Add to top of list
+      setFlashcards((prev) => [...newCards, ...prev]); // Add to top of list
       return newCards;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create flashcards';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to create flashcards";
       setError(errorMessage);
       throw new Error(errorMessage);
     }
@@ -199,7 +206,8 @@ export const useStudySession = () => {
       setSession(newSession);
       return newSession;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to start study session';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to start study session";
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -207,15 +215,22 @@ export const useStudySession = () => {
     }
   };
 
-  const endSession = async (sessionId: string, request: EndStudySessionRequest) => {
+  const endSession = async (
+    sessionId: string,
+    request: EndStudySessionRequest
+  ) => {
     setLoading(true);
     setError(null);
     try {
-      const updatedSession = await flashcardAPI.endStudySession(sessionId, request);
+      const updatedSession = await flashcardAPI.endStudySession(
+        sessionId,
+        request
+      );
       setSession(updatedSession);
       return updatedSession;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to end study session';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to end study session";
       setError(errorMessage);
       throw new Error(errorMessage);
     } finally {
@@ -239,7 +254,11 @@ export const useStudySession = () => {
 };
 
 // Hook for getting study cards
-export const useStudyCards = (deckId: string | null, mode?: string, limit?: number) => {
+export const useStudyCards = (
+  deckId: string | null,
+  mode?: string,
+  limit?: number
+) => {
   const [studyData, setStudyData] = useState<{
     cards: Flashcard[];
     mode: string;
@@ -250,14 +269,16 @@ export const useStudyCards = (deckId: string | null, mode?: string, limit?: numb
 
   const fetchStudyCards = async () => {
     if (!deckId) return;
-    
+
     setLoading(true);
     setError(null);
     try {
       const data = await flashcardAPI.getStudyCards(deckId, mode, limit);
       setStudyData(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch study cards');
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch study cards"
+      );
     } finally {
       setLoading(false);
     }
@@ -288,7 +309,9 @@ export const useFlashcardStats = () => {
       const data = await flashcardAPI.getFlashcardStats();
       setStats(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch flashcard stats');
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch flashcard stats"
+      );
     } finally {
       setLoading(false);
     }
@@ -312,26 +335,84 @@ export const useFlashcardManager = () => {
   const statsHook = useFlashcardStats();
   const studySessionHook = useStudySession();
 
-  return {
-    // Decks
-    decks: decksHook.decks,
-    decksLoading: decksHook.loading,
-    decksError: decksHook.error,
-    fetchDecks: decksHook.fetchDecks,
-    createDeck: decksHook.createDeck,
-    updateDeck: decksHook.updateDeck,
-    deleteDeck: decksHook.deleteDeck,
+  // UI handlers - business logic for the flashcard page
+  const handleCreateDeck = async (newDeck: CreateDeckRequest) => {
+    try {
+      await decksHook.createDeck(newDeck);
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to create deck:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to create deck",
+      };
+    }
+  };
 
-    // Stats
+  const handleDeleteDeck = async (id: string) => {
+    try {
+      await decksHook.deleteDeck(id);
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to delete deck:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Failed to delete deck",
+      };
+    }
+  };
+
+  // Calculate stats with fallbacks
+  const getCalculatedStats = () => {
+    const totalCards =
+      statsHook.stats?.total_cards ||
+      decksHook.decks.reduce((sum, deck) => sum + deck.total_cards, 0);
+
+    const averageScore =
+      statsHook.stats?.average_score ||
+      (decksHook.decks.length > 0
+        ? Math.round(
+            decksHook.decks.reduce((sum, deck) => sum + deck.average_score, 0) /
+              decksHook.decks.length
+          )
+        : 0);
+
+    const totalStudyTime =
+      statsHook.stats?.total_study_time ||
+      decksHook.decks.reduce((sum, deck) => sum + deck.study_time, 0);
+
+    return {
+      totalDecks: decksHook.decks.length,
+      totalCards,
+      averageScore,
+      totalStudyTime: Math.round(totalStudyTime / 60), // Convert to hours
+    };
+  };
+
+  return {
+    // Data
+    decks: decksHook.decks,
     stats: statsHook.stats,
+    calculatedStats: getCalculatedStats(),
+
+    // Loading states
+    decksLoading: decksHook.loading,
     statsLoading: statsHook.loading,
+    sessionLoading: studySessionHook.loading,
+
+    // Error states
+    decksError: decksHook.error,
     statsError: statsHook.error,
+    sessionError: studySessionHook.error,
+
+    // Actions
+    handleCreateDeck,
+    handleDeleteDeck,
+    fetchDecks: decksHook.fetchDecks,
     fetchStats: statsHook.fetchStats,
 
     // Study sessions
     session: studySessionHook.session,
-    sessionLoading: studySessionHook.loading,
-    sessionError: studySessionHook.error,
     startSession: studySessionHook.startSession,
     endSession: studySessionHook.endSession,
     clearSession: studySessionHook.clearSession,

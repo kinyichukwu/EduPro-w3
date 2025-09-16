@@ -19,7 +19,7 @@ interface DecksProps {
   className?: string;
   decks: Deck[];
   onCreateDeck: () => void;
-  onDeleteDeck: (id: number) => void;
+  onDeleteDeck: (id: string) => void;
 }
 
 export const Decks: FC<DecksProps> = ({
@@ -31,7 +31,7 @@ export const Decks: FC<DecksProps> = ({
   const handleAction = (
     e: MouseEvent<HTMLButtonElement>,
     action: string,
-    deckId: number
+    deckId: string
   ) => {
     e.preventDefault();
 
@@ -154,14 +154,14 @@ export const Decks: FC<DecksProps> = ({
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-white/60">Progress</span>
                 <span className="text-xs font-medium text-white">
-                  {Math.round((deck.masteredCards / deck.totalCards) * 100)}%
+                  {Math.round((deck.mastered_cards / deck.total_cards) * 100)}%
                 </span>
               </div>
               <div className="w-full bg-white/10 rounded-full h-2">
                 <div
                   className="bg-gradient-to-r from-turbo-purple to-turbo-indigo h-2 rounded-full transition-all duration-500"
                   style={{
-                    width: `${(deck.masteredCards / deck.totalCards) * 100}%`,
+                    width: `${(deck.mastered_cards / deck.total_cards) * 100}%`,
                   }}
                 />
               </div>
@@ -175,7 +175,7 @@ export const Decks: FC<DecksProps> = ({
                   <span className="text-xs text-white/60">Cards</span>
                 </div>
                 <div className="text-sm font-medium text-white">
-                  {deck.masteredCards}/{deck.totalCards}
+                  {deck.mastered_cards}/{deck.total_cards}
                 </div>
               </div>
 
@@ -185,7 +185,7 @@ export const Decks: FC<DecksProps> = ({
                   <span className="text-xs text-white/60">Score</span>
                 </div>
                 <div className="text-sm font-medium text-white">
-                  {deck.averageScore}%
+                  {deck.average_score}%
                 </div>
               </div>
             </div>
@@ -198,7 +198,7 @@ export const Decks: FC<DecksProps> = ({
                   Study time
                 </div>
                 <span className="text-white font-medium">
-                  {Math.round(deck.studyTime / 60)}h {deck.studyTime % 60}m
+                  {Math.round(deck.study_time / 60)}h {deck.study_time % 60}m
                 </span>
               </div>
 
@@ -208,7 +208,9 @@ export const Decks: FC<DecksProps> = ({
                   Last studied
                 </div>
                 <span className="text-white font-medium">
-                  {formatLastStudied(deck.lastStudied)}
+                  {formatLastStudied(
+                    deck.last_studied ? new Date(deck.last_studied) : undefined
+                  )}
                 </span>
               </div>
             </div>
@@ -216,12 +218,12 @@ export const Decks: FC<DecksProps> = ({
             {/* Footer */}
             <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/10">
               <div className="flex gap-2">
-                {deck.outstanding > 0 && (
+                {(deck.outstanding ?? 0) > 0 && (
                   <span className="px-2 py-1 bg-amber-500/20 text-amber-400 rounded-full text-xs font-medium">
                     {deck.outstanding} due
                   </span>
                 )}
-                {deck.new > 0 && (
+                {(deck.new ?? 0) > 0 && (
                   <span className="px-2 py-1 bg-turbo-indigo/20 text-turbo-indigo rounded-full text-xs font-medium">
                     {deck.new} new
                   </span>
@@ -231,7 +233,7 @@ export const Decks: FC<DecksProps> = ({
               <span
                 className={cn(
                   "px-2 py-1 rounded-full text-xs font-medium capitalize",
-                  getDifficultyColor(deck.difficulty)
+                  getDifficultyColor(deck.difficulty ?? "")
                 )}
               >
                 {deck.difficulty}
@@ -264,7 +266,7 @@ export const Decks: FC<DecksProps> = ({
             key={deck.id}
             to={`/dashboard/flashcards/${deck.id}`}
             className={cn(
-              "flex items-center bg-dark-card/60 backdrop-blur-lg hover:bg-dark-card/80 duration-300 justify-between rounded-md border border-white/10 hover:border-turbo-purple/30 px-4 py-4 transition-all",
+              "flex items-center bg-dark-card/60 backdrop-blur-lg hover:bg-dark-card/80 duration-300 justify-between rounded-md border border-white/10 hover:border-turbo-purple/30 px-4 py-4 transition-all"
             )}
           >
             <div className="flex items-center gap-4 flex-1">
@@ -281,7 +283,7 @@ export const Decks: FC<DecksProps> = ({
                   <span
                     className={cn(
                       "px-2 py-0.5 rounded text-xs font-medium capitalize flex-shrink-0",
-                      getDifficultyColor(deck.difficulty)
+                      getDifficultyColor(deck.difficulty ?? "")
                     )}
                   >
                     {deck.difficulty}
@@ -290,19 +292,25 @@ export const Decks: FC<DecksProps> = ({
 
                 <div className="flex items-center gap-3 text-xs text-white/60">
                   <span>
-                    {deck.masteredCards}/{deck.totalCards} cards
+                    {deck.mastered_cards}/{deck.total_cards} cards
                   </span>
-                  <span>{deck.averageScore}% avg</span>
-                  <span>{formatLastStudied(deck.lastStudied)}</span>
+                  <span>{deck.average_score}% avg</span>
+                  <span>
+                    {formatLastStudied(
+                      deck.last_studied
+                        ? new Date(deck.last_studied)
+                        : undefined
+                    )}
+                  </span>
                 </div>
 
                 <div className="flex gap-2 mt-2">
-                  {deck.outstanding > 0 && (
+                  {(deck.outstanding ?? 0) > 0 && (
                     <span className="px-2 py-1 bg-amber-500/20 text-amber-400 rounded-full text-xs">
                       {deck.outstanding} due
                     </span>
                   )}
-                  {deck.new > 0 && (
+                  {(deck.new ?? 0) > 0 && (
                     <span className="px-2 py-1 bg-turbo-indigo/20 text-turbo-indigo rounded-full text-xs">
                       {deck.new} new
                     </span>

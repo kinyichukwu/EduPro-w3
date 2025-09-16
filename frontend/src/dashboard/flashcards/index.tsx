@@ -103,7 +103,7 @@ export const Flashcards: FC = () => {
       ...newDeck,
       id: Math.max(...decks.map((d) => d.id)) + 1,
     };
-    setDecks([...decks, deck]);
+    setDecks([deck, ...decks]);
     setShowCreateModal(false);
   };
 

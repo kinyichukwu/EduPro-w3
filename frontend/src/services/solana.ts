@@ -13,54 +13,32 @@ import type {
   TokenInfo,
 } from "../shared/types/solana/wallet";
 import type { PaymentStatusResponse } from "../shared/types/solana/solana-pay";
-import { supabase } from "../lib/supabaseClient";
-
-const API_BASE_URL =
-  import.meta.env.VITE_APP_SERVER_URL || "http://localhost:8080/api";
+import { apiService } from "./index";
 
 class SolanaAPI {
-  private async getAuthHeaders(): Promise<HeadersInit> {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (!session?.access_token) {
-      throw new Error("No authentication token found");
-    }
-
-    return {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
-    };
-  }
-
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    method: string = "GET",
+    body?: object
   ): Promise<T> {
     try {
-      const headers = await this.getAuthHeaders();
-      const url = `${API_BASE_URL}${endpoint}`;
-
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          ...headers,
-          ...options.headers,
-        },
-      });
-
-      if (!response.ok) {
-        const error = await response
-          .json()
-          .catch(() => ({ message: "Network error" }));
-        throw new Error(error.message || `HTTP ${response.status}`);
+      switch (method.toUpperCase()) {
+        case "GET":
+          return await apiService.get<T>(endpoint);
+        case "POST":
+          return await apiService.post<T>(endpoint, { body });
+        case "PUT":
+          return await apiService.put<T>(endpoint, { body });
+        case "DELETE":
+          return await apiService.delete<T>(endpoint);
+        default:
+          throw new Error(`Unsupported HTTP method: ${method}`);
       }
-
-      return response.json();
     } catch (error) {
       console.error("Solana API request failed:", error);
-      throw error instanceof Error ? error : new Error("Unknown error occurred");
+      throw error instanceof Error
+        ? error
+        : new Error("Unknown error occurred");
     }
   }
 
@@ -68,19 +46,21 @@ class SolanaAPI {
   async connectWallet(
     request: ConnectWalletRequest
   ): Promise<ConnectWalletResponse> {
-    return this.request<ConnectWalletResponse>("/wallet/connect", {
-      method: "POST",
-      body: JSON.stringify(request),
-    });
+    return this.request<ConnectWalletResponse>(
+      "/wallet/connect",
+      "POST",
+      request
+    );
   }
 
   async verifyWallet(
     request: VerifyWalletRequest
   ): Promise<VerifyWalletResponse> {
-    return this.request<VerifyWalletResponse>("/wallet/verify", {
-      method: "POST",
-      body: JSON.stringify(request),
-    });
+    return this.request<VerifyWalletResponse>(
+      "/wallet/verify",
+      "POST",
+      request
+    );
   }
 
   async getWallets(): Promise<WalletListResponse> {
@@ -88,28 +68,28 @@ class SolanaAPI {
   }
 
   async disconnectWallet(walletId: string): Promise<void> {
-    return this.request<void>(`/wallet/${walletId}`, {
-      method: "DELETE",
-    });
+    return this.request<void>(`/wallet/${walletId}`, "DELETE");
   }
 
   // Payment endpoints
   async generatePayment(
     request: GeneratePaymentRequest
   ): Promise<GeneratePaymentResponse> {
-    return this.request<GeneratePaymentResponse>("/payment/generate", {
-      method: "POST",
-      body: JSON.stringify(request),
-    });
+    return this.request<GeneratePaymentResponse>(
+      "/payment/generate",
+      "POST",
+      request
+    );
   }
 
   async submitPayment(
     request: SubmitPaymentRequest
   ): Promise<SubmitPaymentResponse> {
-    return this.request<SubmitPaymentResponse>("/payment/submit", {
-      method: "POST",
-      body: JSON.stringify(request),
-    });
+    return this.request<SubmitPaymentResponse>(
+      "/payment/submit",
+      "POST",
+      request
+    );
   }
 
   async getSupportedTokens(): Promise<TokenInfo[]> {

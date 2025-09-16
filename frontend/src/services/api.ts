@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabaseClient";
+import { getApiBaseUrl } from "./index";
 
 // RAG Types
 export interface Citation {
@@ -89,8 +90,7 @@ export interface AskResponse {
   citations: Citation[];
 }
 
-const API_BASE_URL =
-  import.meta.env.VITE_APP_SERVER_URL || "http://localhost:8080/api";
+const API_BASE_URL = getApiBaseUrl();
 
 // Derive the API origin (scheme + host) for non-/api endpoints like /health
 let API_ORIGIN: string;

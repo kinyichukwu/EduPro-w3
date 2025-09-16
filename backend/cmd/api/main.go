@@ -82,8 +82,11 @@ func main() {
 	walletHandler := handlers.NewWalletHandler(solanaService)
 	paymentHandler := handlers.NewPaymentHandler(solanaService)
 
+	// Initialize flashcard handler
+	flashcardHandler := handlers.NewFlashcardHandler(dbClient)
+
 	// Setup router
-	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler)
+	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler, flashcardHandler)
 
 	// Create HTTP server
 	srv := &http.Server{
@@ -120,7 +123,7 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler, walletHandler *handlers.WalletHandler, paymentHandler *handlers.PaymentHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler, walletHandler *handlers.WalletHandler, paymentHandler *handlers.PaymentHandler, flashcardHandler *handlers.FlashcardHandler) *gin.Engine {
 	router := gin.New()
 
 	// Setup middleware
@@ -192,6 +195,31 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			payment.POST("/submit", paymentHandler.SubmitPayment)
 			payment.GET("/tokens", paymentHandler.GetSupportedTokens)
 			payment.GET("/status/:transactionId", paymentHandler.GetPaymentStatus)
+		}
+
+		// Flashcard routes (protected)
+		flashcards := api.Group("/flashcards")
+		flashcards.Use(middleware.JWTMiddleware(cfg))
+		{
+			// Deck routes
+			flashcards.POST("/decks", flashcardHandler.CreateDeck)
+			flashcards.GET("/decks", flashcardHandler.GetDecks)
+			flashcards.GET("/decks/:id", flashcardHandler.GetDeck)
+			flashcards.PUT("/decks/:id", flashcardHandler.UpdateDeck)
+			flashcards.DELETE("/decks/:id", flashcardHandler.DeleteDeck)
+
+			// Card routes
+			flashcards.POST("/decks/:deckId/cards", flashcardHandler.CreateFlashcard)
+			flashcards.POST("/decks/:deckId/cards/bulk", flashcardHandler.CreateBulkFlashcards)
+			flashcards.GET("/decks/:deckId/cards", flashcardHandler.GetFlashcards)
+			flashcards.GET("/decks/:deckId/cards/study", flashcardHandler.GetStudyCards)
+
+			// Study session routes
+			flashcards.POST("/study/sessions", flashcardHandler.StartStudySession)
+			flashcards.PUT("/study/sessions/:sessionId", flashcardHandler.EndStudySession)
+
+			// Statistics routes
+			flashcards.GET("/stats", flashcardHandler.GetFlashcardStats)
 		}
 
 		// Internal routes (for integration)

@@ -174,7 +174,7 @@ Context:
 
 Question: %s
 
-IMPORTANT: Answer based on the provided context first. If information isn't in the context, clearly state that and provide general guidance.
+IMPORTANT: Use the provided context only when it contains relevant facts. If the context is irrelevant to the question, ignore it and answer fully using accurate general knowledge. Do not mention whether the context was used or not.
 
 Return ONLY valid JSON. Do not wrap in markdown code blocks or backticks.
 

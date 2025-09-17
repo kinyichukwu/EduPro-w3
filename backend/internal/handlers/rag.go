@@ -706,7 +706,7 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 		// No relevant chunks found: use conversation-only context if present, else general fallback
 		conv := strings.TrimSpace(conversationBuilder.String())
 		if conv != "" {
-			prompt := ai.RAGPrompt(req.Query, conv)
+			prompt := "Conversation History:\n" + conv + "\n\nQuestion:\n" + req.Query
 			aiReq := &ai.GeminiRequest{Query: prompt}
 			expl, gerr := h.aiClient.GenerateExplanation(aiReq)
 			if gerr != nil {
@@ -733,7 +733,7 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 		}
 		// Leave citations empty in fallback mode
 	} else {
-		// Build document context and merge with conversation context
+		// Build document context and merge with conversation context (no formatting instructions)
 		context := ai.BuildRAGContext(aiChunks)
 		combinedContext := context
 		if conv := strings.TrimSpace(conversationBuilder.String()); conv != "" {
@@ -742,7 +742,11 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 			}
 			combinedContext += "Conversation History:\n" + conv
 		}
-		prompt := ai.RAGPrompt(req.Query, combinedContext)
+
+		prompt := req.Query
+		if strings.TrimSpace(combinedContext) != "" {
+			prompt = "Context:\n" + combinedContext + "\n\nQuestion:\n" + req.Query
+		}
 
 		aiReq := &ai.GeminiRequest{Query: prompt}
 		explanation, err := h.aiClient.GenerateExplanation(aiReq)

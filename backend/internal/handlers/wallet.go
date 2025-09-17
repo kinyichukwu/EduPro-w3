@@ -7,18 +7,21 @@ import (
 	"github.com/google/uuid"
 	"github.com/kinyichukwu/edu-pro-backend/internal/middleware"
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
+	"github.com/kinyichukwu/edu-pro-backend/internal/services/database"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/solana"
 )
 
 // WalletHandler handles wallet-related HTTP requests
 type WalletHandler struct {
 	solanaService *solana.Service
+	db            *database.Client
 }
 
 // NewWalletHandler creates a new wallet handler
-func NewWalletHandler(solanaService *solana.Service) *WalletHandler {
+func NewWalletHandler(solanaService *solana.Service, db *database.Client) *WalletHandler {
 	return &WalletHandler{
 		solanaService: solanaService,
+		db:            db,
 	}
 }
 
@@ -30,14 +33,21 @@ func (h *WalletHandler) ConnectWallet(c *gin.Context) {
 		return
 	}
 
-	// Get user ID from authentication context
-	userID, exists := middleware.GetUserIDFromContext(c)
+	// Get user ID from authentication context (this is the Supabase ID)
+	supabaseUserID, exists := middleware.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	wallet, err := h.solanaService.ConnectWallet(c.Request.Context(), userID, req.Address)
+	// Get the internal user ID from the database using the Supabase ID
+	user, err := h.db.GetUserBySupabaseID(supabaseUserID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found in database"})
+		return
+	}
+
+	wallet, err := h.solanaService.ConnectWallet(c.Request.Context(), user.ID.String(), req.Address)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to connect wallet", "details": err.Error()})
 		return

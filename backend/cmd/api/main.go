@@ -79,7 +79,7 @@ func main() {
 	}
 
 	// Initialize Solana handlers
-	walletHandler := handlers.NewWalletHandler(solanaService)
+	walletHandler := handlers.NewWalletHandler(solanaService, dbClient)
 	paymentHandler := handlers.NewPaymentHandler(solanaService)
 
 	// Initialize flashcard handler

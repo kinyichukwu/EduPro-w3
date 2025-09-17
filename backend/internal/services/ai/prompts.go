@@ -7,7 +7,7 @@ import (
 
 // QuizPrompt generates a system prompt for quiz creation
 func QuizPrompt(topic, subject, level string, numQuestions int) string {
-	prompt := fmt.Sprintf(`You are an expert educator specializing in Nigerian tertiary education (universities, polytechnics, and colleges of education).
+	prompt := fmt.Sprintf(`Break topics down clearly, step by step. Use simple, easy-to-understand language. Provide examples or analogies where helpful. Be concise but thorough. Avoid unnecessary filler or irrelevant information. If unsure, state this and suggest next steps. Always be helpful, friendly, and professional.
 
 Generate exactly %d multiple-choice questions about: %s
 
@@ -59,32 +59,32 @@ Topic: ` + topic
 
 // ExplanationPrompt generates a system prompt for explanations
 func ExplanationPrompt(topic, subject, level string) string {
-	prompt := fmt.Sprintf(`You are an expert tutor for Nigerian tertiary institution students (universities, polytechnics, and colleges of education).
+	prompt := fmt.Sprintf(`When providing explanations:
+- Break topics down clearly, step by step
+- Use simple, easy-to-understand language
+- Provide examples or analogies where helpful
 
-Provide a clear, comprehensive explanation of: %s
+When providing information:
+- Use available knowledge base or search tools
+- Return accurate, up-to-date answers
+- Always cite or reference sources when available
 
-Requirements:
-- Write for university-level students with appropriate academic depth
-- Break down complex concepts into understandable parts
-- Use examples relevant to Nigerian context when possible
-- Align with tertiary education curriculum standards
-- Include practical applications and real-world relevance
-- Highlight key concepts that are important for academic success
-- Use proper academic terminology while maintaining clarity
-- Connect concepts to broader theoretical frameworks where applicable
+When solving problems:
+- Work through solutions step by step
+- Show the reasoning process
+- Provide clear final answers
 
+Be concise but thorough. Avoid unnecessary filler or irrelevant information. If unsure, state this and suggest next steps. Always be helpful, friendly, and professional.
+
+Please explain the following topic: %s
 `, topic)
 
 	if subject != "" {
-		prompt += fmt.Sprintf("Subject context: %s\n", subject)
-	}
-
-	if subject != "" {
-		prompt += fmt.Sprintf("Subject context: %s\n", subject)
+		prompt += fmt.Sprintf("SUBJECT: %s\n", subject)
 	}
 
 	if level != "" {
-		prompt += fmt.Sprintf("Academic level: %s (e.g., 100L, 200L, 300L, 400L, HND1, HND2, NCE, etc.)\n", level)
+		prompt += fmt.Sprintf("LEVEL: %s\n", level)
 	}
 
 	prompt += `
@@ -92,20 +92,18 @@ IMPORTANT: Return ONLY valid JSON. Do not wrap in markdown code blocks or backti
 
 Return in this exact format:
 {
-  "explanation": "Detailed explanation here...",
+  "explanation": "Clear, helpful explanation",
   "key_points": [
     "Key point 1",
     "Key point 2",
     "Key point 3"
   ],
-  "summary": "Brief summary of the main concept",
+  "summary": "Brief summary",
   "examples": [
-    "Example 1",
-    "Example 2"
+    "Relevant example"
   ]
 }
-
-Topic: ` + topic
+`
 
 	return prompt
 }
@@ -114,65 +112,85 @@ Topic: ` + topic
 func SanitizeInput(input string) string {
 	// Remove potentially harmful characters
 	input = strings.TrimSpace(input)
-	
+
 	// Remove excessive whitespace
 	input = strings.Join(strings.Fields(input), " ")
-	
+
 	// Basic length check
 	if len(input) > 1000 {
 		input = input[:1000]
 	}
-	
+
 	return input
 }
 
 // BuildContext creates context string from subject and level
 func BuildContext(subject, level string) string {
 	var context []string
-	
+
 	if subject != "" {
 		context = append(context, fmt.Sprintf("Subject: %s", subject))
 	}
-	
+
 	if level != "" {
 		context = append(context, fmt.Sprintf("Level: %s", level))
 	}
-	
+
 	if len(context) > 0 {
 		return strings.Join(context, ", ")
 	}
-	
+
 	return ""
 }
 
 // RAGPrompt generates a system prompt for RAG-based question answering
 func RAGPrompt(query, context string) string {
 	if context == "" {
-		return fmt.Sprintf(`You are an expert tutor for Nigerian tertiary institution students. The user has asked a question but no relevant context was found in their uploaded documents.
+		return fmt.Sprintf(`Break topics down clearly, step by step. Use simple, easy-to-understand language. Provide examples or analogies where helpful. Be concise but thorough. Avoid unnecessary filler or irrelevant information. If unsure, state this and suggest next steps. Always be helpful, friendly, and professional.
 
-Question: %s
+IMPORTANT: Return ONLY valid JSON. Do not wrap in markdown code blocks or backticks.
 
-Please respond with: "I don't have enough information from your uploaded documents to answer this question accurately. Please upload relevant documents or ask a question about the content you've already shared."
+Return in this exact format:
+{
+  "explanation": "Clear, helpful explanation",
+  "key_points": [
+    "Key point 1",
+    "Key point 2",
+    "Key point 3"
+  ],
+  "summary": "Brief summary",
+  "examples": [
+    "Relevant example"
+  ]
+}
 
-Be polite and helpful, and suggest they upload more relevant materials if needed.`, query)
+Question: %s`, query)
 	}
 
-	prompt := fmt.Sprintf(`You are an expert tutor for Nigerian tertiary institution students. Answer the user's question based STRICTLY on the provided context from their uploaded documents.
+	prompt := fmt.Sprintf(`Break topics down clearly, step by step. Use simple, easy-to-understand language. Provide examples or analogies where helpful. Be concise but thorough. Avoid unnecessary filler or irrelevant information. If unsure, state this and suggest next steps. Always be helpful, friendly, and professional.
 
-IMPORTANT INSTRUCTIONS:
-- Only use information from the provided context
-- If the context doesn't contain enough information to answer the question, say so clearly
-- Be accurate and cite specific parts of the context when possible
-- Maintain academic rigor appropriate for tertiary education
-- Use clear, educational language
-- If the question cannot be answered from the context, explain what information is missing
-
-Context from uploaded documents:
+Context:
 %s
 
 Question: %s
 
-Provide a comprehensive answer based on the context above. If the context is insufficient, clearly state what additional information would be needed.`, context, query)
+IMPORTANT: Answer based on the provided context first. If information isn't in the context, clearly state that and provide general guidance.
+
+Return ONLY valid JSON. Do not wrap in markdown code blocks or backticks.
+
+Return in this exact format:
+{
+  "explanation": "Clear, helpful explanation based on context",
+  "key_points": [
+    "Key point 1",
+    "Key point 2", 
+    "Key point 3"
+  ],
+  "summary": "Brief summary",
+  "examples": [
+    "Relevant example"
+  ]
+}`, context, query)
 
 	return prompt
 }
@@ -184,25 +202,25 @@ func BuildRAGContext(chunks []DocumentChunk) string {
 	}
 
 	var contextBuilder strings.Builder
-	
+
 	for i, chunk := range chunks {
 		if i > 0 {
 			contextBuilder.WriteString("\n\n---\n\n")
 		}
-		
+
 		contextBuilder.WriteString(fmt.Sprintf("Document: %s\n", chunk.DocumentTitle))
 		if chunk.SourceURL != "" {
 			contextBuilder.WriteString(fmt.Sprintf("Source: %s\n", chunk.SourceURL))
 		}
 		contextBuilder.WriteString(fmt.Sprintf("Section %d: %s", chunk.Ordinal+1, chunk.Content))
 	}
-	
+
 	return contextBuilder.String()
 }
 
 // FlashcardPrompt generates a system prompt for flashcard creation
 func FlashcardPrompt(topic, subject, level string, numCards int) string {
-	prompt := fmt.Sprintf(`You are an expert educator specializing in Nigerian tertiary education (universities, polytechnics, and colleges of education).
+	prompt := fmt.Sprintf(`Break topics down clearly, step by step. Use simple, easy-to-understand language. Provide examples or analogies where helpful. Be concise but thorough. Avoid unnecessary filler or irrelevant information. If unsure, state this and suggest next steps. Always be helpful, friendly, and professional.
 
 Generate exactly %d educational flashcards about: %s
 

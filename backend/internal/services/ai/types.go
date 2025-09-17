@@ -41,6 +41,6 @@ type Client struct {
 func NewClient(apiKey string) Service {
 	return &Client{
 		apiKey: apiKey,
-		model:  "gemini-2.5-flash-lite-preview-06-17",
+		model:  "gemini-2.5-pro",
 	}
 }

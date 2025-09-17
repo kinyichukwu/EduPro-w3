@@ -617,37 +617,59 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 		}
 	}
 
-	// Generate embedding for query
-	queryEmbedding, err := h.embeddings.GenerateEmbedding(req.Query)
-	if err != nil {
-		logger.Error("Failed to generate query embedding", zap.Error(err))
-		utils.SendError(c, &models.APIError{
-			Code:    http.StatusInternalServerError,
-			Message: "Failed to process query",
-		})
-		return
+	// Build conversation context from prior chat messages (user/assistant)
+	var conversationBuilder strings.Builder
+	convRows, cerr := h.db.GetPool().Query(ctx, `
+		SELECT role, content
+		FROM chat_messages
+		WHERE chat_id = $1 AND role IN ('user','assistant')
+		ORDER BY created_at ASC
+	`, chatID)
+	if cerr == nil {
+		defer convRows.Close()
+		totalChars := 0
+		for convRows.Next() {
+			var role string
+			var content string
+			if err := convRows.Scan(&role, &content); err == nil {
+				// Cap conversation context to avoid overly large prompts
+				if totalChars > 20000 {
+					break
+				}
+				if role == "user" {
+					conversationBuilder.WriteString("User: ")
+				} else {
+					conversationBuilder.WriteString("Assistant: ")
+				}
+				conversationBuilder.WriteString(content)
+				conversationBuilder.WriteString("\n")
+				totalChars += len(content)
+			}
+		}
 	}
 
-	// Search similar chunks (with optional document filtering)
+	// Try retrieval, but degrade gracefully on errors
 	var chunks []database.ChunkResult
 	filterDocIDs := req.DocumentIDs
 	if len(filterDocIDs) == 0 && len(derivedDocIDs) > 0 {
 		filterDocIDs = derivedDocIDs
 	}
-	if len(filterDocIDs) > 0 {
-		// Filter by specific documents (from request or derived from chat)
-		chunks, err = h.pgx.SearchSimilarChunksInDocuments(ctx, queryEmbedding, user.ID.String(), filterDocIDs, 8)
-	} else {
-		// Search all user documents
-		chunks, err = h.pgx.SearchSimilarChunks(ctx, queryEmbedding, user.ID.String(), 8)
-	}
+
+	queryEmbedding, err := h.embeddings.GenerateEmbedding(req.Query)
 	if err != nil {
-		logger.Error("Failed to search chunks", zap.Error(err))
-		utils.SendError(c, &models.APIError{
-			Code:    http.StatusInternalServerError,
-			Message: "Failed to search documents",
-		})
-		return
+		logger.Warn("Embedding generation failed, falling back to model without retrieval", zap.Error(err))
+	} else {
+		if len(filterDocIDs) > 0 {
+			// Filter by specific documents (from request or derived from chat)
+			chunks, err = h.pgx.SearchSimilarChunksInDocuments(ctx, queryEmbedding, user.ID.String(), filterDocIDs, 8)
+		} else {
+			// Search all user documents
+			chunks, err = h.pgx.SearchSimilarChunks(ctx, queryEmbedding, user.ID.String(), 8)
+		}
+		if err != nil {
+			logger.Warn("Chunk search failed, proceeding without retrieval", zap.Error(err))
+			chunks = nil
+		}
 	}
 
 	// Convert chunks to AI prompt format
@@ -681,23 +703,46 @@ func (h *RAGHandler) Ask(c *gin.Context) {
 
 	var answer string
 	if len(aiChunks) == 0 {
-		// No relevant chunks found: fall back to general AI explanation without RAG constraints
-		fallbackReq := &ai.GeminiRequest{Query: req.Query}
-		expl, gerr := h.aiClient.GenerateExplanation(fallbackReq)
-		if gerr != nil {
-			logger.Error("Failed to generate fallback answer", zap.Error(gerr))
-			utils.SendError(c, &models.APIError{
-				Code:    http.StatusInternalServerError,
-				Message: "Failed to generate answer",
-			})
-			return
+		// No relevant chunks found: use conversation-only context if present, else general fallback
+		conv := strings.TrimSpace(conversationBuilder.String())
+		if conv != "" {
+			prompt := ai.RAGPrompt(req.Query, conv)
+			aiReq := &ai.GeminiRequest{Query: prompt}
+			expl, gerr := h.aiClient.GenerateExplanation(aiReq)
+			if gerr != nil {
+				logger.Error("Failed to generate conversation-context answer", zap.Error(gerr))
+				utils.SendError(c, &models.APIError{
+					Code:    http.StatusInternalServerError,
+					Message: "Failed to generate answer",
+				})
+				return
+			}
+			answer = expl.Explanation
+		} else {
+			fallbackReq := &ai.GeminiRequest{Query: req.Query}
+			expl, gerr := h.aiClient.GenerateExplanation(fallbackReq)
+			if gerr != nil {
+				logger.Error("Failed to generate fallback answer", zap.Error(gerr))
+				utils.SendError(c, &models.APIError{
+					Code:    http.StatusInternalServerError,
+					Message: "Failed to generate answer",
+				})
+				return
+			}
+			answer = expl.Explanation
 		}
-		answer = expl.Explanation
 		// Leave citations empty in fallback mode
 	} else {
-		// Build context and RAG prompt using retrieved chunks
+		// Build document context and merge with conversation context
 		context := ai.BuildRAGContext(aiChunks)
-		prompt := ai.RAGPrompt(req.Query, context)
+		combinedContext := context
+		if conv := strings.TrimSpace(conversationBuilder.String()); conv != "" {
+			if combinedContext != "" {
+				combinedContext += "\n\n---\n\n"
+			}
+			combinedContext += "Conversation History:\n" + conv
+		}
+		prompt := ai.RAGPrompt(req.Query, combinedContext)
 
 		aiReq := &ai.GeminiRequest{Query: prompt}
 		explanation, err := h.aiClient.GenerateExplanation(aiReq)
@@ -1490,7 +1535,6 @@ func (h *RAGHandler) UpdateChat(c *gin.Context) {
 // RAGHealth handles GET /api/rag/health
 func (h *RAGHandler) RAGHealth(c *gin.Context) {
 	logger := utils.GetLogger()
-	ctx := context.Background()
 
 	// Check embeddings health
 	embeddingsHealth := h.embeddings.IsHealthy()

@@ -38,8 +38,9 @@ func NewSolanaConfig() *SolanaConfig {
 
 	edutokenMint := os.Getenv("EDUPRO_TOKEN_MINT")
 	if edutokenMint == "" {
-		// Default EduPro token mint (you should set this in your environment)
-		edutokenMint = "EDUTOKEN_MINT_ADDRESS_HERE"
+		// For testing purposes, use USDC token mint on devnet
+		// TODO: Replace with actual EduPro token mint address
+		edutokenMint = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU" // USDC on devnet
 	}
 
 	edutokenDecimals := 9 // Default to 9 decimals for EduPro token

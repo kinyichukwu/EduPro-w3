@@ -36,7 +36,7 @@ func NewClient(cfg *config.Config) (*Client, error) {
 	poolConfig.MinConns = 2
 	poolConfig.MaxConnLifetime = time.Minute * 5
 	poolConfig.MaxConnIdleTime = time.Minute * 1
-	
+
 	// Disable prepared statement caching to avoid conflicts
 	poolConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeExec
 	// Create connection pool
@@ -71,7 +71,7 @@ func (c *Client) GetPool() *pgxpool.Pool {
 func (c *Client) CreateUser(req *models.CreateUserRequest) (*models.User, error) {
 	logger := utils.GetLogger()
 	ctx := context.Background()
-	
+
 	// TODO: what is the difference between the username and the full name?
 	user := &models.User{
 		ID:         uuid.New(),
@@ -111,7 +111,7 @@ func (c *Client) GetUserBySupabaseID(supabaseID string) (*models.User, error) {
 	`
 
 	// Log the query being executed for debugging
-	logger.Debug("Executing get user by supabase ID query", 
+	logger.Debug("Executing get user by supabase ID query",
 		zap.String("query", query),
 		zap.String("supabase_id", supabaseID))
 
@@ -257,7 +257,7 @@ func (c *Client) GetOnboardingByUserID(userID uuid.UUID) (*models.OnboardingData
 	`
 
 	// Log the query being executed for debugging
-	logger.Debug("Executing get onboarding query", 
+	logger.Debug("Executing get onboarding query",
 		zap.String("query", query),
 		zap.String("internal_user_id", internalUserID.String()))
 
@@ -485,6 +485,10 @@ func (c *Client) UpdateWallet(walletID uuid.UUID, isVerified bool) (*models.User
 		&wallet.CreatedAt, &wallet.UpdatedAt,
 	)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			logger.Warn("Wallet not found for update", zap.String("wallet_id", walletID.String()))
+			return nil, fmt.Errorf("wallet not found")
+		}
 		logger.Error("Failed to update wallet", zap.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to update wallet: %w", err)
 	}

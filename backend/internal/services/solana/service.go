@@ -82,7 +82,7 @@ func (s *Service) VerifyWallet(ctx context.Context, walletID uuid.UUID, message,
 
 	sigBytes, err := base64.StdEncoding.DecodeString(signature)
 	if err != nil {
-		return nil, fmt.Errorf("invalid signature: %w", err)
+		return nil, fmt.Errorf("invalid signature format: %w", err)
 	}
 
 	// TODO: Implement proper signature verification

@@ -59,8 +59,8 @@ export const WalletSection: React.FC = () => {
       const message = `Verify wallet ownership for EduPro\nTimestamp: ${Date.now()}\nWallet: ${publicKey.toString()}`;
 
       // In a real implementation, you'd sign this message with the wallet
-      // For demo purposes, we'll use a mock signature
-      const signature = "mock_signature";
+      // For demo purposes, we'll use a mock signature (base64 encoded)
+      const signature = btoa("mock_signature");
 
       await verifyWallet(walletId, message, signature);
     } catch (error) {

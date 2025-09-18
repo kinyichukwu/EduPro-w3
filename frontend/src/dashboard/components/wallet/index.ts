@@ -1,0 +1,1 @@
+export { DeductModal } from './DeductModal';

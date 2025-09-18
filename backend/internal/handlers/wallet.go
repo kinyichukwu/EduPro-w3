@@ -94,14 +94,21 @@ func (h *WalletHandler) VerifyWallet(c *gin.Context) {
 
 // GetWallets returns user's connected wallets
 func (h *WalletHandler) GetWallets(c *gin.Context) {
-	// Get user ID from authentication context
-	userID, exists := middleware.GetUserIDFromContext(c)
+	// Get user ID from authentication context (this is the Supabase ID)
+	supabaseUserID, exists := middleware.GetUserIDFromContext(c)
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
-	wallets, err := h.solanaService.GetWalletsByUserID(c.Request.Context(), userID)
+	// Get the internal user ID from the database using the Supabase ID
+	user, err := h.db.GetUserBySupabaseID(supabaseUserID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found in database"})
+		return
+	}
+
+	wallets, err := h.solanaService.GetWalletsByUserID(c.Request.Context(), user.ID.String())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get wallets", "details": err.Error()})
 		return
@@ -142,4 +149,84 @@ func (h *WalletHandler) DisconnectWallet(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Wallet disconnected successfully"})
+}
+
+// GenerateWallet generates a new Solana wallet for the authenticated user
+func (h *WalletHandler) GenerateWallet(c *gin.Context) {
+	// Get user ID from authentication context (this is the Supabase ID)
+	supabaseUserID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
+	// Get the internal user ID from the database using the Supabase ID
+	user, err := h.db.GetUserBySupabaseID(supabaseUserID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found in database"})
+		return
+	}
+
+	// Generate new wallet
+	response, err := h.solanaService.GenerateWallet(c.Request.Context(), user.ID.String())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate wallet", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, response)
+}
+
+// FundWallet funds a wallet with SOL from the devnet faucet
+func (h *WalletHandler) FundWallet(c *gin.Context) {
+	var req models.FundWalletRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request", "details": err.Error()})
+		return
+	}
+
+	// // Get user ID from authentication context (this is the Supabase ID)
+	// supabaseUserID, exists := middleware.GetUserIDFromContext(c)
+	// if !exists {
+	// 	c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+	// 	return
+	// }
+
+	// For testing purposes, allow funding any valid Solana address
+	// TODO: Re-enable wallet ownership check in production
+	// user, err := h.db.GetUserBySupabaseID(supabaseUserID)
+	// if err != nil {
+	// 	c.JSON(http.StatusNotFound, gin.H{"error": "User not found in database"})
+	// 	return
+	// }
+	// userUUID, err := uuid.Parse(user.ID.String())
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user ID"})
+	// 	return
+	// }
+	// wallets, err := h.db.GetWalletsByUserID(userUUID)
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user wallets"})
+	// 	return
+	// }
+	// walletOwned := false
+	// for _, wallet := range wallets {
+	// 	if wallet.WalletAddress == req.WalletAddress {
+	// 		walletOwned = true
+	// 		break
+	// 	}
+	// }
+	// if !walletOwned {
+	// 	c.JSON(http.StatusForbidden, gin.H{"error": "Wallet does not belong to user"})
+	// 	return
+	// }
+
+	// Fund the wallet
+	response, err := h.solanaService.FundWallet(c.Request.Context(), req.WalletAddress)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fund wallet", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }

@@ -310,3 +310,27 @@ type RewardDistributionRequest struct {
 	RewardType string  `json:"reward_type" validate:"required"`
 	Metadata   *string `json:"metadata,omitempty"`
 }
+
+// GenerateWalletResponse represents the response for wallet generation
+type GenerateWalletResponse struct {
+	Wallet        *UserWallet `json:"wallet"`
+	PrivateKey    string      `json:"private_key"`    // Base58 encoded private key
+	PublicKey     string      `json:"public_key"`     // Base58 encoded public key
+	WalletAddress string      `json:"wallet_address"` // Same as public key
+	VerifyMessage string      `json:"verify_message"` // Message to sign for verification
+	Message       string      `json:"message"`        // Success message
+}
+
+// FundWalletRequest represents the request to fund a wallet
+type FundWalletRequest struct {
+	WalletAddress string `json:"wallet_address" validate:"required"`
+}
+
+// FundWalletResponse represents the response for wallet funding
+type FundWalletResponse struct {
+	WalletAddress string `json:"wallet_address"`
+	Signature     string `json:"signature"` // Transaction signature from faucet
+	Message       string `json:"message"`   // Response message from faucet
+	Amount        string `json:"amount"`    // Amount funded (e.g., "1 SOL")
+	Network       string `json:"network"`   // Network used (e.g., "devnet")
+}

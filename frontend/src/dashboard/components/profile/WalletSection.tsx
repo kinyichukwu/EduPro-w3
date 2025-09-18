@@ -5,12 +5,14 @@ import { useWallet as useEduProWallet } from "../../../shared/hooks";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Button } from "../../../shared/components/ui/button";
 import { Alert, AlertDescription } from "../../../shared/components/ui/alert";
+import { DeductModal } from "../wallet/DeductModal";
 import {
   Loader2,
   CheckCircle,
   XCircle,
   Copy,
   ExternalLink,
+  Minus,
 } from "lucide-react";
 
 export const WalletSection: React.FC = () => {
@@ -32,6 +34,7 @@ export const WalletSection: React.FC = () => {
     null
   );
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+  const [showDeductModal, setShowDeductModal] = useState(false);
 
   // Load wallets on component mount
   useEffect(() => {
@@ -302,6 +305,30 @@ export const WalletSection: React.FC = () => {
               <p className="text-xs text-dark-muted">Wallet Verified</p>
             </div>
           </div>
+
+          {/* Deduct SOL Button */}
+          {hasVerifiedWallet && (
+            <div className="p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-300">
+                    Transfer SOL to EduPro
+                  </p>
+                  <p className="text-xs text-blue-400 mt-1">
+                    Deduct SOL from your wallet to EduPro
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setShowDeductModal(true)}
+                  size="sm"
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:opacity-90"
+                >
+                  <Minus className="mr-2 h-3 w-3" />
+                  Deduct SOL
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -322,6 +349,17 @@ export const WalletSection: React.FC = () => {
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Deduct Modal */}
+      <DeductModal
+        isOpen={showDeductModal}
+        onClose={() => setShowDeductModal(false)}
+        onSuccess={() => {
+          setShowDeductModal(false);
+          // Optionally refresh wallet data
+          loadWallets();
+        }}
+      />
     </div>
   );
 };

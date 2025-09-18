@@ -75,6 +75,17 @@ class SolanaAPI {
     if (response.error) throw new Error(response.error);
     return response.data!;
   }
+
+  // Deduct SOL from user wallet to EduPro
+  async deductFromWallet(request: {
+    wallet_address: string;
+    amount: number;
+    token_mint: string;
+  }): Promise<any> {
+    const response = await apiService.deductFromWallet(request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
 }
 
 export const solanaAPI = new SolanaAPI();

@@ -613,6 +613,18 @@ class ApiService {
   async getPaymentStatus(transactionId: string): Promise<ApiResponse<any>> {
     return this.request<any>(`/payment/status/${transactionId}`);
   }
+
+  // Deduct endpoint for transferring SOL from user wallet to EduPro
+  async deductFromWallet(request: {
+    wallet_address: string;
+    amount: number;
+    token_mint: string;
+  }): Promise<ApiResponse<any>> {
+    return this.request<any>("/payment/deduct", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
 }
 
 export const apiService = new ApiService();

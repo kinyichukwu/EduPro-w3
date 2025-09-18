@@ -181,6 +181,8 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 		wallet := api.Group("/wallet")
 		wallet.Use(middleware.JWTMiddleware(cfg))
 		{
+			wallet.POST("/generate", walletHandler.GenerateWallet)
+			wallet.POST("/fund", walletHandler.FundWallet)
 			wallet.POST("/connect", walletHandler.ConnectWallet)
 			wallet.POST("/verify", walletHandler.VerifyWallet)
 			wallet.GET("/list", walletHandler.GetWallets)

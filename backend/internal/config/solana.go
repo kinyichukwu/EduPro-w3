@@ -11,9 +11,11 @@ var (
 
 // SolanaConfig holds Solana blockchain configuration
 type SolanaConfig struct {
-	RPCEndpoint     string `json:"rpc_endpoint"`
-	Network         string `json:"network"`
-	RecipientWallet string `json:"recipient_wallet"`
+	RPCEndpoint         string `json:"rpc_endpoint"`
+	Network             string `json:"network"`
+	RecipientWallet     string `json:"recipient_wallet"`
+	EduProTokenMint     string `json:"edutoken_mint"`
+	EduProTokenDecimals int    `json:"edutoken_decimals"`
 }
 
 // NewSolanaConfig creates Solana configuration from environment variables
@@ -30,14 +32,24 @@ func NewSolanaConfig() *SolanaConfig {
 
 	recipientWallet := os.Getenv("SOLANA_RECIPIENT_WALLET")
 	if recipientWallet == "" {
-		// You should set this in your environment variables
-		recipientWallet = ""
+		// Default to the provided organization wallet address
+		recipientWallet = "5dKpAVwujVwfyXX9EW2mXh5eQ62mWrNhupdLcpjzwGME"
 	}
 
+	edutokenMint := os.Getenv("EDUPRO_TOKEN_MINT")
+	if edutokenMint == "" {
+		// Default EduPro token mint (you should set this in your environment)
+		edutokenMint = "EDUTOKEN_MINT_ADDRESS_HERE"
+	}
+
+	edutokenDecimals := 9 // Default to 9 decimals for EduPro token
+
 	return &SolanaConfig{
-		RPCEndpoint:     rpcEndpoint,
-		Network:         network,
-		RecipientWallet: recipientWallet,
+		RPCEndpoint:         rpcEndpoint,
+		Network:             network,
+		RecipientWallet:     recipientWallet,
+		EduProTokenMint:     edutokenMint,
+		EduProTokenDecimals: edutokenDecimals,
 	}
 }
 

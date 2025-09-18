@@ -218,6 +218,84 @@ type SubmitPaymentResponse struct {
 	Message              string    `json:"message"`
 }
 
+// DeductWalletRequest represents wallet deduction request
+type DeductWalletRequest struct {
+	WalletAddress string `json:"wallet_address" validate:"required"`
+	Amount        uint64 `json:"amount" validate:"required,min=1"`
+	TokenMint     string `json:"token_mint" validate:"required"`
+}
+
+// DeductWalletResponse represents wallet deduction response
+type DeductWalletResponse struct {
+	DeductionID uuid.UUID `json:"deduction_id"`
+	Transaction string    `json:"transaction"`
+	Amount      uint64    `json:"amount"`
+	TokenMint   string    `json:"token_mint"`
+	Status      string    `json:"status"`
+	Message     string    `json:"message"`
+}
+
+// SendTokensRequest represents token sending request
+type SendTokensRequest struct {
+	WalletAddress string `json:"wallet_address" validate:"required"`
+	Amount        uint64 `json:"amount" validate:"required,min=1"`
+}
+
+// SendTokensResponse represents token sending response
+type SendTokensResponse struct {
+	TransferID  uuid.UUID `json:"transfer_id"`
+	Transaction string    `json:"transaction"`
+	Amount      uint64    `json:"amount"`
+	TokenMint   string    `json:"token_mint"`
+	Status      string    `json:"status"`
+	Message     string    `json:"message"`
+}
+
+// QueryTokensRequest represents on-chain token query request
+type QueryTokensRequest struct {
+	WalletAddress string `json:"wallet_address" validate:"required"`
+}
+
+// OnChainTokenData represents on-chain token data
+type OnChainTokenData struct {
+	WalletAddress      string             `json:"wallet_address"`
+	TokenMint          string             `json:"token_mint"`
+	Balance            uint64             `json:"balance"`
+	Decimals           int                `json:"decimals"`
+	LastUpdated        time.Time          `json:"last_updated"`
+	RecentTransactions []TokenTransaction `json:"recent_transactions"`
+}
+
+// TokenTransaction represents a token transaction
+type TokenTransaction struct {
+	Signature string    `json:"signature"`
+	Type      string    `json:"type"`
+	Amount    uint64    `json:"amount"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// WalletDeduction represents a wallet deduction record
+type WalletDeduction struct {
+	ID            uuid.UUID `json:"id"`
+	UserID        uuid.UUID `json:"user_id"`
+	WalletAddress string    `json:"wallet_address"`
+	Amount        uint64    `json:"amount"`
+	TokenMint     string    `json:"token_mint"`
+	Status        string    `json:"status"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+// TokenTransfer represents a token transfer record
+type TokenTransfer struct {
+	ID            uuid.UUID `json:"id"`
+	UserID        uuid.UUID `json:"user_id"`
+	WalletAddress string    `json:"wallet_address"`
+	Amount        uint64    `json:"amount"`
+	TokenMint     string    `json:"token_mint"`
+	Status        string    `json:"status"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
 // CoursePaymentRequest represents a course purchase request
 type CoursePaymentRequest struct {
 	CourseID      uuid.UUID `json:"course_id" validate:"required"`

@@ -195,6 +195,9 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			payment.POST("/submit", paymentHandler.SubmitPayment)
 			payment.GET("/tokens", paymentHandler.GetSupportedTokens)
 			payment.GET("/status/:transactionId", paymentHandler.GetPaymentStatus)
+			payment.POST("/deduct", paymentHandler.DeductFromWallet)
+			payment.POST("/send-tokens", paymentHandler.SendEduProTokens)
+			payment.POST("/query-tokens", paymentHandler.QueryOnChainEduProTokens)
 		}
 
 		// Flashcard routes (protected)

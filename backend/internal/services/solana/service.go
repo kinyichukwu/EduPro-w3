@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gagliardetto/solana-go"
+	"github.com/gagliardetto/solana-go/programs/system"
 	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/google/uuid"
 	"github.com/kinyichukwu/edu-pro-backend/internal/config"
@@ -298,4 +299,263 @@ func (s *Service) GenerateVerificationMessage() string {
 	timestamp := time.Now().Unix()
 
 	return fmt.Sprintf("Verify wallet ownership for EduPro\nTimestamp: %d\nRandom: %x", timestamp, randomBytes)
+}
+
+// DeductFromWallet deducts tokens from a user's wallet
+func (s *Service) DeductFromWallet(ctx context.Context, userID string, walletAddress string, amount uint64, tokenMint string) (*models.DeductWalletResponse, error) {
+	// Parse userID string to UUID
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// Get user's wallets to verify ownership
+	wallets, err := s.dbClient.GetWalletsByUserID(userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user wallets: %w", err)
+	}
+
+	// Find the specific wallet
+	var targetWallet *models.UserWallet
+	for _, wallet := range wallets {
+		if wallet.WalletAddress == walletAddress {
+			targetWallet = wallet
+			break
+		}
+	}
+
+	if targetWallet == nil {
+		return nil, fmt.Errorf("wallet not found or not owned by user")
+	}
+
+	if !targetWallet.IsVerified {
+		return nil, fmt.Errorf("wallet must be verified before deductions")
+	}
+
+	// Create deduction transaction
+	transaction, err := s.createDeductionTransaction(walletAddress, amount, tokenMint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create deduction transaction: %w", err)
+	}
+
+	// Serialize transaction to base64
+	txBytes, err := transaction.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize transaction: %w", err)
+	}
+	txBase64 := base64.StdEncoding.EncodeToString(txBytes)
+
+	// Record the deduction in database
+	deductionID := uuid.New()
+	deduction := &models.WalletDeduction{
+		ID:            deductionID,
+		UserID:        userUUID,
+		WalletAddress: walletAddress,
+		Amount:        amount,
+		TokenMint:     tokenMint,
+		Status:        "pending",
+		CreatedAt:     time.Now(),
+	}
+
+	// TODO: Save deduction to database
+	_ = deduction
+
+	return &models.DeductWalletResponse{
+		DeductionID: deductionID,
+		Transaction: txBase64,
+		Amount:      amount,
+		TokenMint:   tokenMint,
+		Status:      "pending",
+		Message:     "Deduction transaction created successfully",
+	}, nil
+}
+
+// SendEduProTokens sends EduPro tokens to a user's wallet
+func (s *Service) SendEduProTokens(ctx context.Context, userID string, walletAddress string, amount uint64) (*models.SendTokensResponse, error) {
+	// Parse userID string to UUID
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	// Get user's wallets to verify ownership
+	wallets, err := s.dbClient.GetWalletsByUserID(userUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user wallets: %w", err)
+	}
+
+	// Find the specific wallet
+	var targetWallet *models.UserWallet
+	for _, wallet := range wallets {
+		if wallet.WalletAddress == walletAddress {
+			targetWallet = wallet
+			break
+		}
+	}
+
+	if targetWallet == nil {
+		return nil, fmt.Errorf("wallet not found or not owned by user")
+	}
+
+	if !targetWallet.IsVerified {
+		return nil, fmt.Errorf("wallet must be verified before receiving tokens")
+	}
+
+	// Create token transfer transaction
+	transaction, err := s.createTokenTransferTransaction(walletAddress, amount, s.config.EduProTokenMint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create token transfer transaction: %w", err)
+	}
+
+	// Serialize transaction to base64
+	txBytes, err := transaction.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize transaction: %w", err)
+	}
+	txBase64 := base64.StdEncoding.EncodeToString(txBytes)
+
+	// Record the token transfer in database
+	transferID := uuid.New()
+	transfer := &models.TokenTransfer{
+		ID:            transferID,
+		UserID:        userUUID,
+		WalletAddress: walletAddress,
+		Amount:        amount,
+		TokenMint:     s.config.EduProTokenMint,
+		Status:        "pending",
+		CreatedAt:     time.Now(),
+	}
+
+	// TODO: Save transfer to database
+	_ = transfer
+
+	return &models.SendTokensResponse{
+		TransferID:  transferID,
+		Transaction: txBase64,
+		Amount:      amount,
+		TokenMint:   s.config.EduProTokenMint,
+		Status:      "pending",
+		Message:     "Token transfer transaction created successfully",
+	}, nil
+}
+
+// QueryOnChainEduProTokens queries on-chain EduPro token data for a user
+func (s *Service) QueryOnChainEduProTokens(ctx context.Context, walletAddress string) (*models.OnChainTokenData, error) {
+	// Parse wallet address
+	pubKey, err := solana.PublicKeyFromBase58(walletAddress)
+	if err != nil {
+		return nil, fmt.Errorf("invalid wallet address: %w", err)
+	}
+
+	// Get token account info
+	tokenAccount, _, err := solana.FindAssociatedTokenAddress(pubKey, solana.MustPublicKeyFromBase58(s.config.EduProTokenMint))
+	if err != nil {
+		return nil, fmt.Errorf("failed to find token account: %w", err)
+	}
+
+	// Query token account balance
+	accountInfo, err := s.rpcClient.GetAccountInfo(ctx, tokenAccount)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get token account info: %w", err)
+	}
+
+	if accountInfo.Value == nil {
+		// Token account doesn't exist, return zero balance
+		return &models.OnChainTokenData{
+			WalletAddress: walletAddress,
+			TokenMint:     s.config.EduProTokenMint,
+			Balance:       0,
+			Decimals:      s.config.EduProTokenDecimals,
+			LastUpdated:   time.Now(),
+		}, nil
+	}
+
+	// Parse token account data to get balance
+	// This is a simplified version - in production you'd use proper token account parsing
+	balance := uint64(0) // TODO: Parse actual balance from account data
+
+	// Get recent transactions (simplified)
+	recentTransactions := []models.TokenTransaction{
+		{
+			Signature: "example_signature",
+			Type:      "transfer",
+			Amount:    1000000,
+			Timestamp: time.Now().Add(-time.Hour),
+		},
+	}
+
+	return &models.OnChainTokenData{
+		WalletAddress:      walletAddress,
+		TokenMint:          s.config.EduProTokenMint,
+		Balance:            balance,
+		Decimals:           s.config.EduProTokenDecimals,
+		LastUpdated:        time.Now(),
+		RecentTransactions: recentTransactions,
+	}, nil
+}
+
+// createDeductionTransaction creates a transaction to deduct tokens from a wallet
+func (s *Service) createDeductionTransaction(walletAddress string, amount uint64, tokenMint string) (*solana.Transaction, error) {
+	// Parse wallet address
+	walletPubKey, err := solana.PublicKeyFromBase58(walletAddress)
+	if err != nil {
+		return nil, fmt.Errorf("invalid wallet address: %w", err)
+	}
+
+	// Parse token mint (for validation)
+	_, err = solana.PublicKeyFromBase58(tokenMint)
+	if err != nil {
+		return nil, fmt.Errorf("invalid token mint: %w", err)
+	}
+
+	// Get recent blockhash
+	recentBlockhash := solana.Hash{} // This should be fetched from the network
+
+	// Create transfer instruction (simplified - in production you'd create proper token transfer)
+	instruction := system.NewTransferInstruction(
+		amount,
+		walletPubKey, // From wallet
+		solana.MustPublicKeyFromBase58(s.config.RecipientWallet), // To org wallet
+	).Build()
+
+	// Create transaction
+	transaction, err := solana.NewTransaction([]solana.Instruction{instruction}, recentBlockhash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create transaction: %w", err)
+	}
+
+	return transaction, nil
+}
+
+// createTokenTransferTransaction creates a transaction to send tokens to a wallet
+func (s *Service) createTokenTransferTransaction(walletAddress string, amount uint64, tokenMint string) (*solana.Transaction, error) {
+	// Parse wallet address
+	walletPubKey, err := solana.PublicKeyFromBase58(walletAddress)
+	if err != nil {
+		return nil, fmt.Errorf("invalid wallet address: %w", err)
+	}
+
+	// Parse token mint (for validation)
+	_, err = solana.PublicKeyFromBase58(tokenMint)
+	if err != nil {
+		return nil, fmt.Errorf("invalid token mint: %w", err)
+	}
+
+	// Get recent blockhash
+	recentBlockhash := solana.Hash{} // This should be fetched from the network
+
+	// Create transfer instruction (simplified - in production you'd create proper token transfer)
+	instruction := system.NewTransferInstruction(
+		amount,
+		solana.MustPublicKeyFromBase58(s.config.RecipientWallet), // From org wallet
+		walletPubKey, // To user wallet
+	).Build()
+
+	// Create transaction
+	transaction, err := solana.NewTransaction([]solana.Instruction{instruction}, recentBlockhash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create transaction: %w", err)
+	}
+
+	return transaction, nil
 }

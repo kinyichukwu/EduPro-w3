@@ -43,8 +43,6 @@ export function RewardsTab() {
       total: 30,
       reward: "500 EduPro Coins",
       icon: Target,
-      color: "from-orange-500 to-red-500",
-      bgColor: "bg-orange-500/10 border-orange-500/20"
     },
     {
       id: 2,
@@ -54,8 +52,6 @@ export function RewardsTab() {
       total: 10,
       reward: "Premium Badge",
       icon: Trophy,
-      color: "from-yellow-500 to-orange-500",
-      bgColor: "bg-yellow-500/10 border-yellow-500/20"
     },
     {
       id: 3,
@@ -65,8 +61,6 @@ export function RewardsTab() {
       total: 50,
       reward: "300 EduPro Coins",
       icon: Star,
-      color: "from-blue-500 to-purple-500",
-      bgColor: "bg-blue-500/10 border-blue-500/20"
     }
   ];
 
@@ -190,37 +184,36 @@ export function RewardsTab() {
               {rewards.map((reward) => (
                 <div
                   key={reward.id}
-                  className="rounded-lg border border-white/10 bg-dark-accent/20 p-4 transition-all hover:bg-dark-accent/30"
+                  className="p-4 rounded-lg border border-white/10 bg-dark-accent/20 hover:bg-dark-accent/30 transition-colors"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div className={`rounded-lg p-2 ${reward.bgColor}`}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-lg p-2 bg-white/5 border border-white/10">
                         <reward.icon className="h-5 w-5 text-white" />
                       </div>
-                      <div className="flex-1">
+                      <div>
                         <h3 className="font-semibold text-white">{reward.title}</h3>
                         <p className="text-sm text-muted-foreground mt-1">
                           {reward.description}
                         </p>
-                        <div className="mt-3 space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground">Progress</span>
-                            <span className="text-white font-medium">
-                              {reward.progress}/{reward.total}
-                            </span>
-                          </div>
-                          <Progress 
-                            value={(reward.progress / reward.total) * 100} 
-                            className="h-2"
-                          />
-                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
-                        {reward.reward}
-                      </Badge>
+                    <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
+                      {reward.reward}
+                    </Badge>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Progress</span>
+                      <span className="text-white font-medium">
+                        {reward.progress}/{reward.total}
+                      </span>
                     </div>
+                    <Progress 
+                      value={(reward.progress / reward.total) * 100} 
+                      className="h-2"
+                    />
                   </div>
                 </div>
               ))}

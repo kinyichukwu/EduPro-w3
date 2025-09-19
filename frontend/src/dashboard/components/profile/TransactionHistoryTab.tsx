@@ -115,7 +115,7 @@ export const TransactionHistoryTab = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        className="bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20"
+                        className="border-white/20 hover:bg-white/5"
                       >
                         <ArrowLeftRight className="h-4 w-4 mr-2" />
                         Convert
@@ -124,7 +124,7 @@ export const TransactionHistoryTab = () => {
                     <DialogContent className="border-white/10 bg-dark-card/90 backdrop-blur-xl max-w-md">
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-white">
-                          <ArrowLeftRight className="h-5 w-5 text-blue-400" />
+                          <ArrowLeftRight className="h-5 w-5" />
                           Currency Conversion
                         </DialogTitle>
                       </DialogHeader>
@@ -258,94 +258,90 @@ export const TransactionHistoryTab = () => {
 
               <div className="space-y-3">
                 {filteredTransactions.length === 0 ? (
-                  <Card className="border-white/10 bg-dark-accent/10">
-                    <CardContent className="p-16 text-center">
-                      <p className="text-muted-foreground">No transactions found matching your criteria.</p>
-                    </CardContent>
-                  </Card>
+                  <div className="p-16 text-center rounded-lg border border-white/10 bg-dark-accent/10">
+                    <p className="text-muted-foreground">No transactions found matching your criteria.</p>
+                  </div>
                 ) : (
                   filteredTransactions.map((transaction) => {
                     const IconComponent = categoryIcons[transaction.category]
                     return (
-                      <Card key={transaction.id} className="border-white/10 bg-dark-accent/10 hover:bg-dark-accent/20 transition-colors cursor-pointer">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4 flex-1 min-w-0">
-                              {/* Icon */}
-                              <div className={cn("p-2 rounded-lg border", categoryColors[transaction.category])}>
-                                <IconComponent className="h-5 w-5" />
-                              </div>
-
-                              {/* Transaction Details */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center space-x-2 mb-1">
-                                  <h3 className="font-semibold text-white truncate">{transaction.title}</h3>
-                                  <Badge
-                                    variant={
-                                      transaction.status === "completed"
-                                        ? "default"
-                                        : transaction.status === "pending"
-                                          ? "secondary"
-                                          : "destructive"
-                                    }
-                                    className={cn(
-                                      "text-xs max-sm:hidden",
-                                      transaction.status === "completed" && "bg-green-500/10 text-green-400 border-green-500/20",
-                                      transaction.status === "pending" && "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-                                      transaction.status === "failed" && "bg-red-500/10 text-red-400 border-red-500/20"
-                                    )}
-                                  >
-                                    {transaction.status}
-                                  </Badge>
-                                </div>
-                                <p className="text-sm text-muted-foreground truncate">{transaction.description}</p>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <p className="text-xs text-muted-foreground">
-                                    {transaction.date.toLocaleDateString("en-US", {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                      })}
-                                  </p>
-                                  <Badge
-                                    variant={
-                                      transaction.status === "completed"
-                                        ? "default"
-                                        : transaction.status === "pending"
-                                          ? "secondary"
-                                          : "destructive"
-                                    }
-                                    className={cn(
-                                      "text-xs sm:hidden",
-                                      transaction.status === "completed" && "bg-green-500/10 text-green-400 border-green-500/20",
-                                      transaction.status === "pending" && "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-                                      transaction.status === "failed" && "bg-red-500/10 text-red-400 border-red-500/20"
-                                    )}
-                                  >
-                                    {transaction.status}
-                                  </Badge>
-                                </div>
-                              </div>
+                      <div key={transaction.id} className="p-4 rounded-lg border border-white/10 bg-dark-accent/10 hover:bg-dark-accent/20 transition-colors cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4 flex-1 min-w-0">
+                            {/* Icon */}
+                            <div className={cn("p-2 rounded-lg border", categoryColors[transaction.category])}>
+                              <IconComponent className="h-5 w-5" />
                             </div>
 
-                            {/* Amount */}
-                            <div className="text-right shrink-0 ml-4">
-                              <p
-                                className={cn(
-                                  "text-lg font-bold",
-                                  transaction.type === "earned" ? "text-green-400" : "text-red-400",
-                                )}
-                              >
-                                {transaction.type === "earned" ? "+" : ""}
-                                {transaction.amount}
-                              </p>
-                              <p className="text-xs text-muted-foreground">coins</p>
+                            {/* Transaction Details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2 mb-1">
+                                <h3 className="font-semibold text-white truncate">{transaction.title}</h3>
+                                <Badge
+                                  variant={
+                                    transaction.status === "completed"
+                                      ? "default"
+                                      : transaction.status === "pending"
+                                        ? "secondary"
+                                        : "destructive"
+                                  }
+                                  className={cn(
+                                    "text-xs max-sm:hidden",
+                                    transaction.status === "completed" && "bg-green-500/10 text-green-400 border-green-500/20",
+                                    transaction.status === "pending" && "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+                                    transaction.status === "failed" && "bg-red-500/10 text-red-400 border-red-500/20"
+                                  )}
+                                >
+                                  {transaction.status}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground truncate">{transaction.description}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <p className="text-xs text-muted-foreground">
+                                  {transaction.date.toLocaleDateString("en-US", {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    })}
+                                </p>
+                                <Badge
+                                  variant={
+                                    transaction.status === "completed"
+                                      ? "default"
+                                      : transaction.status === "pending"
+                                        ? "secondary"
+                                        : "destructive"
+                                  }
+                                  className={cn(
+                                    "text-xs sm:hidden",
+                                    transaction.status === "completed" && "bg-green-500/10 text-green-400 border-green-500/20",
+                                    transaction.status === "pending" && "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+                                    transaction.status === "failed" && "bg-red-500/10 text-red-400 border-red-500/20"
+                                  )}
+                                >
+                                  {transaction.status}
+                                </Badge>
+                              </div>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
+
+                          {/* Amount */}
+                          <div className="text-right shrink-0 ml-4">
+                            <p
+                              className={cn(
+                                "text-lg font-bold",
+                                transaction.type === "earned" ? "text-green-400" : "text-red-400",
+                              )}
+                            >
+                              {transaction.type === "earned" ? "+" : ""}
+                              {transaction.amount}
+                            </p>
+                            <p className="text-xs text-muted-foreground">coins</p>
+                          </div>
+                        </div>
+                      </div>
                     )
                   })
                 )}
@@ -388,14 +384,14 @@ const ConversionModal = () => {
     <div className="space-y-6">
       {/* Current Balances */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/5">
+        <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/10">
           <div className="flex items-center gap-2 mb-2">
             <Coins className="h-4 w-4 text-yellow-400" />
             <span className="text-sm text-muted-foreground">EDU Balance</span>
           </div>
           <p className="text-xl font-bold text-white">2,847 EDU</p>
         </div>
-        <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/5">
+        <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/10">
           <div className="flex items-center gap-2 mb-2">
             <Wallet className="h-4 w-4 text-blue-400" />
             <span className="text-sm text-muted-foreground">SOL Balance</span>
@@ -411,7 +407,7 @@ const ConversionModal = () => {
           <Button
             variant={conversionType === "edu-to-sol" ? "default" : "outline"}
             onClick={() => setConversionType("edu-to-sol")}
-            className={conversionType === "edu-to-sol" ? "bg-blue-500/20 text-blue-400 border-blue-500/20" : "bg-dark-accent/20 text-muted-foreground border-white/5"}
+            className={conversionType === "edu-to-sol" ? "bg-white/10 text-white border-white/20" : "bg-dark-accent/20 text-muted-foreground border-white/10 hover:bg-dark-accent/30"}
           >
             <Coins className="h-4 w-4 mr-2" />
             EDU → SOL
@@ -419,7 +415,7 @@ const ConversionModal = () => {
           <Button
             variant={conversionType === "sol-to-edu" ? "default" : "outline"}
             onClick={() => setConversionType("sol-to-edu")}
-            className={conversionType === "sol-to-edu" ? "bg-blue-500/20 text-blue-400 border-blue-500/20" : "bg-dark-accent/20 text-muted-foreground border-white/5"}
+            className={conversionType === "sol-to-edu" ? "bg-white/10 text-white border-white/20" : "bg-dark-accent/20 text-muted-foreground border-white/10 hover:bg-dark-accent/30"}
           >
             <Wallet className="h-4 w-4 mr-2" />
             SOL → EDU
@@ -437,7 +433,7 @@ const ConversionModal = () => {
           placeholder="Enter amount"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="bg-dark-accent/20 border-white/5 text-white"
+          className="bg-dark-accent/20 border-white/10 text-white"
         />
       </div>
 
@@ -473,11 +469,11 @@ const ConversionModal = () => {
       <Button
         onClick={() => void handleConversion()}
         disabled={!amount || parseFloat(amount) <= 0 || isConverting}
-        className="w-full bg-blue-500/20 text-blue-400 border-blue-500/20 hover:bg-blue-500/30"
+        className="w-full bg-white/10 text-white border border-white/20 hover:bg-white/20"
       >
         {isConverting ? (
           <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400 mr-2"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
             Converting...
           </>
         ) : (

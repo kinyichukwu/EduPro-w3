@@ -103,7 +103,7 @@ export const WalletSection: React.FC = () => {
             <div className="text-sm text-dark-muted mb-2">
               Connect your Solana wallet to access payment features
             </div>
-            <WalletMultiButton className="!bg-gradient-to-r !from-turbo-purple !to-turbo-indigo hover:!opacity-90 transition-opacity" />
+            <WalletMultiButton className="!bg-white/10 !text-white !border !border-white/20 !rounded-lg !px-6 !py-2 !font-medium hover:!bg-white/20 transition-colors" />
           </div>
         </div>
       ) : (
@@ -163,7 +163,7 @@ export const WalletSection: React.FC = () => {
                   onClick={handleConnectToBackend}
                   disabled={isLoading}
                   size="sm"
-                  className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:opacity-90"
+                  className="bg-white/10 text-white border border-white/20 hover:bg-white/20"
                 >
                   {isLoading ? (
                     <>
@@ -321,10 +321,10 @@ export const WalletSection: React.FC = () => {
                 <Button
                   onClick={() => setShowDeductModal(true)}
                   size="sm"
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:opacity-90"
+                  className="bg-white/10 text-white border border-white/20 hover:bg-white/20"
                 >
                   <Minus className="mr-2 h-3 w-3" />
-                  Deduct SOL
+                  Transfer SOL
                 </Button>
               </div>
             </div>

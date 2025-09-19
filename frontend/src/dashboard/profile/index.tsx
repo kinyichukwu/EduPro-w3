@@ -18,7 +18,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
-import { Progress } from "@/shared/components/ui/progress";
 import { Badge } from "@/shared/components/ui/badge";
 import { mockUserData } from "../constants/profile";
 import { ReferralTab, SettingsTab, RewardsTab, TransactionHistoryTab } from "../components/profile";
@@ -57,11 +56,8 @@ export const ProfilePage = () => {
         className="space-y-6"
       >
         <motion.div variants={itemVariants}>
-          <Card className="relative w-full overflow-hidden border-white/10 bg-gradient-to-br from-dark-card/80 via-dark-card/60 to-purple-900/20 backdrop-blur-xl shadow-2xl">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-turbo-purple/10 via-transparent to-turbo-indigo/15" />
-            <div className="absolute top-0 right-0 h-32 w-32 rounded-full bg-gradient-to-br from-purple-400/20 to-transparent blur-2xl" />
-            <div className="absolute bottom-0 left-0 h-24 w-24 rounded-full bg-gradient-to-tr from-blue-400/20 to-transparent blur-xl" />
-            <div className="relative p-6 sm:p-8">
+          <Card className="w-full border-white/10 bg-dark-card/50 backdrop-blur-sm">
+            <div className="p-6">
               <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 {/* User Info Section */}
                 <div className="flex items-center gap-4">
@@ -84,48 +80,31 @@ export const ProfilePage = () => {
                 </div>
 
                 {/* Stats */}
-                <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:w-auto lg:flex lg:flex-row lg:items-center lg:gap-6">
-                  <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-yellow-500/5 backdrop-blur-sm">
-                    <div className="flex items-center gap-3 p-4">
-                      <div className="rounded-lg bg-amber-500/20 p-2 border border-amber-500/30">
-                        <Coins className="h-6 w-6 text-amber-400" />
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-amber-300">
-                          {mockUserData?.eduproCoins?.toLocaleString()}
-                        </p>
-                        <p className="text-xs text-amber-400">EduPro Coins</p>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-purple-500/5 backdrop-blur-sm">
-                    <div className="p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Zap className="h-4 w-4 text-blue-400" />
-                          <span className="text-sm font-medium text-white">Prompts</span>
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          {mockUserData?.prompts?.used} / {mockUserData?.prompts?.total}
-                        </span>
-                      </div>
-
-                      <Progress
-                        value={(mockUserData.prompts.used / mockUserData.prompts.total) * 100}
-                        className="h-2"
-                      />
-
-                      <p className="text-xs text-muted-foreground">
-                        {mockUserData?.prompts?.total - mockUserData?.prompts?.used} prompts left this month
+                <div className="flex flex-col sm:flex-row gap-4 lg:w-auto">
+                  <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-dark-accent/20 px-4 py-2">
+                    <Coins className="h-5 w-5 text-yellow-400" />
+                    <div>
+                      <p className="text-xl font-bold text-white">
+                        {mockUserData?.eduproCoins?.toLocaleString()}
                       </p>
+                      <p className="text-xs text-muted-foreground">EduPro Coins</p>
                     </div>
-                  </Card>
+                  </div>
+
+                  <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-dark-accent/20 px-4 py-2">
+                    <Zap className="h-5 w-5 text-blue-400" />
+                    <div>
+                      <p className="text-xl font-bold text-white">
+                        {mockUserData?.prompts?.used}/{mockUserData?.prompts?.total}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Prompts Used</p>
+                    </div>
+                  </div>
 
                   {mockUserData.plan === "Free" && (
-                    <Button className="bg-gradient-to-r from-turbo-purple to-turbo-indigo text-white shadow-lg shadow-turbo-purple/20 hover:shadow-turbo-purple/30 hover:scale-105 transition-all">
+                    <Button className="bg-white/10 text-white border border-white/20 hover:bg-white/20">
                       <Crown size={16} className="mr-2" /> 
-                      Upgrade Plan
+                      Upgrade
                     </Button>
                   )}
                 </div>

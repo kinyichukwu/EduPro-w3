@@ -1,57 +1,287 @@
-// import { useState } from "react"
-import { Trophy } from "lucide-react"
-import { SummaryCards } from "./SummaryCards"
-// import { WalletConnection } from "./WalletConnection"
-import { RewardsSection } from "./RewardsSection"
-import { ChallengesSection } from "./ChallengesSection"
-import { AchievementsSection } from "./AchievementsSection"
-import { ActivityFeed } from "./ActivityFeed"
-import { TabsContent } from "@/shared/components/ui/tabs"
+import { motion } from "framer-motion";
+import { 
+  Trophy, 
+  Gift, 
+  Star, 
+  Zap, 
+  TrendingUp, 
+  Award,
+  Target,
+  Calendar,
+  Clock,
+  CheckCircle
+} from "lucide-react";
+import { TabsContent } from "@/shared/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { Badge } from "@/shared/components/ui/badge";
+import { Progress } from "@/shared/components/ui/progress";
 
 export function RewardsTab() {
-  // const [walletConnected, setWalletConnected] = useState(false)
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 100 },
+    },
+  };
+
+  const rewards = [
+    {
+      id: 1,
+      title: "Study Streak Master",
+      description: "Complete 30 consecutive days of studying",
+      progress: 23,
+      total: 30,
+      reward: "500 EduPro Coins",
+      icon: Target,
+      color: "from-orange-500 to-red-500",
+      bgColor: "bg-orange-500/10 border-orange-500/20"
+    },
+    {
+      id: 2,
+      title: "Quiz Champion",
+      description: "Score 90% or higher on 10 quizzes",
+      progress: 7,
+      total: 10,
+      reward: "Premium Badge",
+      icon: Trophy,
+      color: "from-yellow-500 to-orange-500",
+      bgColor: "bg-yellow-500/10 border-yellow-500/20"
+    },
+    {
+      id: 3,
+      title: "Knowledge Seeker",
+      description: "Complete 50 flashcard sessions",
+      progress: 34,
+      total: 50,
+      reward: "300 EduPro Coins",
+      icon: Star,
+      color: "from-blue-500 to-purple-500",
+      bgColor: "bg-blue-500/10 border-blue-500/20"
+    }
+  ];
+
+  const achievements = [
+    {
+      title: "First Steps",
+      description: "Completed your first quiz",
+      date: "Jan 15, 2024",
+      icon: CheckCircle,
+      earned: true
+    },
+    {
+      title: "Week Warrior",
+      description: "7-day study streak",
+      date: "Jan 20, 2024", 
+      icon: Calendar,
+      earned: true
+    },
+    {
+      title: "Speed Learner",
+      description: "Complete 5 lessons in one day",
+      date: "Coming soon",
+      icon: Zap,
+      earned: false
+    }
+  ];
 
   return (
     <TabsContent value="rewards" className="space-y-6">
-      {/* Header Section */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg">
-            <Trophy className="h-6 w-6" />
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
+        {/* Stats Overview */}
+        <motion.div variants={itemVariants}>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Total Rewards</p>
+                    <p className="text-2xl font-bold text-white">1,250</p>
+                  </div>
+                  <div className="rounded-lg bg-green-500/10 p-2 border border-green-500/20">
+                    <Gift className="h-6 w-6 text-green-400" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center text-sm">
+                  <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
+                  <span className="text-green-500">+12%</span>
+                  <span className="text-muted-foreground ml-1">from last month</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Active Streaks</p>
+                    <p className="text-2xl font-bold text-white">23</p>
+                  </div>
+                  <div className="rounded-lg bg-orange-500/10 p-2 border border-orange-500/20">
+                    <Target className="h-6 w-6 text-orange-400" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center text-sm">
+                  <Clock className="mr-1 h-4 w-4 text-orange-500" />
+                  <span className="text-muted-foreground">7 days remaining</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Achievements</p>
+                    <p className="text-2xl font-bold text-white">8</p>
+                  </div>
+                  <div className="rounded-lg bg-purple-500/10 p-2 border border-purple-500/20">
+                    <Award className="h-6 w-6 text-purple-400" />
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center text-sm">
+                  <Star className="mr-1 h-4 w-4 text-purple-500" />
+                  <span className="text-muted-foreground">2 unlocked this week</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Completion Rate</p>
+                    <p className="text-2xl font-bold text-white">87%</p>
+                  </div>
+                  <div className="rounded-lg bg-blue-500/10 p-2 border border-blue-500/20">
+                    <TrendingUp className="h-6 w-6 text-blue-400" />
+                  </div>
+                </div>
+                <Progress value={87} className="mt-2 h-2" />
+              </CardContent>
+            </Card>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Rewards Dashboard</h1>
-            <p className="text-muted-foreground">Manage your rewards and achievements</p>
-          </div>
-        </div>
-        {/* <WalletConnection
-          connected={walletConnected}
-          onConnect={() => setWalletConnected(true)}
-          onDisconnect={() => setWalletConnected(false)}
-        /> */}
-      </div>
+        </motion.div>
 
-      {/* Summary Cards */}
-      <SummaryCards />
+        {/* Active Challenges */}
+        <motion.div variants={itemVariants}>
+          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Trophy className="h-5 w-5 text-yellow-400" />
+                Active Challenges
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {rewards.map((reward) => (
+                <div
+                  key={reward.id}
+                  className="rounded-lg border border-white/10 bg-dark-accent/20 p-4 transition-all hover:bg-dark-accent/30"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className={`rounded-lg p-2 ${reward.bgColor}`}>
+                        <reward.icon className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white">{reward.title}</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {reward.description}
+                        </p>
+                        <div className="mt-3 space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Progress</span>
+                            <span className="text-white font-medium">
+                              {reward.progress}/{reward.total}
+                            </span>
+                          </div>
+                          <Progress 
+                            value={(reward.progress / reward.total) * 100} 
+                            className="h-2"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant="secondary" className="bg-green-500/10 text-green-400 border-green-500/20">
+                        {reward.reward}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </motion.div>
 
-      {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          {/* Rewards Section */}
-          <RewardsSection walletConnected={false} />
-
-          {/* Challenges Section */}
-          <ChallengesSection />
-
-          {/* Achievements Section */}
-          <AchievementsSection />
-        </div>
-
-        {/* Activity Feed Sidebar */}
-        <div className="lg:col-span-1">
-          <ActivityFeed />
-        </div>
-      </div>
+        {/* Recent Achievements */}
+        <motion.div variants={itemVariants}>
+          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Award className="h-5 w-5 text-purple-400" />
+                Achievements
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {achievements.map((achievement, index) => (
+                  <div
+                    key={index}
+                    className={`rounded-lg border p-4 transition-all ${
+                      achievement.earned
+                        ? "border-green-500/20 bg-green-500/5"
+                        : "border-white/10 bg-dark-accent/20"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`rounded-lg p-2 ${
+                        achievement.earned 
+                          ? "bg-green-500/10 border-green-500/20" 
+                          : "bg-gray-500/10 border-gray-500/20"
+                      }`}>
+                        <achievement.icon className={`h-5 w-5 ${
+                          achievement.earned ? "text-green-400" : "text-gray-400"
+                        }`} />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`font-semibold ${
+                          achievement.earned ? "text-white" : "text-gray-400"
+                        }`}>
+                          {achievement.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {achievement.description}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-2">
+                          {achievement.date}
+                        </p>
+                      </div>
+                      {achievement.earned && (
+                        <CheckCircle className="h-5 w-5 text-green-400" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
     </TabsContent>
-  )
+  );
 }

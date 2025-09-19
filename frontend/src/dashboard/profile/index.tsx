@@ -49,7 +49,7 @@ export const ProfilePage = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 md:px-6 py-6 max-w-6xl">
+    <div className="mx-auto px-3 sm:px-4 md:px-6 py-6 max-w-7xl">
       <motion.div
         initial="hidden"
         animate="visible"
@@ -57,66 +57,78 @@ export const ProfilePage = () => {
         className="space-y-6"
       >
         <motion.div variants={itemVariants}>
-          <Card className="w-full p-3.5 sm:p-6 relative overflow-hidden border-white/5 bg-gradient-to-r from-dark-card/80 to-dark-accent/30 backdrop-blur-lg shadow-xl">
-            <div className="absolute inset-0 bg-gradient-to-r from-turbo-purple/10 to-turbo-indigo/10" />
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-              {/* User Info Section */}
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 ring-2 ring-primary/20">
-                  <AvatarImage src={user?.avatar ?? "/placeholder.svg"} alt={user?.full_name ?? user?.username ?? "N/A"} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-lg font-semibold">
-                    {user?.full_name?.charAt(0) ?? user?.username?.charAt(0) ?? "N/A"}
-                  </AvatarFallback>
-                </Avatar>
+          <Card className="relative w-full overflow-hidden border-white/10 bg-gradient-to-br from-dark-card/80 via-dark-card/60 to-purple-900/20 backdrop-blur-xl shadow-2xl">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-turbo-purple/10 via-transparent to-turbo-indigo/15" />
+            <div className="absolute top-0 right-0 h-32 w-32 rounded-full bg-gradient-to-br from-purple-400/20 to-transparent blur-2xl" />
+            <div className="absolute bottom-0 left-0 h-24 w-24 rounded-full bg-gradient-to-tr from-blue-400/20 to-transparent blur-xl" />
+            <div className="relative p-6 sm:p-8">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                {/* User Info Section */}
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16 ring-2 ring-primary/20">
+                    <AvatarImage src={user?.avatar ?? "/placeholder.svg"} alt={user?.full_name ?? user?.username ?? "N/A"} />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-lg font-semibold">
+                      {user?.full_name?.charAt(0) ?? user?.username?.charAt(0) ?? "N/A"}
+                    </AvatarFallback>
+                  </Avatar>
 
-                <div className="space-y-1">
-                  <h2 className="text-2xl font-bold text-card-foreground">{user?.full_name ?? user?.username ?? "N/A"}</h2>
-                  <p className="text-dark-muted">{user?.email}</p>
-                  <Badge variant="default" className="text-xs bg-green/80 text-white">
-                    <Crown className="h-3 w-3 mr-1" />
-                    Active Learner
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 sm:flex flex-row items-start sm:items-center gap-4 sm:gap-6 w-full lg:w-auto">
-                <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/20 px-4 py-2 rounded-lg border border-amber-200 dark:border-amber-800">
-                  <Coins className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                  <div className="text-center">
-                    <p className="text-xl sm:text-2xl font-bold text-amber-700 dark:text-amber-300">{mockUserData?.eduproCoins?.toLocaleString()}</p>
-                    <p className="text-[11px] sm:text-xs text-amber-600 dark:text-amber-400">EduPro Coins</p>
+                  <div className="space-y-1">
+                    <h2 className="text-2xl font-bold text-white">
+                      {user?.full_name ?? user?.username ?? "N/A"}
+                    </h2>
+                    <p className="text-muted-foreground">{user?.email}</p>
+                    <Badge variant="default" className="text-xs bg-green/80 text-white">
+                      <Crown className="mr-1 h-3 w-3" /> Active Learner
+                    </Badge>
                   </div>
                 </div>
 
-                <div className="col-span-2 col-start-1 row-start-1 flex-1 min-w-[170px] space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Zap className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium text-card-foreground">Prompts</span>
+                {/* Stats */}
+                <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:w-auto lg:flex lg:flex-row lg:items-center lg:gap-6">
+                  <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-yellow-500/5 backdrop-blur-sm">
+                    <div className="flex items-center gap-3 p-4">
+                      <div className="rounded-lg bg-amber-500/20 p-2 border border-amber-500/30">
+                        <Coins className="h-6 w-6 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-amber-300">
+                          {mockUserData?.eduproCoins?.toLocaleString()}
+                        </p>
+                        <p className="text-xs text-amber-400">EduPro Coins</p>
+                      </div>
                     </div>
-                    <span className="text-sm text-muted-foreground">
-                      {mockUserData?.prompts?.used} / {mockUserData?.prompts?.total}
-                    </span>
-                  </div>
+                  </Card>
 
-                  <Progress
-                    value={
-                      (mockUserData.prompts.used /
-                        mockUserData.prompts.total) *
-                      100
-                    }
-                    className="w-20 h-2 mt-1"
-                  />
+                  <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-purple-500/5 backdrop-blur-sm">
+                    <div className="p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Zap className="h-4 w-4 text-blue-400" />
+                          <span className="text-sm font-medium text-white">Prompts</span>
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {mockUserData?.prompts?.used} / {mockUserData?.prompts?.total}
+                        </span>
+                      </div>
 
-                  <p className="text-xs text-muted-foreground">{(mockUserData?.prompts?.total - mockUserData?.prompts?.used)} prompts left this month</p>
+                      <Progress
+                        value={(mockUserData.prompts.used / mockUserData.prompts.total) * 100}
+                        className="h-2"
+                      />
+
+                      <p className="text-xs text-muted-foreground">
+                        {mockUserData?.prompts?.total - mockUserData?.prompts?.used} prompts left this month
+                      </p>
+                    </div>
+                  </Card>
+
+                  {mockUserData.plan === "Free" && (
+                    <Button className="bg-gradient-to-r from-turbo-purple to-turbo-indigo text-white shadow-lg shadow-turbo-purple/20 hover:shadow-turbo-purple/30 hover:scale-105 transition-all">
+                      <Crown size={16} className="mr-2" /> 
+                      Upgrade Plan
+                    </Button>
+                  )}
                 </div>
-
-                {mockUserData.plan === "Free" && (
-                  <Button className="max-sm:h-full bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:shadow-lg hover:shadow-turbo-purple/20">
-                    <Crown size={16} className="mr-2" />
-                    Upgrade
-                  </Button>
-                )}
               </div>
             </div>
           </Card>
@@ -124,36 +136,32 @@ export const ProfilePage = () => {
 
         {/* Main Content */}
         <motion.div variants={itemVariants}>
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="space-y-6 "
-          >
-            <TabsList className="grid w-full h-full grid-cols-4 bg-dark-accent/30 backdrop-blur-lg p-1 rounded-xl">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid h-full w-full grid-cols-4 rounded-xl bg-dark-accent/40 p-1 backdrop-blur-lg">
               <TabsTrigger
                 value="rewards"
-                className="flex items-center gap-2 rounded-lg px-4 py-3 font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-turbo-purple data-[state=active]:to-turbo-indigo data-[state=active]:text-white data-[state=active]:shadow-lg text-dark-muted hover:bg-white/5 hover:text-white"
+                className="flex items-center gap-2 rounded-lg px-4 py-3 font-medium text-dark-muted transition-all hover:bg-white/5 hover:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-turbo-purple data-[state=active]:to-turbo-indigo data-[state=active]:text-white data-[state=active]:shadow-lg"
               >
                 <CreditCard size={16} />
                 <span className="hidden sm:inline">Rewards</span>
               </TabsTrigger>
               <TabsTrigger
                 value="referral"
-                className="flex items-center gap-2 rounded-lg px-4 py-3 font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-turbo-purple data-[state=active]:to-turbo-indigo data-[state=active]:text-white data-[state=active]:shadow-lg text-dark-muted hover:bg-white/5 hover:text-white"
+                className="flex items-center gap-2 rounded-lg px-4 py-3 font-medium text-dark-muted transition-all hover:bg-white/5 hover:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-turbo-purple data-[state=active]:to-turbo-indigo data-[state=active]:text-white data-[state=active]:shadow-lg"
               >
                 <Share2 size={16} />
                 <span className="hidden sm:inline">Referral</span>
               </TabsTrigger>
               <TabsTrigger
                 value="transactions"
-                className="flex items-center gap-2 rounded-lg px-4 py-3 font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-turbo-purple data-[state=active]:to-turbo-indigo data-[state=active]:text-white data-[state=active]:shadow-lg text-dark-muted hover:bg-white/5 hover:text-white"
+                className="flex items-center gap-2 rounded-lg px-4 py-3 font-medium text-dark-muted transition-all hover:bg-white/5 hover:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-turbo-purple data-[state=active]:to-turbo-indigo data-[state=active]:text-white data-[state=active]:shadow-lg"
               >
                 <History size={16} />
                 <span className="hidden sm:inline">Transactions</span>
               </TabsTrigger>
               <TabsTrigger
                 value="settings"
-                className="flex items-center gap-2 rounded-lg px-4 py-3 font-medium transition-all data-[state=active]:bg-gradient-to-r data-[state=active]:from-turbo-purple data-[state=active]:to-turbo-indigo data-[state=active]:text-white data-[state=active]:shadow-lg text-dark-muted hover:bg-white/5 hover:text-white"
+                className="flex items-center gap-2 rounded-lg px-4 py-3 font-medium text-dark-muted transition-all hover:bg-white/5 hover:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-turbo-purple data-[state=active]:to-turbo-indigo data-[state=active]:text-white data-[state=active]:shadow-lg"
               >
                 <Settings size={16} />
                 <span className="hidden sm:inline">Settings</span>

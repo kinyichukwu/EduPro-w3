@@ -79,6 +79,14 @@ export const SettingsTab = () => {
   //   weeklyDigest: true,
   // });
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 },
+    },
+  };
+
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
@@ -90,76 +98,97 @@ export const SettingsTab = () => {
 
   return (
     <TabsContent value="settings" className="space-y-6">
-      {/* Personal Info */}
-      <motion.div variants={itemVariants}>
-        <Card className="border-white/5 bg-dark-card/40 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <User size={20} />
-              Personal Information
-            </CardTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsEditing(!isEditing)}
-              className="hover:bg-turbo-purple/20"
-            >
-              {isEditing ? <Save size={16} /> : <Edit3 size={16} />}
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="name">Full Name</Label>
-                <p className="mt-1 h-12.5 flex items-center px-3 bg-dark-accent/20 rounded-lg border border-white/5">
-                  {user?.full_name ?? "N/A"}
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <p className="mt-1 h-12.5 flex items-center px-3 bg-dark-accent/20 rounded-lg border border-white/5">
-                  {user?.email}
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <p className="mt-1 h-12.5 flex items-center px-3 bg-dark-accent/20 rounded-lg border border-white/5">
-                  N/A
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="role">Role</Label>
-                <p className="mt-1 h-12.5 flex items-center px-3 bg-dark-accent/20 rounded-lg border border-white/5 capitalize">
-                  {onboardingData?.onboarding_data?.role || "N/A"}
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="school">School/Institution</Label>
-                <p className="mt-1 h-12.5 flex items-center px-3 bg-dark-accent/20 rounded-lg border border-white/5">
-                  {getAcademicInfo("university")}
-                </p>
-              </div>
-              <div className="md:col-span-2">
-                <Label htmlFor="course">Course/Department</Label>
-                <p className="mt-1 h-12.5 flex items-center px-3 bg-dark-accent/20 rounded-lg border border-white/5">
-                  {getAcademicInfo("course")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Onboarding Information */}
-      {onboardingData?.onboarding_data && (
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
+        {/* Personal Info */}
         <motion.div variants={itemVariants}>
-          <Card className="border-white/5 bg-dark-card/40 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User size={20} />
-                Academic Profile
+          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-white">
+                <User size={20} className="text-blue-400" />
+                Personal Information
               </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditing(!isEditing)}
+                className="hover:bg-turbo-purple/20 text-purple-400 hover:text-purple-300"
+              >
+                {isEditing ? <Save size={16} /> : <Edit3 size={16} />}
+                <span className="ml-2 hidden sm:inline">
+                  {isEditing ? "Save" : "Edit"}
+                </span>
+              </Button>
             </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-medium text-muted-foreground">Full Name</Label>
+                  <div className="relative">
+                    <div className="flex h-10 w-full items-center rounded-lg border border-white/10 bg-dark-accent/20 px-3 py-2 text-sm text-white">
+                      {user?.full_name ?? "N/A"}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium text-muted-foreground">Email</Label>
+                  <div className="relative">
+                    <div className="flex h-10 w-full items-center rounded-lg border border-white/10 bg-dark-accent/20 px-3 py-2 text-sm text-white">
+                      {user?.email}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm font-medium text-muted-foreground">Phone</Label>
+                  <div className="relative">
+                    <div className="flex h-10 w-full items-center rounded-lg border border-white/10 bg-dark-accent/20 px-3 py-2 text-sm text-muted-foreground">
+                      Not provided
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role" className="text-sm font-medium text-muted-foreground">Role</Label>
+                  <div className="relative">
+                    <div className="flex h-10 w-full items-center rounded-lg border border-white/10 bg-dark-accent/20 px-3 py-2 text-sm text-white capitalize">
+                      {onboardingData?.onboarding_data?.role || "N/A"}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="school" className="text-sm font-medium text-muted-foreground">School/Institution</Label>
+                  <div className="relative">
+                    <div className="flex h-10 w-full items-center rounded-lg border border-white/10 bg-dark-accent/20 px-3 py-2 text-sm text-white">
+                      {getAcademicInfo("university")}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="course" className="text-sm font-medium text-muted-foreground">Course/Department</Label>
+                  <div className="relative">
+                    <div className="flex h-10 w-full items-center rounded-lg border border-white/10 bg-dark-accent/20 px-3 py-2 text-sm text-white">
+                      {getAcademicInfo("course")}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Academic Profile */}
+        {onboardingData?.onboarding_data && (
+          <motion.div variants={itemVariants}>
+            <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <User size={20} className="text-green-400" />
+                  Academic Profile
+                </CardTitle>
+              </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Role-specific information */}
@@ -272,25 +301,25 @@ export const SettingsTab = () => {
         </motion.div>
       )}
 
-      {/* Security */}
-      <motion.div variants={itemVariants}>
-        <Card className="border-white/5 bg-dark-card/40 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield size={20} />
-              Security
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-dark-accent/10 rounded-xl border border-white/5">
-              <div>
-                <div className="font-medium">Password</div>
-                <div className="text-sm text-dark-muted">
-                  Last changed 30 days ago
+        {/* Security */}
+        <motion.div variants={itemVariants}>
+          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Shield size={20} className="text-orange-400" />
+                Security
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-dark-accent/20 rounded-xl border border-white/10 hover:bg-dark-accent/30 transition-colors">
+                <div className="space-y-1">
+                  <div className="font-medium text-white">Password</div>
+                  <div className="text-sm text-muted-foreground">
+                    Last changed 30 days ago
+                  </div>
                 </div>
+                <PasswordDialog />
               </div>
-              <PasswordDialog />
-            </div>
             {/* <div className="flex items-center justify-between p-4 bg-dark-accent/10 rounded-xl border border-white/5">
               <div>
                 <div className="font-medium">
@@ -306,26 +335,26 @@ export const SettingsTab = () => {
         </Card>
       </motion.div>
 
-      {/* Wallet Connection */}
-      <motion.div variants={itemVariants}>
-        <Card className="border-white/5 bg-dark-card/40 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wallet size={20} />
-              Wallet Connection
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="text-sm text-dark-muted">
-                Connect your Solana wallet to access payment features, earn
-                rewards, and manage your digital assets.
+        {/* Wallet Connection */}
+        <motion.div variants={itemVariants}>
+          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Wallet size={20} className="text-purple-400" />
+                Wallet Connection
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  Connect your Solana wallet to access payment features, earn
+                  rewards, and manage your digital assets.
+                </div>
+                <WalletSection />
               </div>
-              <WalletSection />
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
       {/* Notifications */}
       {/* <motion.div variants={itemVariants}>
@@ -422,69 +451,38 @@ export const SettingsTab = () => {
         </Card>
       </motion.div> */}
 
-      {/* Account Actions */}
-      <motion.div variants={itemVariants}>
-        <Card className="border-white/5 bg-dark-card/40 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User size={20} />
-              Account Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex max-md:flex-col md:items-center justify-between gap-4 p-4 bg-dark-accent/10 rounded-xl border border-white/5 hover:bg-dark-accent/20 transition-colors">
-              <div>
-                <div className="font-medium">Sign Out</div>
-                <div className="text-sm text-dark-muted">
-                  Sign out of your account on this device
+        {/* Account Actions */}
+        <motion.div variants={itemVariants}>
+          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <LogOut size={20} className="text-red-400" />
+                Account Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex max-md:flex-col md:items-center justify-between gap-4 p-4 bg-dark-accent/20 rounded-xl border border-white/10 hover:bg-dark-accent/30 transition-colors">
+                <div className="space-y-1">
+                  <div className="font-medium text-white">Sign Out</div>
+                  <div className="text-sm text-muted-foreground">
+                    Sign out of your account on this device
+                  </div>
                 </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => signOut()}
+                  disabled={loading.signOut}
+                  className="border-red-500/20 bg-red-500/10 text-red-400 hover:border-red-500/50 hover:text-red-300 hover:bg-red-500/20"
+                >
+                  <LogOut size={16} className="mr-2" />
+                  {loading.signOut ? "Signing out..." : "Sign Out"}
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => signOut()}
-                disabled={loading.signOut}
-                className="border-white/10 hover:border-red-500/50 hover:text-red-500 hover:bg-red-500/10"
-              >
-                <LogOut size={16} className="mr-2" />
-                {loading.signOut ? "Signing out..." : "Sign Out"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
       </motion.div>
-
-      {/* Danger Zone */}
-      {/* <motion.div variants={itemVariants}>
-        <Card className="border-red/30 bg-red/5 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red">
-              <AlertTriangle size={20} />
-              Danger Zone
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex max-md:flex-col md:items-center justify-between gap-4 p-4 bg-red/10 rounded-xl border border-red/20">
-              <div>
-                <div className="font-medium text-red">
-                  Delete Account
-                </div>
-                <div className="text-sm text-red/70">
-                  Permanently delete your account and all data
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-red text-red hover:bg-red hover:text-white"
-              >
-                <Trash2 size={16} className="mr-2" />
-                Delete Account
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div> */}
     </TabsContent>
   );
 };

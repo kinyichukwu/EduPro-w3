@@ -45,6 +45,14 @@ const categoryColors = {
 }
 
 export const TransactionHistoryTab = () => {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 },
+    },
+  };
+
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
     visible: {
@@ -85,218 +93,266 @@ export const TransactionHistoryTab = () => {
 
   return (
     <TabsContent value="transactions" className="space-y-6">
-      <motion.div variants={itemVariants}>
-        <Card className="border-white/5 backdrop-blur-sm">
-          <CardHeader className="max-sm:px-2">
-            <div className="flex flex-col space-y-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <TrendingUp size={20} />
-                  Transaction History
-                </CardTitle>
-                
-                {/* Conversion Button */}
-                <Dialog open={showConversionModal} onOpenChange={setShowConversionModal}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20"
-                    >
-                      <ArrowLeftRight className="h-4 w-4 mr-2" />
-                      Convert
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="border-white/5 backdrop-blur-sm max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2 text-white">
-                        <ArrowLeftRight className="h-5 w-5 text-blue-400" />
-                        Currency Conversion
-                      </DialogTitle>
-                    </DialogHeader>
-                    <ConversionModal />
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 flex items-center justify-between bg-dark-accent/20 rounded-lg border border-white/5">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Earned</p>
-                    <p className="text-xl sm:text-2xl font-bold text-green-400">+{totalEarned}</p>
-                  </div>
-                  <TrendingUp className="h-6 sm:h-8 w-6 sm:w-8 text-green-400" />
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
+        <motion.div variants={itemVariants}>
+          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <div className="flex flex-col space-y-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <TrendingUp size={20} />
+                    Transaction History
+                  </CardTitle>
+                  
+                  {/* Conversion Button */}
+                  <Dialog open={showConversionModal} onOpenChange={setShowConversionModal}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/20"
+                      >
+                        <ArrowLeftRight className="h-4 w-4 mr-2" />
+                        Convert
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="border-white/10 bg-dark-card/90 backdrop-blur-xl max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-white">
+                          <ArrowLeftRight className="h-5 w-5 text-blue-400" />
+                          Currency Conversion
+                        </DialogTitle>
+                      </DialogHeader>
+                      <ConversionModal />
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
-                <div className="p-4 flex items-center justify-between bg-dark-accent/20 rounded-lg border border-white/5">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Spent</p>
-                    <p className="text-xl sm:text-2xl font-bold text-red-400">-{totalSpent}</p>
-                  </div>
-                  <TrendingDown className="h-6 sm:h-8 w-6 sm:w-8 text-red-400" />
-                </div>
-                
-                <div className="p-4 flex items-center justify-between bg-dark-accent/20 rounded-lg border border-white/5">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Net Balance</p>
-                    <p
-                      className={cn(
-                        "text-xl sm:text-2xl font-bold",
-                        totalEarned - totalSpent >= 0 ? "text-green-400" : "text-red-400",
-                      )}
-                    >
-                      {totalEarned - totalSpent >= 0 ? "+" : ""}
-                      {totalEarned - totalSpent}
-                    </p>
-                  </div>
-                  <div
-                    className={cn(
-                      "h-6 sm:h-8 w-6 sm:w-8 rounded-full flex items-center justify-center",
-                      totalEarned - totalSpent >= 0 ? "bg-green-500/20" : "bg-red-500/20",
-                    )}
-                  >
-                    <span className="text-sm font-bold">₵</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4 max-sm:p-2">
-            <div className="p-4 flex flex-col md:flex-row max-md:space-y-4 md:space-x-4 bg-dark-accent/20 rounded-lg border border-white/5">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search transactions..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
-              <Select value={filterType} onValueChange={(value: "all" | "earned" | "spent") => setFilterType(value)}>
-                <SelectTrigger className="w-full md:w-[140px]">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="earned">Earned</SelectItem>
-                  <SelectItem value="spent">Spent</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filterCategory} onValueChange={setFilterCategory}>
-                <SelectTrigger className="w-full md:w-[140px]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="quiz">Quiz</SelectItem>
-                  <SelectItem value="purchase">Purchase</SelectItem>
-                  <SelectItem value="referral">Referral</SelectItem>
-                  <SelectItem value="tutoring">Tutoring</SelectItem>
-                  <SelectItem value="streak">Streak</SelectItem>
-                  <SelectItem value="access">Access</SelectItem>
-                  <SelectItem value="welcome">Welcome</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-full md:w-[140px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
-              {filteredTransactions.length === 0 ? (
-                <div className="p-16 text-center bg-dark-accent/20 hover:bg-dark-accent/10 rounded-lg border border-white/5 transition-colors">
-                  <p className="text-muted-foreground">No transactions found matching your criteria.</p>
-                </div>
-              ) : (
-                filteredTransactions.map((transaction) => {
-                  const IconComponent = categoryIcons[transaction.category]
-                  return (
-                    <div key={transaction.id} className="p-2 sm:p-4 bg-dark-accent/20 hover:bg-dark-accent/10 rounded-lg border border-white/5 transition-colors cursor-pointer">
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Card className="border-green-500/20 bg-green-500/5">
+                    <CardContent className="p-4">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-x-2 sm:gap-x-4 shrink">
-                          {/* Icon */}
-                          <div className={cn("p-2 rounded-lg border", categoryColors[transaction.category])}>
-                            <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" />
-                          </div>
-
-                          {/* Transaction Details */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <h3 className="font-semibold text-foreground truncate">{transaction.title}</h3>
-                              <Badge
-                                variant={
-                                  transaction.status === "completed"
-                                    ? "default"
-                                    : transaction.status === "pending"
-                                      ? "secondary"
-                                      : "destructive"
-                                }
-                                className="text-xs max-sm:hidden"
-                              >
-                                {transaction.status}
-                              </Badge>
-                            </div>
-                            <p className="text-xs sm:text-sm text-muted-foreground truncate">{transaction.description}</p>
-                            <div className="flex items-center gap-1">
-                              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
-                                {transaction.date.toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  })}
-                              </p>
-                              <Badge
-                                variant={
-                                  transaction.status === "completed"
-                                    ? "default"
-                                    : transaction.status === "pending"
-                                      ? "secondary"
-                                      : "destructive"
-                                }
-                                className="text-xs sm:hidden"
-                              >
-                                {transaction.status}
-                              </Badge>
-                            </div>
-                          </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Total Earned</p>
+                          <p className="text-xl sm:text-2xl font-bold text-green-400">+{totalEarned}</p>
                         </div>
-
-                        {/* Amount */}
-                        <div className="text-right shrink-0">
-                          <p
-                            className={cn(
-                              "text-sm sm:text-lg font-bold",
-                              transaction.type === "earned" ? "text-green-400" : "text-red-400",
-                            )}
-                          >
-                            {transaction.type === "earned" ? "+" : ""}
-                            {transaction.amount} coins
-                          </p>
+                        <div className="rounded-lg bg-green-500/10 p-2 border border-green-500/20">
+                          <TrendingUp className="h-6 w-6 text-green-400" />
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-red-500/20 bg-red-500/5">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Total Spent</p>
+                          <p className="text-xl sm:text-2xl font-bold text-red-400">-{totalSpent}</p>
+                        </div>
+                        <div className="rounded-lg bg-red-500/10 p-2 border border-red-500/20">
+                          <TrendingDown className="h-6 w-6 text-red-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className={cn(
+                    "border-white/10",
+                    totalEarned - totalSpent >= 0 ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"
+                  )}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Net Balance</p>
+                          <p
+                            className={cn(
+                              "text-xl sm:text-2xl font-bold",
+                              totalEarned - totalSpent >= 0 ? "text-green-400" : "text-red-400",
+                            )}
+                          >
+                            {totalEarned - totalSpent >= 0 ? "+" : ""}
+                            {totalEarned - totalSpent}
+                          </p>
+                        </div>
+                        <div className={cn(
+                          "rounded-lg p-2 border",
+                          totalEarned - totalSpent >= 0 
+                            ? "bg-green-500/10 border-green-500/20" 
+                            : "bg-red-500/10 border-red-500/20"
+                        )}>
+                          <Coins className={cn(
+                            "h-6 w-6",
+                            totalEarned - totalSpent >= 0 ? "text-green-400" : "text-red-400"
+                          )} />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Card className="border-white/10 bg-dark-accent/20">
+                <CardContent className="p-4">
+                  <div className="flex flex-col md:flex-row max-md:space-y-4 md:space-x-4">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search transactions..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10 bg-dark-card/50 border-white/10"
+                        />
+                      </div>
                     </div>
-                  )
-                })
-              )}
-            </div>
-          </CardContent>
-        </Card>
+
+                    <Select value={filterType} onValueChange={(value: "all" | "earned" | "spent") => setFilterType(value)}>
+                      <SelectTrigger className="w-full md:w-[140px] bg-dark-card/50 border-white/10">
+                        <SelectValue placeholder="Type" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-dark-card border-white/10">
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="earned">Earned</SelectItem>
+                        <SelectItem value="spent">Spent</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={filterCategory} onValueChange={setFilterCategory}>
+                      <SelectTrigger className="w-full md:w-[140px] bg-dark-card/50 border-white/10">
+                        <SelectValue placeholder="Category" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-dark-card border-white/10">
+                        <SelectItem value="all">All Categories</SelectItem>
+                        <SelectItem value="quiz">Quiz</SelectItem>
+                        <SelectItem value="purchase">Purchase</SelectItem>
+                        <SelectItem value="referral">Referral</SelectItem>
+                        <SelectItem value="tutoring">Tutoring</SelectItem>
+                        <SelectItem value="streak">Streak</SelectItem>
+                        <SelectItem value="access">Access</SelectItem>
+                        <SelectItem value="welcome">Welcome</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger className="w-full md:w-[140px] bg-dark-card/50 border-white/10">
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-dark-card border-white/10">
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="space-y-3">
+                {filteredTransactions.length === 0 ? (
+                  <Card className="border-white/10 bg-dark-accent/10">
+                    <CardContent className="p-16 text-center">
+                      <p className="text-muted-foreground">No transactions found matching your criteria.</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  filteredTransactions.map((transaction) => {
+                    const IconComponent = categoryIcons[transaction.category]
+                    return (
+                      <Card key={transaction.id} className="border-white/10 bg-dark-accent/10 hover:bg-dark-accent/20 transition-colors cursor-pointer">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4 flex-1 min-w-0">
+                              {/* Icon */}
+                              <div className={cn("p-2 rounded-lg border", categoryColors[transaction.category])}>
+                                <IconComponent className="h-5 w-5" />
+                              </div>
+
+                              {/* Transaction Details */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <h3 className="font-semibold text-white truncate">{transaction.title}</h3>
+                                  <Badge
+                                    variant={
+                                      transaction.status === "completed"
+                                        ? "default"
+                                        : transaction.status === "pending"
+                                          ? "secondary"
+                                          : "destructive"
+                                    }
+                                    className={cn(
+                                      "text-xs max-sm:hidden",
+                                      transaction.status === "completed" && "bg-green-500/10 text-green-400 border-green-500/20",
+                                      transaction.status === "pending" && "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+                                      transaction.status === "failed" && "bg-red-500/10 text-red-400 border-red-500/20"
+                                    )}
+                                  >
+                                    {transaction.status}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground truncate">{transaction.description}</p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <p className="text-xs text-muted-foreground">
+                                    {transaction.date.toLocaleDateString("en-US", {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                      })}
+                                  </p>
+                                  <Badge
+                                    variant={
+                                      transaction.status === "completed"
+                                        ? "default"
+                                        : transaction.status === "pending"
+                                          ? "secondary"
+                                          : "destructive"
+                                    }
+                                    className={cn(
+                                      "text-xs sm:hidden",
+                                      transaction.status === "completed" && "bg-green-500/10 text-green-400 border-green-500/20",
+                                      transaction.status === "pending" && "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+                                      transaction.status === "failed" && "bg-red-500/10 text-red-400 border-red-500/20"
+                                    )}
+                                  >
+                                    {transaction.status}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Amount */}
+                            <div className="text-right shrink-0 ml-4">
+                              <p
+                                className={cn(
+                                  "text-lg font-bold",
+                                  transaction.type === "earned" ? "text-green-400" : "text-red-400",
+                                )}
+                              >
+                                {transaction.type === "earned" ? "+" : ""}
+                                {transaction.amount}
+                              </p>
+                              <p className="text-xs text-muted-foreground">coins</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </motion.div>
     </TabsContent>
   );

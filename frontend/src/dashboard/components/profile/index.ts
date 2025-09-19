@@ -1,11 +1,13 @@
 import { ReferralTab } from "./ReferralTab"
 import { SettingsTab } from "./SettingsTab"
-import { SubscriptionTab } from "./SubscriptionTab"
+import { RewardsTab } from "./rewards/RewardsTab"
+import { TransactionHistoryTab } from "./TransactionHistoryTab"
 import { WalletSection } from "./WalletSection"
 
 export { 
   ReferralTab,
   SettingsTab,
-  SubscriptionTab,
+  RewardsTab,
+  TransactionHistoryTab,
   WalletSection
 }

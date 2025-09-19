@@ -19,6 +19,8 @@ import PastQuestions from "./dashboard/library/past-questions";
 import MyUploads from "./dashboard/library/uploads";
 import LibraryAnalytics from "./dashboard/library/analytics";
 import UploadNew from "./dashboard/library/upload";
+import Explore from "./dashboard/explore/index";
+import ExploreCategory from "./dashboard/explore/category";
 import { ProfilePage } from "./dashboard/profile";
 import {
   AdminLayout,
@@ -101,6 +103,8 @@ export const AppRoutes = () => {
           <Route path="library/uploads" element={<MyUploads />} />
           <Route path="library/analytics" element={<LibraryAnalytics />} />
           <Route path="library/upload" element={<UploadNew />} />
+          <Route path="explore" element={<Explore />} />
+          <Route path="explore/:categoryId" element={<ExploreCategory />} />
           <Route
             path="profile"
             element={

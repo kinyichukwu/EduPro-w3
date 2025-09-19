@@ -7,6 +7,7 @@ import {
   Library,
   BrainCircuit,
   MessageCircle,
+  Telescope,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 // import { Button } from "@/shared/components/ui/button";
@@ -56,6 +57,12 @@ const navItems = [
     label: "Library",
     path: "/dashboard/library",
     color: `text-orange-500`,
+  },
+  {
+    icon: <Telescope size={22} />,
+    label: "Explore",
+    path: "/dashboard/explore",
+    color: `text-yellow-500`,
   },
   {
     icon: <UserRound size={22} />,

@@ -25,6 +25,7 @@ import {
   BookText,
   BrainCircuit,
   MessageCircle,
+  Telescope,
 } from "lucide-react";
 import { motion } from "framer-motion";
 // import SearchBar from "./components/SearchBar";
@@ -73,6 +74,12 @@ const navItems = [
     label: "Library",
     path: "/dashboard/library",
     color: `text-orange-500`,
+  },
+  {
+    icon: <Telescope size={22} />,
+    label: "Explore",
+    path: "/dashboard/explore",
+    color: `text-yellow-500`,
   },
   {
     icon: <UserRound size={22} />,

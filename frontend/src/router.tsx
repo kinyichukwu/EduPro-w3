@@ -21,6 +21,7 @@ import LibraryAnalytics from "./dashboard/library/analytics";
 import UploadNew from "./dashboard/library/upload";
 import Explore from "./dashboard/explore/index";
 import ExploreCategory from "./dashboard/explore/category";
+import CourseDetail from "./dashboard/explore/course-detail";
 import { ProfilePage } from "./dashboard/profile";
 import {
   AdminLayout,
@@ -105,6 +106,7 @@ export const AppRoutes = () => {
           <Route path="library/upload" element={<UploadNew />} />
           <Route path="explore" element={<Explore />} />
           <Route path="explore/:categoryId" element={<ExploreCategory />} />
+          <Route path="explore/course/:courseId" element={<CourseDetail />} />
           <Route
             path="profile"
             element={

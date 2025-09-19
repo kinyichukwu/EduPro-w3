@@ -243,9 +243,9 @@ export function ChatList({
                       onClick={() => handleChatClick(chat.id)}
                     >
                       {/* Avatar */}
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center flex-shrink-0">
+                      {/* <div className="w-8 h-8 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo flex items-center justify-center flex-shrink-0">
                         <MessageSquare className="w-4 h-4 text-white" />
-                      </div>
+                      </div> */}
 
                       {/* Content */}
                       <div className="flex-1 min-w-0 overflow-hidden">

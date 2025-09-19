@@ -5,11 +5,13 @@ import {
   Share2,
   Settings,
   Crown,
-  Zap,
   Coins,
   History,
+  TrendingUp,
+  Wallet,
+  Award,
+  BookOpen,
 } from "lucide-react";
-import { Button } from "@/shared/components/ui/button";
 import {
   Card,
 } from "@/shared/components/ui/card";
@@ -55,62 +57,118 @@ export const ProfilePage = () => {
         variants={containerVariants}
         className="space-y-6"
       >
+        {/* User Profile Header */}
         <motion.div variants={itemVariants}>
-          <Card className="w-full border-white/10 bg-dark-card/50 backdrop-blur-sm">
-            <div className="p-6">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <Card className="w-full border-white/10 bg-gradient-to-br from-dark-card/80 via-dark-card/60 to-dark-card/40 backdrop-blur-xl">
+            <div className="p-8">
+              <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
                 {/* User Info Section */}
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16 ring-2 ring-primary/20">
-                    <AvatarImage src={user?.avatar ?? "/placeholder.svg"} alt={user?.full_name ?? user?.username ?? "N/A"} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-lg font-semibold">
-                      {user?.full_name?.charAt(0) ?? user?.username?.charAt(0) ?? "N/A"}
-                    </AvatarFallback>
-                  </Avatar>
+                <div className="flex items-center gap-6">
+                  <div className="relative">
+                    <Avatar className="h-24 w-24 ring-4 ring-primary/30 shadow-xl">
+                      <AvatarImage src={user?.avatar ?? "/placeholder.svg"} alt={user?.full_name ?? user?.username ?? "N/A"} />
+                      <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white text-2xl font-bold">
+                        {user?.full_name?.charAt(0) ?? user?.username?.charAt(0) ?? "N/A"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-green-400 to-green-500 shadow-lg">
+                      <Crown className="h-4 w-4 text-white" />
+                    </div>
+                  </div>
 
-                  <div className="space-y-1">
-                    <h2 className="text-2xl font-bold text-white">
+                  <div className="space-y-2">
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                       {user?.full_name ?? user?.username ?? "N/A"}
                     </h2>
-                    <p className="text-muted-foreground">{user?.email}</p>
-                    <Badge variant="default" className="text-xs bg-green/80 text-white">
-                      <Crown className="mr-1 h-3 w-3" /> Active Learner
+                    <p className="text-muted-foreground text-base">{user?.email}</p>
+                    <Badge variant="default" className="text-sm bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0 px-3 py-1">
+                      Active Learner
                     </Badge>
                   </div>
                 </div>
 
-                {/* Stats */}
-                <div className="flex flex-col sm:flex-row gap-4 lg:w-auto">
-                  <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-dark-accent/20 px-4 py-2">
-                    <Coins className="h-5 w-5 text-yellow-400" />
+                {/* Wallet Section */}
+                <div className="lg:text-right">
+                  <div className="inline-flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                    <Wallet className="h-4 w-4" />
+                    Portfolio Balance
+                  </div>
+                  <div className="flex items-center gap-3 lg:justify-end">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 shadow-lg">
+                      <Coins className="h-6 w-6 text-white" />
+                    </div>
                     <div>
-                      <p className="text-xl font-bold text-white">
+                      <p className="text-3xl font-bold text-white">
                         {mockUserData?.eduproCoins?.toLocaleString()}
                       </p>
-                      <p className="text-xs text-muted-foreground">EduPro Coins</p>
+                      <p className="text-sm text-yellow-400 font-medium">EduPro Coins</p>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-dark-accent/20 px-4 py-2">
-                    <Zap className="h-5 w-5 text-blue-400" />
-                    <div>
-                      <p className="text-xl font-bold text-white">
-                        {mockUserData?.prompts?.used}/{mockUserData?.prompts?.total}
-                      </p>
-                      <p className="text-xs text-muted-foreground">Prompts Used</p>
-                    </div>
-                  </div>
-
-                  {mockUserData.plan === "Free" && (
-                    <Button className="bg-white/10 text-white border border-white/20 hover:bg-white/20">
-                      <Crown size={16} className="mr-2" /> 
-                      Upgrade
-                    </Button>
-                  )}
                 </div>
               </div>
             </div>
           </Card>
+        </motion.div>
+
+        {/* Stats Grid */}
+        <motion.div variants={itemVariants}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="border-white/10 bg-gradient-to-br from-blue-500/20 to-blue-600/10 backdrop-blur-sm">
+              <div className="p-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/20">
+                    <BookOpen className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">24</p>
+                    <p className="text-xs text-muted-foreground">Courses Completed</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="border-white/10 bg-gradient-to-br from-purple-500/20 to-purple-600/10 backdrop-blur-sm">
+              <div className="p-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/20">
+                    <Award className="h-5 w-5 text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">156</p>
+                    <p className="text-xs text-muted-foreground">Achievement Points</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="border-white/10 bg-gradient-to-br from-green-500/20 to-green-600/10 backdrop-blur-sm">
+              <div className="p-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/20">
+                    <TrendingUp className="h-5 w-5 text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">89%</p>
+                    <p className="text-xs text-muted-foreground">Success Rate</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="border-white/10 bg-gradient-to-br from-orange-500/20 to-orange-600/10 backdrop-blur-sm">
+              <div className="p-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/20">
+                    <Coins className="h-5 w-5 text-orange-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">+{mockUserData?.eduproCoins && Math.floor(mockUserData.eduproCoins * 0.15).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">This Month</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
         </motion.div>
 
         {/* Main Content */}

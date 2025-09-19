@@ -14,6 +14,7 @@ import (
 	"github.com/kinyichukwu/edu-pro-backend/internal/middleware"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/ai"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/database"
+	"github.com/kinyichukwu/edu-pro-backend/internal/services/nft"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/solana"
 	"github.com/kinyichukwu/edu-pro-backend/internal/utils"
 
@@ -68,6 +69,12 @@ func main() {
 		logger.Fatal("Failed to initialize Solana service", zap.Error(err))
 	}
 
+	// Initialize NFT service
+	nftService, err := nft.NewService(cfg.SolanaConfig, dbClient, logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize NFT service", zap.Error(err))
+	}
+
 	// Initialize handlers
 	healthHandler := handlers.NewHealthHandler(aiService)
 	queryHandler := handlers.NewQueryHandler(aiService)
@@ -79,14 +86,17 @@ func main() {
 	}
 
 	// Initialize Solana handlers
-	walletHandler := handlers.NewWalletHandler(solanaService, dbClient)
+	walletHandler := handlers.NewWalletHandler(solanaService, dbClient, nftService)
 	paymentHandler := handlers.NewPaymentHandler(solanaService)
+
+	// Initialize NFT handler
+	nftHandler := handlers.NewNFTHandler(nftService)
 
 	// Initialize flashcard handler
 	flashcardHandler := handlers.NewFlashcardHandler(dbClient, aiService)
 
 	// Setup router
-	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler, flashcardHandler)
+	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler, nftHandler, flashcardHandler)
 
 	// Create HTTP server
 	srv := &http.Server{
@@ -123,7 +133,7 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler, walletHandler *handlers.WalletHandler, paymentHandler *handlers.PaymentHandler, flashcardHandler *handlers.FlashcardHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler, walletHandler *handlers.WalletHandler, paymentHandler *handlers.PaymentHandler, nftHandler *handlers.NFTHandler, flashcardHandler *handlers.FlashcardHandler) *gin.Engine {
 	router := gin.New()
 
 	// Setup middleware
@@ -200,6 +210,29 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			payment.POST("/deduct", paymentHandler.DeductFromWallet)
 			payment.POST("/send-tokens", paymentHandler.SendEduProTokens)
 			payment.POST("/query-tokens", paymentHandler.QueryOnChainEduProTokens)
+		}
+
+		// NFT routes (protected)
+		nft := api.Group("/nft")
+		nft.Use(middleware.JWTMiddleware(cfg))
+		{
+			// Membership NFT routes
+			nft.POST("/membership", nftHandler.CreateMembershipNFT)
+
+			// Course NFT collection routes
+			nft.POST("/course-collection", nftHandler.CreateCourseNFTCollection)
+			nft.GET("/course-collection/:id", nftHandler.GetCourseNFTCollectionByID)
+			nft.POST("/course-collection/details", nftHandler.GetCourseNFTCollection)
+
+			// Course NFT purchase routes
+			nft.POST("/course/purchase", nftHandler.PurchaseCourseNFT)
+
+			// User NFT routes
+			nft.GET("/user/:email", nftHandler.GetUserNFTsByEmail)
+			nft.POST("/user", nftHandler.GetUserNFTs)
+
+			// NFT transfer routes
+			nft.POST("/transfer", nftHandler.TransferNFT)
 		}
 
 		// Flashcard routes (protected)

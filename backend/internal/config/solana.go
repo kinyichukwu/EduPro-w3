@@ -16,6 +16,7 @@ type SolanaConfig struct {
 	RecipientWallet     string `json:"recipient_wallet"`
 	EduProTokenMint     string `json:"edutoken_mint"`
 	EduProTokenDecimals int    `json:"edutoken_decimals"`
+	EduProMintAuthority string `json:"edutoken_mint_authority"`
 }
 
 // NewSolanaConfig creates Solana configuration from environment variables
@@ -38,12 +39,17 @@ func NewSolanaConfig() *SolanaConfig {
 
 	edutokenMint := os.Getenv("EDUPRO_TOKEN_MINT")
 	if edutokenMint == "" {
-		// For testing purposes, use USDC token mint on devnet
-		// TODO: Replace with actual EduPro token mint address
-		edutokenMint = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU" // USDC on devnet
+		// EduPro token mint address from the provided transaction
+		edutokenMint = "8kNjLpVVoMK6QY5zQgjavDYmLzULnboxrPcry6Cf4urV"
 	}
 
 	edutokenDecimals := 9 // Default to 9 decimals for EduPro token
+
+	edutokenMintAuthority := os.Getenv("EDUPRO_MINT_AUTHORITY")
+	if edutokenMintAuthority == "" {
+		// EduPro mint authority from the provided transaction
+		edutokenMintAuthority = "5dKpAVwujVwfyXX9EW2mXh5eQ62mWrNhupdLcpjzwGME"
+	}
 
 	return &SolanaConfig{
 		RPCEndpoint:         rpcEndpoint,
@@ -51,6 +57,7 @@ func NewSolanaConfig() *SolanaConfig {
 		RecipientWallet:     recipientWallet,
 		EduProTokenMint:     edutokenMint,
 		EduProTokenDecimals: edutokenDecimals,
+		EduProMintAuthority: edutokenMintAuthority,
 	}
 }
 

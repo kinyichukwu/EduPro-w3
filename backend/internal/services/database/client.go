@@ -523,3 +523,280 @@ func (c *Client) DeleteWallet(walletID uuid.UUID, userID uuid.UUID) error {
 	logger.Info("Wallet deleted successfully", zap.String("wallet_id", walletID.String()))
 	return nil
 }
+
+// NFT Database Methods
+
+// CreateMembershipNFT creates a new membership NFT record
+func (c *Client) CreateMembershipNFT(nft *models.MembershipNFT) error {
+	query := `
+		INSERT INTO membership_nfts (
+			id, user_id, user_email, wallet_address, nft_mint_address, 
+			nft_metadata_uri, transaction_signature, status, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+		)`
+
+	_, err := c.pool.Exec(context.Background(), query,
+		nft.ID, nft.UserID, nft.UserEmail, nft.WalletAddress, nft.NFTMintAddress,
+		nft.NFTMetadataURI, nft.TransactionSignature, nft.Status, nft.CreatedAt, nft.UpdatedAt,
+	)
+
+	return err
+}
+
+// GetMembershipNFTByEmail retrieves a membership NFT by user email
+func (c *Client) GetMembershipNFTByEmail(userEmail string) (*models.MembershipNFT, error) {
+	query := `
+		SELECT id, user_id, user_email, wallet_address, nft_mint_address, 
+			   nft_metadata_uri, transaction_signature, status, created_at, minted_at, updated_at
+		FROM membership_nfts 
+		WHERE user_email = $1`
+
+	var nft models.MembershipNFT
+	err := c.pool.QueryRow(context.Background(), query, userEmail).Scan(
+		&nft.ID, &nft.UserID, &nft.UserEmail, &nft.WalletAddress, &nft.NFTMintAddress,
+		&nft.NFTMetadataURI, &nft.TransactionSignature, &nft.Status, &nft.CreatedAt, &nft.MintedAt, &nft.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &nft, nil
+}
+
+// CreateCourseNFTCollection creates a new course NFT collection record
+func (c *Client) CreateCourseNFTCollection(collection *models.CourseNFTCollection) error {
+	query := `
+		INSERT INTO course_nft_collections (
+			id, creator_id, creator_email, course_id, course_title, collection_mint_address,
+			collection_metadata_uri, max_supply, current_supply, price_edutoken, is_active,
+			transaction_signature, status, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+		)`
+
+	_, err := c.pool.Exec(context.Background(), query,
+		collection.ID, collection.CreatorID, collection.CreatorEmail, collection.CourseID, collection.CourseTitle,
+		collection.CollectionMintAddress, collection.CollectionMetadataURI, collection.MaxSupply, collection.CurrentSupply,
+		collection.PriceEduProTokens, collection.IsActive, collection.TransactionSignature, collection.Status,
+		collection.CreatedAt, collection.UpdatedAt,
+	)
+
+	return err
+}
+
+// GetCourseNFTCollectionByID retrieves a course NFT collection by ID
+func (c *Client) GetCourseNFTCollectionByID(collectionID uuid.UUID) (*models.CourseNFTCollection, error) {
+	query := `
+		SELECT id, creator_id, creator_email, course_id, course_title, collection_mint_address,
+			   collection_metadata_uri, max_supply, current_supply, price_edutoken, is_active,
+			   transaction_signature, status, created_at, minted_at, updated_at
+		FROM course_nft_collections 
+		WHERE id = $1`
+
+	var collection models.CourseNFTCollection
+	err := c.pool.QueryRow(context.Background(), query, collectionID).Scan(
+		&collection.ID, &collection.CreatorID, &collection.CreatorEmail, &collection.CourseID, &collection.CourseTitle,
+		&collection.CollectionMintAddress, &collection.CollectionMetadataURI, &collection.MaxSupply, &collection.CurrentSupply,
+		&collection.PriceEduProTokens, &collection.IsActive, &collection.TransactionSignature, &collection.Status,
+		&collection.CreatedAt, &collection.MintedAt, &collection.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &collection, nil
+}
+
+// GetCourseNFTCollectionByCourseID retrieves a course NFT collection by course ID
+func (c *Client) GetCourseNFTCollectionByCourseID(courseID uuid.UUID) (*models.CourseNFTCollection, error) {
+	query := `
+		SELECT id, creator_id, creator_email, course_id, course_title, collection_mint_address,
+			   collection_metadata_uri, max_supply, current_supply, price_edutoken, is_active,
+			   transaction_signature, status, created_at, minted_at, updated_at
+		FROM course_nft_collections 
+		WHERE course_id = $1`
+
+	var collection models.CourseNFTCollection
+	err := c.pool.QueryRow(context.Background(), query, courseID).Scan(
+		&collection.ID, &collection.CreatorID, &collection.CreatorEmail, &collection.CourseID, &collection.CourseTitle,
+		&collection.CollectionMintAddress, &collection.CollectionMetadataURI, &collection.MaxSupply, &collection.CurrentSupply,
+		&collection.PriceEduProTokens, &collection.IsActive, &collection.TransactionSignature, &collection.Status,
+		&collection.CreatedAt, &collection.MintedAt, &collection.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &collection, nil
+}
+
+// CreateCourseNFT creates a new course NFT record
+func (c *Client) CreateCourseNFT(nft *models.CourseNFT) error {
+	query := `
+		INSERT INTO course_nfts (
+			id, collection_id, owner_id, owner_email, owner_wallet_address, nft_mint_address,
+			nft_metadata_uri, token_id, transaction_signature, status, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+		)`
+
+	_, err := c.pool.Exec(context.Background(), query,
+		nft.ID, nft.CollectionID, nft.OwnerID, nft.OwnerEmail, nft.OwnerWalletAddress, nft.NFTMintAddress,
+		nft.NFTMetadataURI, nft.TokenID, nft.TransactionSignature, nft.Status, nft.CreatedAt, nft.UpdatedAt,
+	)
+
+	return err
+}
+
+// GetCourseNFTsByOwnerEmail retrieves course NFTs owned by a user email
+func (c *Client) GetCourseNFTsByOwnerEmail(ownerEmail string) ([]models.CourseNFT, error) {
+	query := `
+		SELECT id, collection_id, owner_id, owner_email, owner_wallet_address, nft_mint_address,
+			   nft_metadata_uri, token_id, transaction_signature, status, created_at, minted_at, transferred_at, updated_at
+		FROM course_nfts 
+		WHERE owner_email = $1 AND status != 'burned'
+		ORDER BY created_at DESC`
+
+	rows, err := c.pool.Query(context.Background(), query, ownerEmail)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var nfts []models.CourseNFT
+	for rows.Next() {
+		var nft models.CourseNFT
+		err := rows.Scan(
+			&nft.ID, &nft.CollectionID, &nft.OwnerID, &nft.OwnerEmail, &nft.OwnerWalletAddress, &nft.NFTMintAddress,
+			&nft.NFTMetadataURI, &nft.TokenID, &nft.TransactionSignature, &nft.Status, &nft.CreatedAt, &nft.MintedAt, &nft.TransferredAt, &nft.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		nfts = append(nfts, nft)
+	}
+
+	return nfts, nil
+}
+
+// GetCourseNFTsByCollectionID retrieves all course NFTs in a collection
+func (c *Client) GetCourseNFTsByCollectionID(collectionID uuid.UUID) ([]models.CourseNFT, error) {
+	query := `
+		SELECT id, collection_id, owner_id, owner_email, owner_wallet_address, nft_mint_address,
+			   nft_metadata_uri, token_id, transaction_signature, status, created_at, minted_at, transferred_at, updated_at
+		FROM course_nfts 
+		WHERE collection_id = $1 AND status != 'burned'
+		ORDER BY token_id ASC`
+
+	rows, err := c.pool.Query(context.Background(), query, collectionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var nfts []models.CourseNFT
+	for rows.Next() {
+		var nft models.CourseNFT
+		err := rows.Scan(
+			&nft.ID, &nft.CollectionID, &nft.OwnerID, &nft.OwnerEmail, &nft.OwnerWalletAddress, &nft.NFTMintAddress,
+			&nft.NFTMetadataURI, &nft.TokenID, &nft.TransactionSignature, &nft.Status, &nft.CreatedAt, &nft.MintedAt, &nft.TransferredAt, &nft.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		nfts = append(nfts, nft)
+	}
+
+	return nfts, nil
+}
+
+// GetAvailableCourseNFTsByCollectionID retrieves available (unowned) course NFTs in a collection
+func (c *Client) GetAvailableCourseNFTsByCollectionID(collectionID uuid.UUID) ([]models.CourseNFT, error) {
+	query := `
+		SELECT id, collection_id, owner_id, owner_email, owner_wallet_address, nft_mint_address,
+			   nft_metadata_uri, token_id, transaction_signature, status, created_at, minted_at, transferred_at, updated_at
+		FROM course_nfts 
+		WHERE collection_id = $1 AND owner_id IS NULL AND status = 'minted'
+		ORDER BY token_id ASC`
+
+	rows, err := c.pool.Query(context.Background(), query, collectionID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var nfts []models.CourseNFT
+	for rows.Next() {
+		var nft models.CourseNFT
+		err := rows.Scan(
+			&nft.ID, &nft.CollectionID, &nft.OwnerID, &nft.OwnerEmail, &nft.OwnerWalletAddress, &nft.NFTMintAddress,
+			&nft.NFTMetadataURI, &nft.TokenID, &nft.TransactionSignature, &nft.Status, &nft.CreatedAt, &nft.MintedAt, &nft.TransferredAt, &nft.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		nfts = append(nfts, nft)
+	}
+
+	return nfts, nil
+}
+
+// GetCourseNFTByCollectionAndOwner retrieves a course NFT by collection and owner
+func (c *Client) GetCourseNFTByCollectionAndOwner(collectionID uuid.UUID, ownerEmail string) (*models.CourseNFT, error) {
+	query := `
+		SELECT id, collection_id, owner_id, owner_email, owner_wallet_address, nft_mint_address,
+			   nft_metadata_uri, token_id, transaction_signature, status, created_at, minted_at, transferred_at, updated_at
+		FROM course_nfts 
+		WHERE collection_id = $1 AND owner_email = $2 AND status != 'burned'`
+
+	var nft models.CourseNFT
+	err := c.pool.QueryRow(context.Background(), query, collectionID, ownerEmail).Scan(
+		&nft.ID, &nft.CollectionID, &nft.OwnerID, &nft.OwnerEmail, &nft.OwnerWalletAddress, &nft.NFTMintAddress,
+		&nft.NFTMetadataURI, &nft.TokenID, &nft.TransactionSignature, &nft.Status, &nft.CreatedAt, &nft.MintedAt, &nft.TransferredAt, &nft.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &nft, nil
+}
+
+// UpdateCourseNFTCollectionSupply updates the current supply of a course NFT collection
+func (c *Client) UpdateCourseNFTCollectionSupply(collectionID uuid.UUID, newSupply int) error {
+	query := `
+		UPDATE course_nft_collections 
+		SET current_supply = $1, updated_at = NOW()
+		WHERE id = $2`
+
+	_, err := c.pool.Exec(context.Background(), query, newSupply, collectionID)
+	return err
+}
+
+// UpdateCourseNFTOwner updates the owner of a course NFT
+func (c *Client) UpdateCourseNFTOwner(nftID uuid.UUID, ownerID *uuid.UUID, ownerEmail *string, ownerWalletAddress *string) error {
+	query := `
+		UPDATE course_nfts 
+		SET owner_id = $1, owner_email = $2, owner_wallet_address = $3, 
+			status = 'minted', minted_at = NOW(), updated_at = NOW()
+		WHERE id = $4`
+
+	_, err := c.pool.Exec(context.Background(), query, ownerID, ownerEmail, ownerWalletAddress, nftID)
+	return err
+}

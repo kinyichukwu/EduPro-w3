@@ -8,20 +8,25 @@ import (
 	"github.com/kinyichukwu/edu-pro-backend/internal/middleware"
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/database"
+	"github.com/kinyichukwu/edu-pro-backend/internal/services/nft"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/solana"
+	"github.com/kinyichukwu/edu-pro-backend/internal/utils"
+	"go.uber.org/zap"
 )
 
 // WalletHandler handles wallet-related HTTP requests
 type WalletHandler struct {
 	solanaService *solana.Service
 	db            *database.Client
+	nftService    *nft.Service
 }
 
 // NewWalletHandler creates a new wallet handler
-func NewWalletHandler(solanaService *solana.Service, db *database.Client) *WalletHandler {
+func NewWalletHandler(solanaService *solana.Service, db *database.Client, nftService *nft.Service) *WalletHandler {
 	return &WalletHandler{
 		solanaService: solanaService,
 		db:            db,
+		nftService:    nftService,
 	}
 }
 
@@ -82,6 +87,31 @@ func (h *WalletHandler) VerifyWallet(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify wallet", "details": err.Error()})
 		return
+	}
+
+	// Automatically create membership NFT for new users who verify their wallet
+	if wallet.IsVerified {
+		// Get user details
+		user, err := h.db.GetUserByID(wallet.UserID)
+		if err == nil && user != nil {
+			// Check if user already has a membership NFT
+			existingNFT, err := h.db.GetMembershipNFTByEmail(user.Email)
+			if err == nil && existingNFT == nil {
+				// Create membership NFT
+				membershipReq := &models.CreateMembershipNFTRequest{
+					UserEmail:     user.Email,
+					WalletAddress: wallet.WalletAddress,
+				}
+
+				_, nftErr := h.nftService.CreateMembershipNFT(c.Request.Context(), membershipReq)
+				if nftErr != nil {
+					// Log error but don't fail the wallet verification
+					// The NFT can be created later manually
+					utils.GetLogger().Error("Failed to create membership NFT",
+						zap.String("user_email", user.Email), zap.Error(nftErr))
+				}
+			}
+		}
 	}
 
 	response := models.VerifyWalletResponse{

@@ -90,3 +90,11 @@ func (s *Service) UploadImage(imageData []byte, filename string) (string, error)
 
 	return uri, nil
 }
+
+// GetMembershipNFTImageURI returns the IPFS URI for the EduPro membership NFT image
+func (s *Service) GetMembershipNFTImageURI() string {
+	// This is the IPFS hash for the actual EduPro membership NFT image
+	// In production, you would upload the image to IPFS and get the actual hash
+	// For now, we'll use a placeholder that represents the membership NFT
+	return "https://ipfs.io/ipfs/QmEduProMembershipNFTv1"
+}

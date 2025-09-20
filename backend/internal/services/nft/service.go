@@ -86,6 +86,20 @@ func (s *Service) CreateMembershipNFT(ctx context.Context, req *models.CreateMem
 		return nil, fmt.Errorf("failed to save membership NFT: %w", err)
 	}
 
+	// Get user by email to update their profile with NFT address
+	user, err := s.dbClient.GetUserByEmail(req.UserEmail)
+	if err == nil && user != nil {
+		// Update user's profile with membership NFT address
+		err = s.dbClient.UpdateUserMembershipNFT(user.ID, nftMintAddress)
+		if err != nil {
+			s.logger.Warn("Failed to update user profile with NFT address",
+				zap.String("user_email", req.UserEmail),
+				zap.String("nft_address", nftMintAddress),
+				zap.Error(err))
+			// Don't fail the NFT creation if profile update fails
+		}
+	}
+
 	// Create mint transaction using Metaplex
 	transaction, err := s.metaplexService.CreateMembershipNFT(ctx, req.WalletAddress, metadata)
 	if err != nil {
@@ -347,21 +361,31 @@ func (s *Service) GetCourseNFTCollection(ctx context.Context, req *models.GetCou
 
 // generateMembershipNFTMetadata generates metadata for membership NFT
 func (s *Service) generateMembershipNFTMetadata(userEmail string) *models.NFTMetadata {
+	// Get the actual membership NFT image URI from IPFS
+	imageURI := s.metaplexService.GetMembershipNFTImageURI()
+
 	return &models.NFTMetadata{
 		Name:        "EduPro Membership NFT",
-		Description: fmt.Sprintf("Welcome to EduPro! This NFT represents your membership in the EduPro learning community. Owner: %s", userEmail),
-		Image:       "https://edupro.com/images/membership-nft.png", // TODO: Replace with actual image URL
+		Description: fmt.Sprintf("Welcome to EduPro! This exclusive membership NFT grants you access to premium educational content, community features, and special rewards. A futuristic digital token representing your journey in the EduPro learning ecosystem. Owner: %s", userEmail),
+		Image:       imageURI,
 		Attributes: []models.NFTAttribute{
 			{TraitType: "Type", Value: "Membership"},
 			{TraitType: "Platform", Value: "EduPro"},
-			{TraitType: "Rarity", Value: "Common"},
+			{TraitType: "Rarity", Value: "Exclusive"},
+			{TraitType: "Tier", Value: "Premium"},
 			{TraitType: "Owner Email", Value: userEmail},
+			{TraitType: "Design", Value: "Futuristic Hexagonal Prism"},
+			{TraitType: "Theme", Value: "Digital Education"},
+			{TraitType: "Collection", Value: "EduPro Genesis"},
 		},
 		Properties: map[string]interface{}{
-			"membership_tier": "standard",
+			"membership_tier": "premium",
+			"benefits":        []string{"access_to_premium_content", "community_features", "special_rewards", "early_access"},
 			"created_at":      time.Now().Format(time.RFC3339),
+			"design_version":  "v1.0",
+			"collection":      "EduPro Genesis Membership",
 		},
-		ExternalURL: "https://edupro.com",
+		ExternalURL: "https://edupro.com/membership",
 	}
 }
 

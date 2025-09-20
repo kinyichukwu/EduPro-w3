@@ -98,6 +98,59 @@ func (c *Client) CreateUser(req *models.CreateUserRequest) (*models.User, error)
 	return user, nil
 }
 
+// GetUserByEmail retrieves a user by their email address
+func (c *Client) GetUserByEmail(email string) (*models.User, error) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	user := &models.User{}
+	query := `
+		SELECT id, email, username, full_name, avatar, membership_nft_address, supabase_id, created_at, updated_at
+		FROM users 
+		WHERE email = $1
+	`
+
+	err := c.pool.QueryRow(ctx, query, email).Scan(
+		&user.ID, &user.Email, &user.Username, &user.FullName, &user.Avatar,
+		&user.MembershipNFTAddress, &user.SupabaseID, &user.CreatedAt, &user.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil // User not found
+		}
+		logger.Error("Failed to get user by email", zap.String("email", email), zap.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to get user by email: %w", err)
+	}
+
+	return user, nil
+}
+
+// UpdateUserMembershipNFT updates the user's membership NFT address
+func (c *Client) UpdateUserMembershipNFT(userID uuid.UUID, nftAddress string) error {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	query := `
+		UPDATE users 
+		SET membership_nft_address = $1, updated_at = NOW()
+		WHERE id = $2
+	`
+
+	_, err := c.pool.Exec(ctx, query, nftAddress, userID)
+	if err != nil {
+		logger.Error("Failed to update user membership NFT",
+			zap.String("user_id", userID.String()),
+			zap.String("nft_address", nftAddress),
+			zap.String("error", err.Error()))
+		return fmt.Errorf("failed to update user membership NFT: %w", err)
+	}
+
+	logger.Info("User membership NFT updated successfully",
+		zap.String("user_id", userID.String()),
+		zap.String("nft_address", nftAddress))
+	return nil
+}
+
 // GetUserBySupabaseID retrieves a user by their Supabase ID
 func (c *Client) GetUserBySupabaseID(supabaseID string) (*models.User, error) {
 	logger := utils.GetLogger()

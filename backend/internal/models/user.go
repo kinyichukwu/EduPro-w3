@@ -8,27 +8,29 @@ import (
 
 // User represents a user in the system
 type User struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	Email     string    `json:"email" db:"email"`
-	Username  string    `json:"username" db:"username"`
-	FullName  *string   `json:"full_name,omitempty" db:"full_name"`
-	Avatar    *string   `json:"avatar,omitempty" db:"avatar"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID                   uuid.UUID `json:"id" db:"id"`
+	Email                string    `json:"email" db:"email"`
+	Username             string    `json:"username" db:"username"`
+	FullName             *string   `json:"full_name,omitempty" db:"full_name"`
+	Avatar               *string   `json:"avatar,omitempty" db:"avatar"`
+	MembershipNFTAddress *string   `json:"membership_nft_address,omitempty" db:"membership_nft_address"`
+	CreatedAt            time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at" db:"updated_at"`
 	// Supabase user ID for linking
 	SupabaseID string `json:"supabase_id" db:"supabase_id"`
 }
 
 // UserProfile represents the user profile response
 type UserProfile struct {
-	ID             uuid.UUID       `json:"id"`
-	Email          string          `json:"email"`
-	Username       string          `json:"username"`
-	FullName       *string         `json:"full_name,omitempty"`
-	Avatar         *string         `json:"avatar,omitempty"`
-	OnboardingData *OnboardingData `json:"onboarding_data,omitempty"`
-	CreatedAt      time.Time       `json:"created_at"`
-	UpdatedAt      time.Time       `json:"updated_at"`
+	ID                   uuid.UUID       `json:"id"`
+	Email                string          `json:"email"`
+	Username             string          `json:"username"`
+	FullName             *string         `json:"full_name,omitempty"`
+	Avatar               *string         `json:"avatar,omitempty"`
+	MembershipNFTAddress *string         `json:"membership_nft_address,omitempty"`
+	OnboardingData       *OnboardingData `json:"onboarding_data,omitempty"`
+	CreatedAt            time.Time       `json:"created_at"`
+	UpdatedAt            time.Time       `json:"updated_at"`
 }
 
 // CreateUserRequest represents the request to create a new user

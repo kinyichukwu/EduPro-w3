@@ -485,6 +485,11 @@ func (s *Service) uploadMetadataToIPFS(metadata *models.NFTMetadata) (string, er
 	return s.ipfsService.UploadMetadata(metadata)
 }
 
+// GetMembershipNFTImageURI returns the IPFS URI for the EduPro membership NFT image
+func (s *Service) GetMembershipNFTImageURI() string {
+	return s.ipfsService.GetMembershipNFTImageURI()
+}
+
 // GetNFTMetadata retrieves NFT metadata from on-chain
 func (s *Service) GetNFTMetadata(ctx context.Context, mintAddress string) (*models.NFTMetadata, error) {
 	// Parse mint address

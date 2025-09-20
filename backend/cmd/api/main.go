@@ -88,6 +88,8 @@ func main() {
 	// Initialize Solana handlers
 	walletHandler := handlers.NewWalletHandler(solanaService, dbClient, nftService)
 	paymentHandler := handlers.NewPaymentHandler(solanaService)
+	edupoTokenHandler := handlers.NewEduProTokenHandler(solanaService)
+	testAuthHandler := handlers.NewTestAuthHandler(cfg)
 
 	// Initialize NFT handler
 	nftHandler := handlers.NewNFTHandler(nftService)
@@ -96,7 +98,7 @@ func main() {
 	flashcardHandler := handlers.NewFlashcardHandler(dbClient, aiService)
 
 	// Setup router
-	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler, nftHandler, flashcardHandler)
+	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler, nftHandler, flashcardHandler, edupoTokenHandler, testAuthHandler)
 
 	// Create HTTP server
 	srv := &http.Server{
@@ -133,7 +135,7 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler, walletHandler *handlers.WalletHandler, paymentHandler *handlers.PaymentHandler, nftHandler *handlers.NFTHandler, flashcardHandler *handlers.FlashcardHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler, walletHandler *handlers.WalletHandler, paymentHandler *handlers.PaymentHandler, nftHandler *handlers.NFTHandler, flashcardHandler *handlers.FlashcardHandler, edupoTokenHandler *handlers.EduProTokenHandler, testAuthHandler *handlers.TestAuthHandler) *gin.Engine {
 	router := gin.New()
 
 	// Setup middleware
@@ -162,6 +164,12 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			auth.Use(middleware.JWTMiddleware(cfg))
 			auth.GET("/me", authHandler.Me)
 			auth.POST("/refresh", authHandler.RefreshToken)
+		}
+
+		// Test routes (for development only)
+		test := api.Group("/test")
+		{
+			test.POST("/generate-token", testAuthHandler.GenerateTestToken)
 		}
 
 		// User routes (protected)
@@ -210,6 +218,20 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			payment.POST("/deduct", paymentHandler.DeductFromWallet)
 			payment.POST("/send-tokens", paymentHandler.SendEduProTokens)
 			payment.POST("/query-tokens", paymentHandler.QueryOnChainEduProTokens)
+		}
+
+		// EduPro Token routes
+		edupoTokens := api.Group("/edupo-tokens")
+		{
+			// Public endpoint for token info
+			edupoTokens.GET("/info", edupoTokenHandler.GetEduProTokenInfo)
+
+			// Protected endpoints
+			edupoTokensProtected := edupoTokens.Group("")
+			edupoTokensProtected.Use(middleware.JWTMiddleware(cfg))
+			{
+				edupoTokensProtected.POST("/buy", edupoTokenHandler.BuyEduProTokens)
+			}
 		}
 
 		// NFT routes (protected)

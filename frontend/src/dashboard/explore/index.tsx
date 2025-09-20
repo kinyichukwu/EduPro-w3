@@ -1,16 +1,12 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, BookOpen, Brain, Calculator, Atom, Globe, Palette, Music, TrendingUp, ChevronRight, Sparkles, Zap, Star, Flame } from 'lucide-react';
+import { BookOpen, Brain, Calculator, Atom, Globe, Palette, Music, TrendingUp, ChevronRight, Sparkles } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
-import { Card, CardContent } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { CourseCard } from '../components/explore';
 import { mockCourses } from '../constants/explore';
-import { Input } from '@/shared/components/ui';
 
 const Explore = () => {
-  const [searchQuery, setSearchQuery] = useState('');
 
   const categories = [
     { id: 'All', name: 'All Subjects', icon: BookOpen, gradient: 'from-blue-500 to-purple-600', bgGradient: 'from-blue-500/20 to-purple-600/10' },
@@ -23,14 +19,6 @@ const Explore = () => {
     { id: 'business', name: 'Business', icon: TrendingUp, gradient: 'from-emerald-500 to-green-500', bgGradient: 'from-emerald-500/20 to-green-500/10' },
   ];
 
-  const courseCategories = [
-    { id: 'featured', name: 'Featured Courses', icon: Star, gradient: 'from-yellow-500 to-orange-500' },
-    { id: 'popular', name: 'Most Popular', icon: Flame, gradient: 'from-red-500 to-pink-500' },
-    { id: 'calculus', name: 'Calculus Mastery', icon: Calculator, gradient: 'from-blue-500 to-cyan-500' },
-    { id: 'wave-mechanics', name: 'Wave Mechanics', icon: Zap, gradient: 'from-purple-500 to-indigo-500' },
-    { id: 'algebra', name: 'Advanced Algebra', icon: Brain, gradient: 'from-green-500 to-emerald-500' },
-    { id: 'quantum-mechanics', name: 'Quantum Physics', icon: Atom, gradient: 'from-violet-500 to-purple-500' },
-  ];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -124,31 +112,22 @@ const Explore = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {categories.map((category, index) => {
+          {/* Clean category buttons - no cards */}
+          <div className="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
+            {categories.slice(0, 6).map((category, index) => {
               const IconComponent = category.icon;
               return (
                 <motion.div
                   key={category.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  transition={{ delay: index * 0.05 }}
                 >
                   <Link to={`/dashboard/explore/${category.id}`}>
-                    <Card className={`group relative overflow-hidden border-white/10 bg-gradient-to-br ${category.bgGradient} backdrop-blur-sm hover:border-white/20 transition-all duration-300 hover:scale-105 cursor-pointer`}>
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <CardContent className="p-6 text-center relative z-10">
-                        <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br ${category.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                          <IconComponent className="w-8 h-8 text-white" />
-                        </div>
-                        <h3 className="font-semibold text-white text-lg mb-2 group-hover:text-white transition-colors">
-                          {category.name}
-                        </h3>
-                        <p className="text-white/60 text-sm">
-                          Explore courses
-                        </p>
-                      </CardContent>
-                    </Card>
+                    <button className={`group flex items-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r ${category.gradient} hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl`}>
+                      <IconComponent className="w-5 h-5 text-white" />
+                      <span className="text-white font-medium">{category.name}</span>
+                    </button>
                   </Link>
                 </motion.div>
               );
@@ -156,61 +135,45 @@ const Explore = () => {
           </div>
         </motion.section>
 
-        {/* Premium Course Collections */}
-        {courseCategories.map((category) => {
-          const IconComponent = category.icon;
-          return (
-            <motion.section 
-              key={category.id} 
-              className="mb-16"
-              variants={itemVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-            >
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${category.gradient} flex items-center justify-center shadow-lg`}>
-                    <IconComponent className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-white">{category.name}</h2>
-                    <p className="text-white/60">Handpicked courses for accelerated learning</p>
-                  </div>
-                </div>
-                <Link to={`/dashboard/explore/${category.id}`}>
-                  <Button 
-                    variant="outline" 
-                    className="border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200"
-                  >
-                    View All 
-                    <ChevronRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
-              </div>
-              
-              <div className="relative">
-                <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
-                  {mockCourses.slice(0, 4).map((course, index) => (
-                    <motion.div
-                      key={course.id}
-                      initial={{ opacity: 0, x: 50 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      viewport={{ once: true }}
-                      className="flex-shrink-0"
-                    >
-                      <CourseCard course={course} className="w-80" />
-                    </motion.div>
-                  ))}
-                </div>
-                
-                {/* Gradient fade on scroll */}
-                <div className="absolute right-0 top-0 bottom-4 w-20 bg-gradient-to-l from-background to-transparent pointer-events-none"></div>
-              </div>
-            </motion.section>
-          );
-        })}
+        {/* Single Featured Courses Section */}
+        <motion.section 
+          className="mb-16"
+          variants={itemVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+        >
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-3xl font-bold text-white mb-2">Featured Courses</h2>
+              <p className="text-white/70">Start learning with our most popular courses</p>
+            </div>
+            <Link to="/dashboard/explore/featured">
+              <Button 
+                variant="outline" 
+                className="border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200"
+              >
+                View All 
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
+          
+          {/* Clean course grid - no cards wrapper */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {mockCourses.slice(0, 6).map((course, index) => (
+              <motion.div
+                key={course.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                viewport={{ once: true }}
+              >
+                <CourseCard course={course} />
+              </motion.div>
+            ))}
+          </div>
+        </motion.section>
       </div>
     </motion.div>
   );

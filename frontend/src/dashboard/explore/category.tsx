@@ -3,30 +3,18 @@ import { motion } from "framer-motion";
 import {
   Search,
   BookOpen,
-  Grid3X3,
-  List,
-  Filter,
   ArrowLeft,
-  Star,
-  TrendingUp,
   Sparkles
 } from "lucide-react";
-import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { mockCourses } from "../constants/explore";
-import { CourseCard, CourseListItem } from "../components/explore";
+import { CourseCard } from "../components/explore";
 import { useParams, Link } from "react-router-dom";
 
 export default function ExploreCategory() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("all");
-  const [selectedPrice, setSelectedPrice] = useState("all");
-  const [sortBy, setSortBy] = useState("popular");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [showFilters, setShowFilters] = useState(false);
 
   const currentCategory = useParams().category ?? "Calculus";
 
@@ -38,28 +26,10 @@ export default function ExploreCategory() {
         course.description.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesLevel = selectedLevel === "all" || course.difficulty.toLowerCase() === selectedLevel;
-      const matchesPrice = selectedPrice === "all" || 
-        (selectedPrice === "free" && (course.price === 0 || course.price === "Free")) ||
-        (selectedPrice === "paid" && (typeof course.price === "number" ? course.price > 0 : course.price !== "Free"));
 
-      return matchesSearch && matchesLevel && matchesPrice;
-    }).sort((a, b) => {
-      switch (sortBy) {
-        case "popular":
-          return b.rating - a.rating;
-        case "newest":
-          return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
-        case "price-low":
-          return (typeof a.price === "number" ? a.price : 0) - (typeof b.price === "number" ? b.price : 0);
-        case "price-high":
-          return (typeof b.price === "number" ? b.price : 0) - (typeof a.price === "number" ? a.price : 0);
-        case "rating":
-          return b.rating - a.rating;
-        default:
-          return 0;
-      }
+      return matchesSearch && matchesLevel;
     });
-  }, [searchTerm, selectedLevel, selectedPrice, sortBy]);
+  }, [searchTerm, selectedLevel]);
 
   const levels = [
     { value: "all", label: "All Levels" },
@@ -68,19 +38,6 @@ export default function ExploreCategory() {
     { value: "advanced", label: "Advanced" },
   ];
 
-  const priceRanges = [
-    { value: "all", label: "All Prices" },
-    { value: "free", label: "Free" },
-    { value: "paid", label: "Paid" },
-  ];
-
-  const sortOptions = [
-    { value: "popular", label: "Most Popular" },
-    { value: "newest", label: "Newest" },
-    { value: "rating", label: "Highest Rated" },
-    { value: "price-low", label: "Price: Low to High" },
-    { value: "price-high", label: "Price: High to Low" },
-  ];
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -172,34 +129,51 @@ export default function ExploreCategory() {
             </motion.p>
           </div>
 
-          {/* Premium Search & Filters */}
+          {/* Simplified Search */}
           <motion.div 
-            className="max-w-5xl mx-auto"
+            className="max-w-2xl mx-auto mb-8"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/60 w-5 h-5" />
+              <Input
+                placeholder="Search courses..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-14 pl-12 pr-4 bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:border-white/40 focus:ring-0 rounded-2xl text-lg backdrop-blur-xl"
+              />
+            </div>
+          </motion.div>
 
-            {/* Results Summary */}
-            <div className="flex items-center justify-between text-white/70 mb-2">
-              <div className="flex items-center gap-4">
-                <span>{filteredCourses.length} courses found</span>
-                {searchTerm && (
-                  <Badge variant="outline" className="border-white/20 text-white/70">
-                    Searching: "{searchTerm}"
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <TrendingUp className="h-4 w-4" />
-                <span>Updated daily</span>
-              </div>
+          {/* Simple filter bar */}
+          <motion.div 
+            className="flex items-center justify-center gap-4 mb-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+          >
+            <div className="flex gap-2">
+              {levels.slice(1).map((level) => (
+                <button
+                  key={level.value}
+                  onClick={() => setSelectedLevel(selectedLevel === level.value ? "all" : level.value)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                    selectedLevel === level.value
+                      ? "bg-white text-black"
+                      : "bg-white/10 text-white/80 hover:bg-white/20"
+                  }`}
+                >
+                  {level.label}
+                </button>
+              ))}
             </div>
           </motion.div>
         </div>
       </motion.div>
 
-      {/* Premium Course Grid */}
+      {/* Clean Course Grid */}
       <div className="max-w-7xl mx-auto px-4 py-12">
         <motion.div
           variants={itemVariants}
@@ -207,91 +181,26 @@ export default function ExploreCategory() {
           whileInView="visible"
           viewport={{ once: true }}
         >
-          {viewMode === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredCourses.length === 0 ? (
+            <div className="text-center py-20">
+              <BookOpen size={48} className="mx-auto text-white/40 mb-4" />
+              <h3 className="text-xl font-semibold text-white/60 mb-2">No courses found</h3>
+              <p className="text-white/40">Try a different search term</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredCourses.map((course, index) => (
                 <motion.div
                   key={course.id}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  transition={{ delay: index * 0.1 }}
                   viewport={{ once: true }}
                 >
                   <CourseCard course={course} />
                 </motion.div>
               ))}
             </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredCourses.map((course, index) => (
-                <motion.div
-                  key={course.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  viewport={{ once: true }}
-                >
-                  <CourseListItem course={course} />
-                </motion.div>
-              ))}
-            </div>
-          )}
-
-          {/* Empty State */}
-          {filteredCourses.length === 0 && (
-            <motion.div 
-              className="text-center py-20"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card className="max-w-md mx-auto bg-white/5 border-white/10 backdrop-blur-sm">
-                <CardContent className="p-12 text-center">
-                  <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center">
-                    <BookOpen size={40} className="text-white/40" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-3">No courses found</h3>
-                  <p className="text-white/60 mb-6">
-                    We couldn't find any courses matching your criteria. Try adjusting your search or filters.
-                  </p>
-                  <Button 
-                    onClick={() => {
-                      setSearchTerm("");
-                      setSelectedLevel("all");
-                      setSelectedPrice("all");
-                      setSortBy("popular");
-                    }}
-                    className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80"
-                  >
-                    Clear Filters
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Results Footer */}
-          {filteredCourses.length > 0 && (
-            <motion.div 
-              className="mt-12 text-center"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-            >
-              <Card className="inline-block bg-white/5 border-white/10 backdrop-blur-sm">
-                <CardContent className="px-6 py-4">
-                  <div className="flex items-center gap-6 text-white/70">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      <span>Showing {filteredCourses.length} of {mockCourses.length} courses</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Star className="h-4 w-4 text-yellow-400" />
-                      <span>Premium quality guaranteed</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
           )}
         </motion.div>
       </div>

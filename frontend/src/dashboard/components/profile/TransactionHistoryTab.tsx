@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
 import { mockTransactions } from "@/dashboard/constants/profile";
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { Input } from "@/shared/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select"
 import { Button } from "@/shared/components/ui/button"
@@ -393,15 +393,28 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
     fetchBalances()
   }, [connected, userWallet])
 
+  // Track previous connection state to only close modal on new connections
+  const prevConnectedRef = useRef(connected)
+  
   // Close modal when wallet connects (to avoid z-index issues with wallet selection)
+  // Only close if wallet was previously disconnected and now connects
   useEffect(() => {
-    if (connected) {
+    const wasDisconnected = !prevConnectedRef.current
+    
+    if (connected && wasDisconnected) {
       // Small delay to ensure wallet connection is fully processed
       const timer = setTimeout(() => {
         onClose()
       }, 100)
+      
+      // Update the ref for next time
+      prevConnectedRef.current = connected
+      
       return () => clearTimeout(timer)
     }
+    
+    // Always update the ref
+    prevConnectedRef.current = connected
   }, [connected, onClose])
 
   // Get swap quote when amount or conversion type changes
@@ -471,7 +484,7 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
               Connect your Solana wallet to access the swap functionality and view your balances.
             </p>
             
-            <div onClick={() => onClose()}>
+            <div onClick={() => !connected && onClose()}>
               <WalletMultiButton className="!bg-white/10 !text-white !border !border-white/20 !rounded-lg !px-6 !py-2 !font-medium hover:!bg-white/20 transition-colors" />
             </div>
           </div>

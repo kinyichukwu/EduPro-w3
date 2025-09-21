@@ -5,7 +5,6 @@ import {
   Share2,
   Settings,
   Crown,
-  Coins,
   History,
   TrendingUp,
   Wallet,
@@ -30,6 +29,7 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 export const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState("settings");
   const [eduproBalance, setEduproBalance] = useState<number>(0);
+  const [solBalance, setSolBalance] = useState<number>(0);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const user = useAuthStore((s) => s.user);
@@ -47,11 +47,12 @@ export const ProfilePage = () => {
   
   const userWallet = publicKey?.toString() || "";
 
-  // Fetch EduPro token balance when wallet is connected
+  // Fetch EduPro token and SOL balances when wallet is connected
   useEffect(() => {
-    const fetchEduProBalance = async () => {
+    const fetchBalances = async () => {
       if (!connected || !userWallet) {
         setEduproBalance(0);
+        setSolBalance(0);
         setBalanceError(null);
         return;
       }
@@ -59,19 +60,24 @@ export const ProfilePage = () => {
       setIsLoadingBalance(true);
       setBalanceError(null);
       try {
-        const balance = await solanaAPI.getEduTokenBalance(userWallet);
-        setEduproBalance(balance.edutoken_balance / 1e9); // Convert from lamports to EDU
+        const [eduBalance, solBalanceData] = await Promise.all([
+          solanaAPI.getEduTokenBalance(userWallet),
+          solanaAPI.getWalletBalance(userWallet)
+        ]);
+        setEduproBalance(eduBalance.edutoken_balance / 1e9); // Convert from lamports to EDU
+        setSolBalance(solBalanceData.balance_sol);
       } catch (error) {
-        console.error("Failed to fetch EduPro balance:", error);
-        const errorMessage = error instanceof Error ? error.message : "Failed to fetch balance";
+        console.error("Failed to fetch balances:", error);
+        const errorMessage = error instanceof Error ? error.message : "Failed to fetch balances";
         setBalanceError(errorMessage);
         setEduproBalance(0);
+        setSolBalance(0);
       } finally {
         setIsLoadingBalance(false);
       }
     };
 
-    fetchEduProBalance();
+    fetchBalances();
   }, [connected, userWallet]);
 
   // Handle connecting wallet to backend
@@ -121,11 +127,11 @@ export const ProfilePage = () => {
                   <Avatar className="h-20 w-20 ring-4 ring-turbo-purple/30 shadow-xl">
                     <AvatarImage src={user?.avatar ?? "/placeholder.svg"} alt={user?.full_name ?? user?.username ?? "N/A"} />
                     <AvatarFallback className="bg-gradient-to-br from-turbo-purple to-turbo-indigo text-white text-2xl font-bold">
-                      {user?.full_name?.charAt(0) ?? user?.username?.charAt(0) ?? "N/A"}
+                      {user?.email ? user.email.split('@')[0].substring(0, 2).toUpperCase() : user?.full_name?.charAt(0) ?? user?.username?.charAt(0) ?? "U"}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-green-400 to-green-500 shadow-lg">
-                    <Crown className="h-4 w-4 text-white" />
+                  <div className="absolute -bottom-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-r from-green-400/30 to-green-500/30 shadow-sm">
+                    <Crown className="h-3 w-3 text-white/50" />
                   </div>
                 </div>
 
@@ -134,7 +140,7 @@ export const ProfilePage = () => {
                     {user?.full_name ?? user?.username ?? "Profile"}
                   </h1>
                   <p className="text-white/60">{user?.email}</p>
-                  <Badge variant="default" className="text-sm bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0 px-3 py-1">
+                  <Badge variant="default" className="text-sm bg-gradient-to-r from-turbo-purple to-turbo-indigo text-white border-0 px-3 py-1">
                     Active Learner
                   </Badge>
                 </div>
@@ -154,20 +160,26 @@ export const ProfilePage = () => {
                       Portfolio Balance
                     </div>
                     <div className="flex items-center gap-3 justify-end">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-yellow-400 to-amber-500 shadow-lg">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-turbo-purple to-turbo-indigo shadow-lg p-2">
                         {isLoadingBalance ? (
                           <Loader2 className="h-6 w-6 text-white animate-spin" />
                         ) : balanceError ? (
                           <AlertCircle className="h-6 w-6 text-white" />
                         ) : (
-                          <Coins className="h-6 w-6 text-white" />
+                          <img 
+                            src="/Edupro.svg" 
+                            alt="EduPro" 
+                            className="h-8 w-8 object-contain"
+                          />
                         )}
                       </div>
                       <div>
                         <p className="text-3xl font-bold text-white">
-                          {isLoadingBalance ? "..." : balanceError ? "Error" : eduproBalance.toFixed(2)}
+                          {isLoadingBalance ? "..." : balanceError ? "Error" : eduproBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
-                        <p className="text-sm text-yellow-400 font-medium">EduPro Coins</p>
+                        <p className="text-sm text-purple-400 font-medium">
+                          {isLoadingBalance ? "..." : balanceError ? "" : `${solBalance.toFixed(4)} SOL`}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -282,14 +294,18 @@ export const ProfilePage = () => {
                 className="bg-white/5 rounded-lg p-4 border border-white/10"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-500/20 rounded-lg">
-                    <Coins className="w-5 h-5 text-orange-400" />
+                  <div className="p-2 bg-gradient-to-br from-turbo-purple/20 to-turbo-indigo/20 rounded-lg">
+                    <img 
+                      src="/Edupro.svg" 
+                      alt="EduPro" 
+                      className="w-5 h-5 object-contain"
+                    />
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-white">
-                      {connected && eduproBalance > 0 ? `+${Math.floor(eduproBalance * 0.15).toLocaleString()}` : "-"}
+                      {connected && eduproBalance > 0 ? `+${Math.floor(eduproBalance * 0.15).toLocaleString('en-US')}` : "-"}
                     </p>
-                    <p className="text-sm text-white/60">This Month</p>
+                    <p className="text-sm text-white/60">EDU This Month</p>
                   </div>
                 </div>
               </motion.div>

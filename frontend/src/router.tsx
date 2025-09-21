@@ -8,7 +8,9 @@ import About from "./landing/about/About";
 // import Login from "./landing/login-register/Login";
 import { DashboardLayout } from "./dashboard/DashboardLayout";
 import { DashboardHome } from "./dashboard/home";
-import ChatView from "./dashboard/chat";
+import AICreator from "./dashboard/ai-creator";
+import CourseDetail from "./dashboard/ai-creator/CourseDetail";
+import ModuleEditor from "./dashboard/ai-creator/ModuleEditor";
 // import GeneralChats from "./dashboard/general-chats";
 import { Flashcards } from "./dashboard/flashcards";
 import ErrorBoundary from "./shared/components/ErrorBoundary";
@@ -21,7 +23,7 @@ import LibraryAnalytics from "./dashboard/library/analytics";
 import UploadNew from "./dashboard/library/upload";
 import Explore from "./dashboard/explore/index";
 import ExploreCategory from "./dashboard/explore/category";
-import CourseDetail from "./dashboard/explore/course-detail";
+import ExploreCourseDetail from "./dashboard/explore/course-detail";
 import { ProfilePage } from "./dashboard/profile";
 import {
   AdminLayout,
@@ -33,8 +35,6 @@ import {
   PaymentsPage,
   SettingsPage,
 } from "./admin";
-import Tutor from "./dashboard/chat/Tutor";
-import Topic from "./dashboard/chat/Topics";
 import Quiz from "./dashboard/quizzes/Quiz";
 import { useEffect } from "react";
 import { useAuthStore } from "./store/useAuthStore";
@@ -83,9 +83,9 @@ export const AppRoutes = () => {
         {/* Dashboard routes - publicly accessible; protect specific routes as needed */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardHome />} />
-          <Route path="ai-creator" element={<ChatView />} />
-          <Route path="ai-creator/:courseId" element={<Topic />} />
-          <Route path="ai-creator/:courseId/modules" element={<Tutor />} />
+          <Route path="ai-creator" element={<AICreator />} />
+          <Route path="ai-creator/:courseId" element={<CourseDetail />} />
+          <Route path="ai-creator/:courseId/modules/:moduleId" element={<ModuleEditor />} />
           <Route path="chats" element={<GeneralChats />} />
           <Route path="chats/:chatId" element={<GeneralChats />} />
           <Route
@@ -106,7 +106,7 @@ export const AppRoutes = () => {
           <Route path="library/upload" element={<UploadNew />} />
           <Route path="explore" element={<Explore />} />
           <Route path="explore/:categoryId" element={<ExploreCategory />} />
-          <Route path="explore/course/:courseId" element={<CourseDetail />} />
+          <Route path="explore/course/:courseId" element={<ExploreCourseDetail />} />
           <Route
             path="profile"
             element={

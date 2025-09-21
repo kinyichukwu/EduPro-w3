@@ -5,7 +5,7 @@ import {
   apiService,
   type OnboardingData as ApiOnboardingData,
 } from "../services/api";
-import { AuthChangeEvent, Provider, Session } from "@supabase/supabase-js";
+import { Provider, Session } from "@supabase/supabase-js";
 
 interface OnboardingData {
   role: string;
@@ -302,41 +302,37 @@ export const useAuthStore = create<AuthState>()(
         });
 
         // Listen for auth changes
-        supabase.auth.onAuthStateChange(
-          (event: AuthChangeEvent, session: Session | null) => {
-            console.log("Auth state changed:", event, session);
-
-            if (session?.user?.email) {
-              const user: User = {
-                id: session.user.id,
-                email: session.user.email,
-                // email_confirmed_at: session.user.email_confirmed_at,
-                // created_at: session.user.created_at,
-                // user_metadata: session.user.user_metadata,
-                // app_metadata: session.user.app_metadata,
-                access_token: session.access_token,
-              };
-              set((state) => ({
-                user,
-                error: null,
-                loading: {
-                  ...state.loading,
-                  googleOAuth: false,
-                  appleOAuth: false,
-                },
-              }));
-            } else {
-              set((state) => ({
-                user: null,
-                loading: {
-                  ...state.loading,
-                  googleOAuth: false,
-                  appleOAuth: false,
-                },
-              }));
-            }
+        supabase.auth.onAuthStateChange((_, session: Session | null) => {
+          if (session?.user?.email) {
+            const user: User = {
+              id: session.user.id,
+              email: session.user.email,
+              // email_confirmed_at: session.user.email_confirmed_at,
+              // created_at: session.user.created_at,
+              // user_metadata: session.user.user_metadata,
+              // app_metadata: session.user.app_metadata,
+              access_token: session.access_token,
+            };
+            set((state) => ({
+              user,
+              error: null,
+              loading: {
+                ...state.loading,
+                googleOAuth: false,
+                appleOAuth: false,
+              },
+            }));
+          } else {
+            set((state) => ({
+              user: null,
+              loading: {
+                ...state.loading,
+                googleOAuth: false,
+                appleOAuth: false,
+              },
+            }));
           }
-        );
+        });
 
         set({ initialized: true });
       },

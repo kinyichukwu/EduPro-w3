@@ -3,33 +3,36 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
-import { X, BookOpen, DollarSign } from "lucide-react";
+import { X, BookOpen, Sparkles, Edit3 } from "lucide-react";
 
-interface CreateCourseModalProps {
+interface CreateModuleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateCourse: (course: { title: string; description: string }) => void;
+  onCreateModule: (module: { title: string; description: string }) => void;
 }
 
-export const CreateCourseModal = ({
+export const CreateModuleModal = ({
   isOpen,
   onClose,
-  onCreateCourse,
-}: CreateCourseModalProps) => {
-  const [courseTitle, setCourseTitle] = useState("");
+  onCreateModule,
+}: CreateModuleModalProps) => {
+  const [moduleTitle, setModuleTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [creationMethod, setCreationMethod] = useState<"manual" | "ai">(
+    "manual"
+  );
   const [isCreating, setIsCreating] = useState(false);
 
-  const handleCreateCourse = async () => {
-    if (!courseTitle.trim() || !description.trim()) return;
+  const handleCreateModule = async () => {
+    if (!moduleTitle.trim() || !description.trim()) return;
 
     setIsCreating(true);
 
-    // Simulate course creation process
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // Simulate module creation process
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    onCreateCourse({
-      title: courseTitle,
+    onCreateModule({
+      title: moduleTitle,
       description: description,
     });
 
@@ -38,8 +41,9 @@ export const CreateCourseModal = ({
   };
 
   const resetForm = () => {
-    setCourseTitle("");
+    setModuleTitle("");
     setDescription("");
+    setCreationMethod("manual");
     setIsCreating(false);
   };
 
@@ -69,10 +73,10 @@ export const CreateCourseModal = ({
             <div className="flex items-center justify-between p-6 max-sm:p-4 border-b border-white/10">
               <div>
                 <h2 className="text-2xl font-bold gradient-text">
-                  Create New Course
+                  Add New Module
                 </h2>
                 <p className="text-white/60 text-sm mt-1">
-                  Start building your course and earn from teaching
+                  Create a new module for your course
                 </p>
               </div>
               <Button
@@ -87,51 +91,81 @@ export const CreateCourseModal = ({
 
             {/* Content */}
             <div className="p-6 max-sm:px-4 space-y-6">
-              {/* Course Creation Fee Notice */}
-              <div className="bg-gradient-to-r from-turbo-purple/10 to-turbo-indigo/10 border border-turbo-purple/20 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-turbo-purple/20 rounded-lg">
-                    <DollarSign className="w-5 h-5 text-turbo-purple" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-white">
-                      Course Creation Fee
-                    </h3>
-                    <p className="text-sm text-white/60">
-                      A small fee of $10 is required to create a course. Start
-                      earning from your first student!
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
-                    Course Title *
+                    Module Title *
                   </label>
                   <Input
-                    value={courseTitle}
-                    onChange={(e) => setCourseTitle(e.target.value)}
-                    placeholder="e.g., Introduction to Web Development"
+                    value={moduleTitle}
+                    onChange={(e) => setModuleTitle(e.target.value)}
+                    placeholder="e.g., Introduction to Components"
                     className="bg-white/5 border-white/20 text-white placeholder-white/40"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">
-                    Course Description *
+                    Module Description *
                   </label>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe what students will learn in this course. What topics will you cover? What skills will they gain?"
-                    rows={4}
+                    placeholder="Describe what this module will cover and what students will learn"
+                    rows={3}
                     className="bg-white/5 border-white/20 text-white placeholder-white/40"
                   />
                 </div>
 
-                {/* Course Benefits */}
+                {/* Creation Method */}
+                <div>
+                  <label className="block text-sm font-medium text-white mb-3">
+                    How would you like to create this module?
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setCreationMethod("manual")}
+                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                        creationMethod === "manual"
+                          ? "border-turbo-purple bg-turbo-purple/10"
+                          : "border-white/10 hover:border-white/20"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="text-turbo-purple">
+                          <Edit3 className="w-5 h-5" />
+                        </div>
+                        <h3 className="font-medium text-white">
+                          Manual Creation
+                        </h3>
+                      </div>
+                      <p className="text-sm text-white/60">
+                        Create an empty module and add content yourself
+                      </p>
+                    </button>
+
+                    <button
+                      onClick={() => setCreationMethod("ai")}
+                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                        creationMethod === "ai"
+                          ? "border-turbo-purple bg-turbo-purple/10"
+                          : "border-white/10 hover:border-white/20"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="text-turbo-purple">
+                          <Sparkles className="w-5 h-5" />
+                        </div>
+                        <h3 className="font-medium text-white">AI Assisted</h3>
+                      </div>
+                      <p className="text-sm text-white/60">
+                        Let AI help generate initial content for this module
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Next Steps Info */}
                 <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                   <h3 className="font-medium text-white mb-3 flex items-center gap-2">
                     <BookOpen className="w-4 h-4" />
@@ -140,19 +174,21 @@ export const CreateCourseModal = ({
                   <ul className="space-y-2 text-sm text-white/70">
                     <li className="flex items-start gap-2">
                       <span className="text-turbo-purple">•</span>
-                      You'll be taken to your courses page
+                      {creationMethod === "manual"
+                        ? "Module will be created as a draft"
+                        : "AI will generate initial content based on your description"}
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-turbo-purple">•</span>
-                      Click on your course to start creating modules
+                      You can edit and add content using our rich text editor
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-turbo-purple">•</span>
-                      Use AI assistance or create content manually
+                      Add links and resources to enhance learning
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-turbo-purple">•</span>
-                      Publish when ready and start earning
+                      Mark as complete when ready for students
                     </li>
                   </ul>
                 </div>
@@ -162,8 +198,7 @@ export const CreateCourseModal = ({
             {/* Footer */}
             <div className="flex items-center justify-between max-sm:p-4 p-6 border-t border-white/10">
               <div className="text-sm text-white/60">
-                Course creation fee:{" "}
-                <span className="text-white font-medium">$10</span>
+                {creationMethod === "ai" && "AI generation included"}
               </div>
 
               <div className="flex gap-3">
@@ -176,9 +211,9 @@ export const CreateCourseModal = ({
                 </Button>
 
                 <Button
-                  onClick={handleCreateCourse}
+                  onClick={handleCreateModule}
                   disabled={
-                    isCreating || !courseTitle.trim() || !description.trim()
+                    isCreating || !moduleTitle.trim() || !description.trim()
                   }
                   className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80 text-white"
                 >
@@ -189,8 +224,12 @@ export const CreateCourseModal = ({
                     </>
                   ) : (
                     <>
-                      <DollarSign className="w-4 h-4 mr-2" />
-                      Create Course ($10)
+                      {creationMethod === "ai" ? (
+                        <Sparkles className="w-4 h-4 mr-2" />
+                      ) : (
+                        <BookOpen className="w-4 h-4 mr-2" />
+                      )}
+                      Create Module
                     </>
                   )}
                 </Button>

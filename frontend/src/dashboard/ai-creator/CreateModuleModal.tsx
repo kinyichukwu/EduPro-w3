@@ -37,19 +37,20 @@ export const CreateModuleModal = ({
 
   const handleCreateModule = async () => {
     if (!moduleTitle.trim() || !description.trim()) return;
-    if (creationMethod === "ai" && !aiPrompt.trim()) return;
 
     setIsCreating(true);
 
     try {
       // If AI assisted, generate content first
       let moduleContent = "";
-      if (creationMethod === "ai" && aiPrompt.trim()) {
+      if (creationMethod === "ai") {
         try {
           const contentResponse = await apiService.generateModuleContent(
             courseId,
             {
-              prompt: aiPrompt,
+              prompt:
+                aiPrompt.trim() ||
+                `Generate comprehensive content for module: ${moduleTitle}. Description: ${description}`,
             }
           );
 
@@ -84,15 +85,12 @@ export const CreateModuleModal = ({
   };
 
   const handleGenerateAI = async () => {
-    if (!aiPrompt.trim()) {
-      toast.error("Please enter a prompt for AI generation");
-      return;
-    }
-
     setIsGeneratingAI(true);
     try {
+      // Generate smart suggestion based on course context - no prompt needed
       const response = await apiService.generateModuleTitle(courseId, {
-        prompt: aiPrompt,
+        prompt:
+          "Generate the next logical module for this course based on existing modules and course structure",
       });
 
       if (response.error) {
@@ -117,9 +115,9 @@ export const CreateModuleModal = ({
         }
       }
 
-      toast.success("Module details generated successfully!");
+      toast.success("Module suggestion generated!");
     } catch (error) {
-      toast.error("Failed to generate module details");
+      toast.error("Failed to generate suggestion");
       console.error("AI generation error:", error);
     } finally {
       setIsGeneratingAI(false);
@@ -154,7 +152,7 @@ export const CreateModuleModal = ({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-dark-card/95 backdrop-blur-lg rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-white/20"
+            className="bg-dark-card/95 backdrop-blur-lg rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-white/20"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -177,49 +175,29 @@ export const CreateModuleModal = ({
               </Button>
             </div>
 
-            {/* AI Assistant Section */}
-            <div className="px-6 max-sm:px-4 pb-4 border-b border-white/10">
-              <div className="bg-gradient-to-r from-turbo-purple/10 to-turbo-indigo/10 rounded-lg p-4 border border-turbo-purple/20">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-5 h-5 text-turbo-purple" />
-                  <h3 className="font-medium text-white">AI Assistant</h3>
-                </div>
-                <p className="text-sm text-white/60 mb-3">
-                  Let AI help generate the module title and description based on
-                  your requirements
-                </p>
-                <div className="space-y-3">
-                  <Textarea
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    placeholder="Describe what this module should cover... e.g., 'Introduction to React components, props, and state management'"
-                    rows={2}
-                    className="bg-white/5 border-white/10 text-white placeholder-white/40 text-sm"
-                  />
-                  <Button
-                    onClick={handleGenerateAI}
-                    disabled={isGeneratingAI || !aiPrompt.trim()}
-                    size="sm"
-                    className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80 text-white"
-                  >
-                    {isGeneratingAI ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 mr-2" />
-                    )}
-                    {isGeneratingAI ? "Generating..." : "Generate with AI"}
-                  </Button>
-                </div>
-              </div>
-            </div>
-
             {/* Content */}
             <div className="p-6 max-sm:px-4 space-y-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Module Title *
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-white">
+                      Module Title *
+                    </label>
+                    <Button
+                      onClick={handleGenerateAI}
+                      disabled={isGeneratingAI}
+                      size="sm"
+                      variant="ghost"
+                      className="text-turbo-purple hover:text-turbo-purple/80 hover:bg-turbo-purple/10 text-xs"
+                    >
+                      {isGeneratingAI ? (
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3 h-3 mr-1" />
+                      )}
+                      {isGeneratingAI ? "Generating..." : "AI Suggest"}
+                    </Button>
+                  </div>
                   <Input
                     value={moduleTitle}
                     onChange={(e) => setModuleTitle(e.target.value)}
@@ -289,16 +267,17 @@ export const CreateModuleModal = ({
                   </div>
                 </div>
 
-                {/* AI Prompt Field */}
+                {/* AI Content Requirements */}
                 {creationMethod === "ai" && (
                   <div>
                     <label className="block text-sm font-medium text-white mb-2">
-                      AI Prompt
+                      Content Requirements{" "}
+                      <span className="text-white/60">(Optional)</span>
                     </label>
                     <Textarea
                       value={aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
-                      placeholder="Describe what you want the AI to generate for this module..."
+                      placeholder="Any specific topics, examples, or requirements for the module content? Leave blank for AI to decide based on course context..."
                       className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-turbo-purple focus:ring-turbo-purple/20"
                       rows={3}
                     />
@@ -353,10 +332,7 @@ export const CreateModuleModal = ({
                 <Button
                   onClick={handleCreateModule}
                   disabled={
-                    isCreating ||
-                    !moduleTitle.trim() ||
-                    !description.trim() ||
-                    (creationMethod === "ai" && !aiPrompt.trim())
+                    isCreating || !moduleTitle.trim() || !description.trim()
                   }
                   className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80 text-white"
                 >

@@ -96,25 +96,25 @@ export const CourseCard = ({ course }: CourseCardProps) => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 text-turbo-purple">
+        <div className="grid grid-cols-3 gap-1">
+          <div className="text-center border border-purple/10 bg-white/5 rounded-xl py-3 px-1">
+            <div className="flex items-center justify-center text-turbo-purple">
               <BookOpen className="w-4 h-4" />
               <span className="font-medium">{course.total_modules}</span>
             </div>
             <p className="text-xs text-white/60 mt-1">Modules</p>
           </div>
 
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 text-turbo-indigo">
+          <div className="text-center border border-purple/10 bg-white/5 rounded-xl py-3 px-1">
+            <div className="flex items-center justify-center text-turbo-indigo">
               <Users className="w-4 h-4" />
               <span className="font-medium">{course.students_count}</span>
             </div>
             <p className="text-xs text-white/60 mt-1">Students</p>
           </div>
 
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1 text-green-500">
+          <div className="text-center border border-purple/10 bg-white/5 rounded-xl py-3 px-1">
+            <div className="flex items-center justify-center text-green-500">
               <DollarSign className="w-4 h-4" />
               <span className="font-medium">{course.earnings}</span>
             </div>

@@ -4,23 +4,30 @@ import { motion } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
-import { 
-  ArrowLeft, 
-  Save, 
-  Sparkles, 
+import {
+  ArrowLeft,
+  Save,
+  Sparkles,
   Loader2,
   Plus,
   Trash2,
   Link as LinkIcon,
-  BookOpen
+  BookOpen,
 } from "lucide-react";
 import { useModule } from "@/hooks/useModules";
-import { useUpdateModule, useAddModuleLink, useDeleteModuleLink } from "@/hooks/useModules";
-import { apiService, GenerateContentRequest } from "@/services/api";
+import {
+  useUpdateModule,
+  useAddModuleLink,
+  useDeleteModuleLink,
+} from "@/hooks/useModules";
+import { apiService } from "@/services/api";
 import { toast } from "sonner";
 
 export default function ModuleEditor() {
-  const { courseId, moduleId } = useParams<{ courseId: string; moduleId: string }>();
+  const { courseId, moduleId } = useParams<{
+    courseId: string;
+    moduleId: string;
+  }>();
   const navigate = useNavigate();
 
   // Form state
@@ -33,11 +40,15 @@ export default function ModuleEditor() {
 
   // AI state
   const [aiPrompt, setAiPrompt] = useState("");
-  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [showAIAssist, setShowAIAssist] = useState(false);
 
   // Hooks
-  const { data: moduleData, isLoading, error } = useModule(courseId!, moduleId!);
+  const {
+    data: moduleData,
+    isLoading,
+    error,
+  } = useModule(courseId!, moduleId!);
   const updateModuleMutation = useUpdateModule();
   const addLinkMutation = useAddModuleLink();
   const deleteLinkMutation = useDeleteModuleLink();
@@ -73,33 +84,8 @@ export default function ModuleEditor() {
     }
   };
 
-  const handleGenerateTitle = async () => {
-    if (!aiPrompt.trim()) {
-      toast.error("Please enter a prompt for title generation");
-      return;
-    }
 
-    setIsGeneratingTitle(true);
-    try {
-      const response = await apiService.generateModuleTitle(courseId!, {
-        prompt: aiPrompt,
-      });
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      setTitle(response.data!.content);
-      toast.success("Title generated successfully!");
-    } catch (error) {
-      toast.error("Failed to generate title");
-      console.error("Title generation error:", error);
-    } finally {
-      setIsGeneratingTitle(false);
-    }
-  };
-
-  const handleGenerateContent = async () => {
+  const handleGenerateContent = async (replaceAll = false) => {
     if (!aiPrompt.trim()) {
       toast.error("Please enter a prompt for content generation");
       return;
@@ -115,7 +101,17 @@ export default function ModuleEditor() {
         throw new Error(response.error);
       }
 
-      setContent(response.data!.content);
+      const generatedContent = response.data!.content;
+
+      if (replaceAll) {
+        setContent(generatedContent);
+      } else {
+        // Append to existing content
+        const separator = content.trim() ? "\n\n" : "";
+        setContent(content + separator + generatedContent);
+      }
+
+      setAiPrompt(""); // Clear the prompt after generation
       toast.success("Content generated successfully!");
     } catch (error) {
       toast.error("Failed to generate content");
@@ -140,7 +136,7 @@ export default function ModuleEditor() {
           title: newLinkTitle.trim() || undefined,
         },
       });
-      
+
       setNewLinkUrl("");
       setNewLinkTitle("");
       setShowAddLink(false);
@@ -178,7 +174,9 @@ export default function ModuleEditor() {
     return (
       <div className="h-full w-full flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-white mb-2">Failed to load module</h2>
+          <h2 className="text-xl font-semibold text-white mb-2">
+            Failed to load module
+          </h2>
           <p className="text-white/60 mb-4">
             {error instanceof Error ? error.message : "Something went wrong"}
           </p>
@@ -228,58 +226,6 @@ export default function ModuleEditor() {
         </div>
       </section>
 
-      {/* AI Assistant */}
-      <section className="bg-dark-card/40 w-full rounded-xl border border-white/5 p-6">
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-turbo-purple" />
-          AI Assistant
-        </h2>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              AI Prompt
-            </label>
-            <Textarea
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder="Describe what you want the AI to help with..."
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-turbo-purple focus:ring-turbo-purple/20"
-              rows={3}
-            />
-          </div>
-
-          <div className="flex gap-3">
-            <Button
-              onClick={handleGenerateTitle}
-              disabled={isGeneratingTitle || !aiPrompt.trim()}
-              variant="outline"
-              className="border-turbo-purple/30 text-turbo-purple hover:bg-turbo-purple/10"
-            >
-              {isGeneratingTitle ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4 mr-2" />
-              )}
-              {isGeneratingTitle ? "Generating..." : "Generate Title"}
-            </Button>
-
-            <Button
-              onClick={handleGenerateContent}
-              disabled={isGeneratingContent || !aiPrompt.trim()}
-              variant="outline"
-              className="border-turbo-indigo/30 text-turbo-indigo hover:bg-turbo-indigo/10"
-            >
-              {isGeneratingContent ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4 mr-2" />
-              )}
-              {isGeneratingContent ? "Generating..." : "Generate Content"}
-            </Button>
-          </div>
-        </div>
-      </section>
 
       {/* Module Form */}
       <section className="bg-dark-card/40 w-full rounded-xl border border-white/5 p-6">
@@ -313,19 +259,100 @@ export default function ModuleEditor() {
 
           {/* Content */}
           <div>
-            <label className="block text-sm font-medium text-white mb-2">
-              Module Content
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-white">
+                Module Content
+              </label>
+              <Button
+                onClick={() => setShowAIAssist(!showAIAssist)}
+                size="sm"
+                variant="ghost"
+                className="text-turbo-purple hover:text-turbo-purple/80 hover:bg-turbo-purple/10 text-xs"
+              >
+                <Sparkles className="w-3 h-3 mr-1" />
+                AI Assist
+              </Button>
+            </div>
+
+            {/* AI Assistant Panel */}
+            {showAIAssist && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-4 p-4 bg-gradient-to-r from-turbo-purple/10 to-turbo-indigo/10 rounded-lg border border-turbo-purple/20"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-4 h-4 text-turbo-purple" />
+                    <h4 className="text-sm font-medium text-white">
+                      AI Content Assistant
+                    </h4>
+                  </div>
+                  <Input
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    placeholder="What content would you like to add? e.g., 'Add an example of React hooks'"
+                    className="bg-white/5 border-white/10 text-white placeholder:text-white/40 text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleGenerateContent(false)}
+                      disabled={isGeneratingContent || !aiPrompt.trim()}
+                      size="sm"
+                      className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80 text-white"
+                    >
+                      {isGeneratingContent ? (
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      ) : (
+                        <Plus className="w-3 h-3 mr-1" />
+                      )}
+                      {isGeneratingContent ? "Generating..." : "Add to Content"}
+                    </Button>
+                    <Button
+                      onClick={() => handleGenerateContent(true)}
+                      disabled={isGeneratingContent || !aiPrompt.trim()}
+                      size="sm"
+                      variant="outline"
+                      className="border-turbo-purple/30 text-turbo-purple hover:bg-turbo-purple/10"
+                    >
+                      Replace All
+                    </Button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Write your module content here... You can use markdown formatting."
-              className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-turbo-purple focus:ring-turbo-purple/20 font-mono text-sm"
-              rows={20}
+              placeholder="Write your module content here... You can use markdown formatting.
+
+# Module Title
+
+## Introduction
+Start with an overview of what students will learn...
+
+## Main Content
+Add your detailed explanations, examples, and exercises...
+
+## Key Takeaways
+- Important point 1
+- Important point 2
+
+## Next Steps
+What should students do after completing this module?"
+              className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-turbo-purple focus:ring-turbo-purple/20 font-mono text-sm resize-y min-h-[500px]"
+              rows={30}
             />
-            <p className="text-xs text-white/40 mt-1">
-              Supports markdown formatting for better content structure
-            </p>
+            <div className="flex items-center justify-between mt-1">
+              <p className="text-xs text-white/40">
+                Supports markdown formatting for better content structure
+              </p>
+              <p className="text-xs text-white/40">
+                {content?.length || 0} characters
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -402,12 +429,12 @@ export default function ModuleEditor() {
 
         {/* Links List */}
         <div className="space-y-2">
-          {moduleData.links.length === 0 ? (
+          {moduleData?.links?.length === 0 ? (
             <p className="text-white/40 text-center py-8">
               No resource links added yet
             </p>
           ) : (
-            moduleData.links.map((link) => (
+            moduleData?.links?.map((link) => (
               <div
                 key={link.id}
                 className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"

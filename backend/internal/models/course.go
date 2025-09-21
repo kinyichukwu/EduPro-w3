@@ -78,6 +78,8 @@ type CreateModuleRequest struct {
 	Description string `json:"description" validate:"max=1000"`
 	Content     string `json:"content"`
 	OrderIndex  int    `json:"order_index" validate:"min=1"`
+	UseAI       bool   `json:"use_ai"`
+	AIPrompt    string `json:"ai_prompt"`
 }
 
 // UpdateModuleRequest represents the request to update a module
@@ -115,4 +117,14 @@ type CourseStats struct {
 	DraftCourses     int     `json:"draft_courses"`
 	TotalStudents    int     `json:"total_students"`
 	TotalEarnings    float64 `json:"total_earnings"`
+}
+
+// GenerateContentRequest represents the request to generate content with AI
+type GenerateContentRequest struct {
+	Prompt string `json:"prompt" validate:"required,min=10,max=1000"`
+}
+
+// GenerateContentResponse represents the response from content generation
+type GenerateContentResponse struct {
+	Content string `json:"content"`
 }

@@ -1,30 +1,334 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/kinyichukwu/edu-pro-backend/internal/middleware"
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
+	"github.com/kinyichukwu/edu-pro-backend/internal/services/ai"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/database"
+	"github.com/kinyichukwu/edu-pro-backend/internal/services/embeddings"
 	"go.uber.org/zap"
 )
 
 // ModuleHandler handles course module-related requests
 type ModuleHandler struct {
-	db        *database.Client
-	validator *validator.Validate
+	db         *database.Client
+	pgx        *database.PgxClient
+	aiClient   ai.Service
+	embeddings *embeddings.Client
+	validator  *validator.Validate
 }
 
 // NewModuleHandler creates a new module handler
-func NewModuleHandler(db *database.Client) *ModuleHandler {
+func NewModuleHandler(db *database.Client, pgx *database.PgxClient, aiClient ai.Service, embeddings *embeddings.Client) *ModuleHandler {
 	return &ModuleHandler{
-		db:        db,
-		validator: validator.New(),
+		db:         db,
+		pgx:        pgx,
+		aiClient:   aiClient,
+		embeddings: embeddings,
+		validator:  validator.New(),
 	}
+}
+
+// GenerateModuleTitle generates a module title using AI
+// @Summary Generate module title with AI
+// @Description Generate a module title based on course context and description
+// @Tags modules
+// @Accept json
+// @Produce json
+// @Param courseId path string true "Course ID"
+// @Param request body models.GenerateContentRequest true "Generation request"
+// @Success 200 {object} models.GenerateContentResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /api/courses/{courseId}/modules/generate-title [post]
+func (h *ModuleHandler) GenerateModuleTitle(c *gin.Context) {
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	courseIDStr := c.Param("id")
+	courseID, err := uuid.Parse(courseIDStr)
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
+		return
+	}
+
+	var req models.GenerateContentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Validation failed", err)
+		return
+	}
+
+	// Verify course ownership
+	course, err := h.db.GetCourse(courseID, user.ID)
+	if err != nil {
+		if err.Error() == "course not found" {
+			ErrorResponse(c, http.StatusNotFound, "Course not found", err)
+			return
+		}
+		zap.L().Error("Failed to verify course ownership", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to verify course", err)
+		return
+	}
+
+	if h.aiClient == nil {
+		ErrorResponse(c, http.StatusServiceUnavailable, "AI service not available", nil)
+		return
+	}
+
+	// Build context from existing modules and RAG
+	ctx := context.Background()
+	courseContext, err := h.buildCourseContext(ctx, courseID, user.ID)
+	if err != nil {
+		zap.L().Warn("Failed to build course context", zap.Error(err))
+		courseContext = ""
+	}
+
+	ragContext, err := h.buildRAGContext(ctx, req.Prompt, user.ID)
+	if err != nil {
+		zap.L().Warn("Failed to build RAG context", zap.Error(err))
+		ragContext = ""
+	}
+
+	// Build comprehensive prompt with context
+	var promptBuilder strings.Builder
+	promptBuilder.WriteString(fmt.Sprintf("Generate a clear, engaging module title for a course about '%s'.\n\n", course.Title))
+	
+	if courseContext != "" {
+		promptBuilder.WriteString(courseContext)
+		promptBuilder.WriteString("\n\n")
+	}
+	
+	if ragContext != "" {
+		promptBuilder.WriteString(ragContext)
+		promptBuilder.WriteString("\n\n")
+	}
+	
+	promptBuilder.WriteString(fmt.Sprintf("New module requirement: %s\n\n", req.Prompt))
+	promptBuilder.WriteString("Generate an appropriate module title that:\n")
+	promptBuilder.WriteString("1. Fits logically with existing modules\n")
+	promptBuilder.WriteString("2. Uses appropriate numbering/sequencing\n")
+	promptBuilder.WriteString("3. Is clear and engaging\n")
+	promptBuilder.WriteString("4. Follows educational best practices\n\n")
+	promptBuilder.WriteString("Return ONLY the title, no additional text or formatting.")
+
+	generatedTitle, err := h.aiClient.GenerateContent(promptBuilder.String())
+	if err != nil {
+		zap.L().Error("Failed to generate module title", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to generate title", err)
+		return
+	}
+
+	// Clean up the response (remove quotes, extra whitespace)
+	generatedTitle = strings.Trim(strings.TrimSpace(generatedTitle), "\"'")
+
+	response := models.GenerateContentResponse{
+		Content: generatedTitle,
+	}
+
+	SuccessResponse(c, http.StatusOK, "Module title generated successfully", response)
+}
+
+// GenerateModuleContent generates module content using AI
+// @Summary Generate module content with AI
+// @Description Generate educational content for a module
+// @Tags modules
+// @Accept json
+// @Produce json
+// @Param courseId path string true "Course ID"
+// @Param request body models.GenerateContentRequest true "Generation request"
+// @Success 200 {object} models.GenerateContentResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /api/courses/{courseId}/modules/generate-content [post]
+func (h *ModuleHandler) GenerateModuleContent(c *gin.Context) {
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	courseIDStr := c.Param("id")
+	courseID, err := uuid.Parse(courseIDStr)
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
+		return
+	}
+
+	var req models.GenerateContentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Validation failed", err)
+		return
+	}
+
+	// Verify course ownership
+	course, err := h.db.GetCourse(courseID, user.ID)
+	if err != nil {
+		if err.Error() == "course not found" {
+			ErrorResponse(c, http.StatusNotFound, "Course not found", err)
+			return
+		}
+		zap.L().Error("Failed to verify course ownership", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to verify course", err)
+		return
+	}
+
+	if h.aiClient == nil {
+		ErrorResponse(c, http.StatusServiceUnavailable, "AI service not available", nil)
+		return
+	}
+
+	// Build context from existing modules and RAG
+	ctx := context.Background()
+	courseContext, err := h.buildCourseContext(ctx, courseID, user.ID)
+	if err != nil {
+		zap.L().Warn("Failed to build course context", zap.Error(err))
+		courseContext = ""
+	}
+
+	ragContext, err := h.buildRAGContext(ctx, req.Prompt, user.ID)
+	if err != nil {
+		zap.L().Warn("Failed to build RAG context", zap.Error(err))
+		ragContext = ""
+	}
+
+	// Build comprehensive prompt with context
+	var promptBuilder strings.Builder
+	promptBuilder.WriteString(fmt.Sprintf("Create comprehensive educational content for a module in a course about '%s'.\n\n", course.Title))
+	
+	if courseContext != "" {
+		promptBuilder.WriteString(courseContext)
+		promptBuilder.WriteString("\n\n")
+	}
+	
+	if ragContext != "" {
+		promptBuilder.WriteString(ragContext)
+		promptBuilder.WriteString("\n\n")
+	}
+	
+	promptBuilder.WriteString(fmt.Sprintf("New module requirement: %s\n\n", req.Prompt))
+	promptBuilder.WriteString("Generate comprehensive module content that:\n")
+	promptBuilder.WriteString("1. Builds logically on existing modules\n")
+	promptBuilder.WriteString("2. Maintains consistency with course structure\n")
+	promptBuilder.WriteString("3. Uses appropriate educational progression\n")
+	promptBuilder.WriteString("4. Includes explanations, examples, and key concepts\n")
+	promptBuilder.WriteString("5. Is well-structured and engaging\n")
+	promptBuilder.WriteString("6. References relevant course materials when appropriate\n\n")
+	promptBuilder.WriteString("Format the content in markdown for better readability. Include headers, bullet points, and code examples where relevant.")
+
+	generatedContent, err := h.aiClient.GenerateContent(promptBuilder.String())
+	if err != nil {
+		zap.L().Error("Failed to generate module content", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to generate content", err)
+		return
+	}
+
+	response := models.GenerateContentResponse{
+		Content: generatedContent,
+	}
+
+	SuccessResponse(c, http.StatusOK, "Module content generated successfully", response)
+}
+
+// buildCourseContext creates context from existing modules for AI generation
+func (h *ModuleHandler) buildCourseContext(ctx context.Context, courseID uuid.UUID, userID uuid.UUID) (string, error) {
+	// Get existing modules for the course
+	modules, err := h.db.GetCourseModules(courseID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get existing modules: %w", err)
+	}
+
+	if len(modules) == 0 {
+		return "", nil // No existing modules
+	}
+
+	var contextBuilder strings.Builder
+	contextBuilder.WriteString("Existing course modules:\n\n")
+
+	for i, module := range modules {
+		contextBuilder.WriteString(fmt.Sprintf("%d. %s\n", module.OrderIndex, module.Title))
+		if module.Description != "" {
+			contextBuilder.WriteString(fmt.Sprintf("   Description: %s\n", module.Description))
+		}
+		if module.Content != "" {
+			// Truncate content to avoid overly long context
+			content := module.Content
+			if len(content) > 500 {
+				content = content[:500] + "..."
+			}
+			contextBuilder.WriteString(fmt.Sprintf("   Content preview: %s\n", content))
+		}
+		if i < len(modules)-1 {
+			contextBuilder.WriteString("\n")
+		}
+	}
+
+	return contextBuilder.String(), nil
+}
+
+// buildRAGContext searches for relevant content using embeddings
+func (h *ModuleHandler) buildRAGContext(ctx context.Context, query string, userID uuid.UUID) (string, error) {
+	if h.embeddings == nil {
+		return "", nil // No embeddings service available
+	}
+
+	// Generate embedding for the query
+	queryEmbedding, err := h.embeddings.GenerateEmbedding(query)
+	if err != nil {
+		zap.L().Warn("Failed to generate embedding for query", zap.Error(err))
+		return "", nil // Degrade gracefully
+	}
+
+	// Search for similar chunks in user's documents
+	chunks, err := h.pgx.SearchSimilarChunks(ctx, queryEmbedding, userID.String(), 5)
+	if err != nil {
+		zap.L().Warn("Failed to search similar chunks", zap.Error(err))
+		return "", nil // Degrade gracefully
+	}
+
+	if len(chunks) == 0 {
+		return "", nil
+	}
+
+	var contextBuilder strings.Builder
+	contextBuilder.WriteString("Relevant course materials:\n\n")
+
+	for i, chunk := range chunks {
+		contextBuilder.WriteString(fmt.Sprintf("Document: %s\n", chunk.DocumentTitle))
+		if chunk.SourceURL != nil && *chunk.SourceURL != "" {
+			contextBuilder.WriteString(fmt.Sprintf("Source: %s\n", *chunk.SourceURL))
+		}
+		contextBuilder.WriteString(fmt.Sprintf("Content: %s\n", chunk.Content))
+		if i < len(chunks)-1 {
+			contextBuilder.WriteString("\n---\n\n")
+		}
+	}
+
+	return contextBuilder.String(), nil
 }
 
 // getUserFromContext is a helper function to get the authenticated user
@@ -85,7 +389,7 @@ func (h *ModuleHandler) CreateModule(c *gin.Context) {
 	}
 
 	// Verify course ownership
-	_, err = h.db.GetCourse(courseID, user.ID)
+	course, err := h.db.GetCourse(courseID, user.ID)
 	if err != nil {
 		if err.Error() == "course not found" {
 			ErrorResponse(c, http.StatusNotFound, "Course not found", err)
@@ -94,6 +398,20 @@ func (h *ModuleHandler) CreateModule(c *gin.Context) {
 		zap.L().Error("Failed to verify course ownership", zap.Error(err))
 		ErrorResponse(c, http.StatusInternalServerError, "Failed to verify course", err)
 		return
+	}
+
+	// If AI generation is requested and we have a prompt, generate content
+	if req.UseAI && req.AIPrompt != "" && h.aiClient != nil {
+		// Generate AI content
+		prompt := fmt.Sprintf("Create educational content for a module titled '%s' in a course about '%s'. The module should cover: %s. Provide comprehensive, well-structured content suitable for learning.", req.Title, course.Title, req.AIPrompt)
+		
+		aiResponse, err := h.aiClient.GenerateContent(prompt)
+		if err != nil {
+			zap.L().Error("Failed to generate AI content", zap.Error(err))
+			// Continue without AI content rather than failing
+		} else {
+			req.Content = aiResponse
+		}
 	}
 
 	module := models.CourseModule{

@@ -123,6 +123,31 @@ func (c *Client) GenerateExplanation(req *GeminiRequest) (*models.ExplanationRes
 	return response, nil
 }
 
+// GenerateContent generates educational content using Gemini API
+func (c *Client) GenerateContent(prompt string) (string, error) {
+	logger := utils.GetLogger()
+
+	// Sanitize input
+	sanitizedPrompt := SanitizeInput(prompt)
+
+	logger.Info("Generating content",
+		zap.String("prompt_length", fmt.Sprintf("%d", len(sanitizedPrompt))),
+	)
+
+	// Call Gemini API
+	content, err := c.callGeminiAPI(sanitizedPrompt)
+	if err != nil {
+		logger.Error("Failed to call Gemini API for content", zap.String("error", err.Error()))
+		return "", fmt.Errorf("failed to generate content: %w", err)
+	}
+
+	logger.Info("Content generated successfully",
+		zap.String("content_length", fmt.Sprintf("%d", len(content))),
+	)
+
+	return content, nil
+}
+
 // GenerateFlashcards creates flashcards using Gemini API
 func (c *Client) GenerateFlashcards(req *GeminiRequest) (*models.FlashcardGenerationResponse, error) {
 	logger := utils.GetLogger()

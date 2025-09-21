@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import { useDecks, useFlashcards } from "./useFlashcards";
+import { useDeck, useFlashcards } from "./useFlashcards";
 import { flashcardAPI, type Deck, type Flashcard } from "@/services/flashcard";
 
 export interface StudyCard {
@@ -31,8 +31,8 @@ export interface SessionStats {
 export const useFlashcardStudy = () => {
   const { id: deckId } = useParams<{ id: string }>();
 
-  // Data hooks
-  const { decks } = useDecks();
+  // Data hooks - only fetch what we need
+  const { deck } = useDeck(deckId || null);
   const { flashcards, loading, error, fetchFlashcards, createFlashcard } =
     useFlashcards(deckId || null);
 
@@ -59,14 +59,11 @@ export const useFlashcardStudy = () => {
 
   // Load deck
   useEffect(() => {
-    if (!deckId || !decks.length) return;
-
-    const deck = decks.find((d) => d.id === deckId);
     if (deck) {
       setCurrentDeck(deck);
       // fetchFlashcards is automatically called by useFlashcards when deckId changes
     }
-  }, [deckId, decks]);
+  }, [deck]);
 
   // Filter due cards
   useEffect(() => {

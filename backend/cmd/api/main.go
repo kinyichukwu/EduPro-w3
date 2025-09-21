@@ -14,6 +14,7 @@ import (
 	"github.com/kinyichukwu/edu-pro-backend/internal/middleware"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/ai"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/database"
+	"github.com/kinyichukwu/edu-pro-backend/internal/services/embeddings"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/nft"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/solana"
 	"github.com/kinyichukwu/edu-pro-backend/internal/utils"
@@ -48,6 +49,7 @@ func main() {
 
 	// Initialize services
 	aiService := ai.NewClient(cfg.GeminiAPIKey)
+	embeddingsService := embeddings.NewClient(cfg.GeminiAPIKey)
 
 	// Initialize database
 	dbClient, err := database.NewClient(cfg)
@@ -103,7 +105,7 @@ func main() {
 
 	// Initialize course and module handlers
 	courseHandler := handlers.NewCourseHandler(dbClient)
-	moduleHandler := handlers.NewModuleHandler(dbClient)
+	moduleHandler := handlers.NewModuleHandler(dbClient, pgxClient, aiService, embeddingsService)
 
 	// Setup router
 	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler, nftHandler, flashcardHandler, courseHandler, moduleHandler, edupoTokenHandler, solanaHandler, testAuthHandler)
@@ -339,6 +341,10 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 		courses.GET("/:id/modules/:moduleId", moduleHandler.GetModule)
 		courses.PUT("/:id/modules/:moduleId", moduleHandler.UpdateModule)
 		courses.DELETE("/:id/modules/:moduleId", moduleHandler.DeleteModule)
+
+		// AI content generation
+		courses.POST("/:id/modules/generate-title", moduleHandler.GenerateModuleTitle)
+		courses.POST("/:id/modules/generate-content", moduleHandler.GenerateModuleContent)
 
 		// Module links management
 		courses.POST("/:id/modules/:moduleId/links", moduleHandler.AddModuleLink)

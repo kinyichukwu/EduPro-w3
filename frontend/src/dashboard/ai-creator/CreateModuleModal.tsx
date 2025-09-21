@@ -8,7 +8,12 @@ import { X, BookOpen, Sparkles, Edit3 } from "lucide-react";
 interface CreateModuleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateModule: (module: { title: string; description: string }) => void;
+  onCreateModule: (module: { 
+    title: string; 
+    description: string; 
+    useAI: boolean; 
+    aiPrompt?: string 
+  }) => void;
 }
 
 export const CreateModuleModal = ({
@@ -18,13 +23,13 @@ export const CreateModuleModal = ({
 }: CreateModuleModalProps) => {
   const [moduleTitle, setModuleTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [creationMethod, setCreationMethod] = useState<"manual" | "ai">(
-    "manual"
-  );
+  const [creationMethod, setCreationMethod] = useState<"manual" | "ai">("manual");
+  const [aiPrompt, setAiPrompt] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
   const handleCreateModule = async () => {
     if (!moduleTitle.trim() || !description.trim()) return;
+    if (creationMethod === "ai" && !aiPrompt.trim()) return;
 
     setIsCreating(true);
 
@@ -34,6 +39,8 @@ export const CreateModuleModal = ({
     onCreateModule({
       title: moduleTitle,
       description: description,
+      useAI: creationMethod === "ai",
+      aiPrompt: creationMethod === "ai" ? aiPrompt : undefined,
     });
 
     resetForm();
@@ -44,6 +51,7 @@ export const CreateModuleModal = ({
     setModuleTitle("");
     setDescription("");
     setCreationMethod("manual");
+    setAiPrompt("");
     setIsCreating(false);
   };
 
@@ -165,6 +173,22 @@ export const CreateModuleModal = ({
                   </div>
                 </div>
 
+                {/* AI Prompt Field */}
+                {creationMethod === "ai" && (
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-2">
+                      AI Prompt
+                    </label>
+                    <Textarea
+                      value={aiPrompt}
+                      onChange={(e) => setAiPrompt(e.target.value)}
+                      placeholder="Describe what you want the AI to generate for this module..."
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-turbo-purple focus:ring-turbo-purple/20"
+                      rows={3}
+                    />
+                  </div>
+                )}
+
                 {/* Next Steps Info */}
                 <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                   <h3 className="font-medium text-white mb-3 flex items-center gap-2">
@@ -213,7 +237,10 @@ export const CreateModuleModal = ({
                 <Button
                   onClick={handleCreateModule}
                   disabled={
-                    isCreating || !moduleTitle.trim() || !description.trim()
+                    isCreating || 
+                    !moduleTitle.trim() || 
+                    !description.trim() ||
+                    (creationMethod === "ai" && !aiPrompt.trim())
                   }
                   className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80 text-white"
                 >

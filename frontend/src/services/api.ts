@@ -175,6 +175,14 @@ export interface AddModuleLinkRequest {
   description?: string;
 }
 
+export interface GenerateContentRequest {
+  prompt: string;
+}
+
+export interface GenerateContentResponse {
+  content: string;
+}
+
 const API_BASE_URL = getApiBaseUrl();
 
 // Derive the API origin (scheme + host) for non-/api endpoints like /health
@@ -862,6 +870,27 @@ class ApiService {
       `/courses/${courseId}/modules/${moduleId}/links/${linkId}`,
       {
         method: "DELETE",
+      }
+    );
+  }
+
+  // AI Content Generation
+  async generateModuleTitle(courseId: string, request: GenerateContentRequest): Promise<ApiResponse<GenerateContentResponse>> {
+    return this.request<GenerateContentResponse>(
+      `/courses/${courseId}/modules/generate-title`,
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      }
+    );
+  }
+
+  async generateModuleContent(courseId: string, request: GenerateContentRequest): Promise<ApiResponse<GenerateContentResponse>> {
+    return this.request<GenerateContentResponse>(
+      `/courses/${courseId}/modules/generate-content`,
+      {
+        method: "POST",
+        body: JSON.stringify(request),
       }
     );
   }

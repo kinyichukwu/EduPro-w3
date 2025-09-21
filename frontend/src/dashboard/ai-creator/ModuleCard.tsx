@@ -4,193 +4,135 @@ import {
   BookOpen, 
   Edit3, 
   Trash2, 
+  Eye, 
   Calendar,
   Link as LinkIcon,
   CheckCircle,
-  Clock,
-  MoreVertical
+  Clock
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/shared/lib/utils";
-
-interface Module {
-  id: number;
-  title: string;
-  description: string;
-  content: string;
-  links: string[];
-  order: number;
-  status: "draft" | "completed";
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { CourseModule } from "@/services/api";
 
 interface ModuleCardProps {
-  module: Module;
-  onEdit: () => void;
-  onDelete: () => void;
+  module: CourseModule;
+  courseId: string;
 }
 
-export const ModuleCard = ({ module, onEdit, onDelete }: ModuleCardProps) => {
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
+export function ModuleCard({ module, courseId }: ModuleCardProps) {
+  const navigate = useNavigate();
+
+  const handleEdit = () => {
+    navigate(`/dashboard/ai-creator/${courseId}/modules/${module.id}`);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
   };
 
-  const getStatusIcon = () => {
-    return module.status === "completed" ? (
-      <CheckCircle className="w-5 h-5 text-green-500" />
-    ) : (
-      <Clock className="w-5 h-5 text-yellow-500" />
-    );
-  };
-
-  const getStatusColor = () => {
-    return module.status === "completed"
-      ? "bg-green-500/20 text-green-400 border-green-500/30"
-      : "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-500/20 text-green-400 border-green-500/30";
+      case "draft":
+        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+      default:
+        return "bg-gray-500/20 text-gray-400 border-gray-500/30";
+    }
   };
 
   return (
     <motion.div
-      whileHover={{ x: 4 }}
-      className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 group hover:border-white/20 transition-all duration-300"
+      whileHover={{ y: -4 }}
+      className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 overflow-hidden group hover:border-white/20 transition-all duration-300"
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-start gap-4">
-            {/* Module Order */}
-            <div className="flex-shrink-0 w-10 h-10 bg-turbo-purple/20 rounded-lg flex items-center justify-center">
-              <span className="text-turbo-purple font-bold">{module.order}</span>
-            </div>
+      {/* Module Header */}
+      <div className="relative p-4 bg-gradient-to-br from-turbo-purple/10 to-turbo-indigo/10">
+        {/* Module Order Badge */}
+        <div className="absolute top-3 left-3 bg-turbo-purple/20 backdrop-blur-sm rounded-full px-2 py-1 border border-turbo-purple/30">
+          <span className="text-xs font-medium text-turbo-purple">
+            Module {module.order_index}
+          </span>
+        </div>
 
-            <div className="flex-1 min-w-0">
-              {/* Header */}
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h3 className="font-semibold text-white text-lg mb-1">
-                    {module.title}
-                  </h3>
-                  <p className="text-white/60 text-sm line-clamp-2">
-                    {module.description}
-                  </p>
-                </div>
-
-                {/* Status Badge */}
-                <div className={cn(
-                  "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ml-4",
-                  getStatusColor()
-                )}>
-                  {getStatusIcon()}
-                  <span className="capitalize">{module.status}</span>
-                </div>
-              </div>
-
-              {/* Content Preview */}
-              {module.content && (
-                <div className="mb-4">
-                  <p className="text-white/50 text-sm line-clamp-2">
-                    {module.content}
-                  </p>
-                </div>
-              )}
-
-              {/* Module Stats */}
-              <div className="flex items-center gap-6 mb-4 text-sm text-white/60">
-                <div className="flex items-center gap-1">
-                  <BookOpen className="w-4 h-4" />
-                  <span>{module.content ? `${module.content.length} chars` : "No content"}</span>
-                </div>
-                
-                {module.links.length > 0 && (
-                  <div className="flex items-center gap-1">
-                    <LinkIcon className="w-4 h-4" />
-                    <span>{module.links.length} link{module.links.length !== 1 ? 's' : ''}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  <span>Updated {formatDate(module.updatedAt)}</span>
-                </div>
-              </div>
-
-              {/* Links Preview */}
-              {module.links.length > 0 && (
-                <div className="mb-4">
-                  <div className="flex flex-wrap gap-2">
-                    {module.links.slice(0, 2).map((link, index) => (
-                      <a
-                        key={index}
-                        href={link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs bg-turbo-purple/20 text-turbo-purple px-2 py-1 rounded-md hover:bg-turbo-purple/30 transition-colors"
-                      >
-                        {new URL(link).hostname}
-                      </a>
-                    ))}
-                    {module.links.length > 2 && (
-                      <span className="text-xs text-white/50 px-2 py-1">
-                        +{module.links.length - 2} more
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+        {/* Status Badge */}
+        <div className={cn(
+          "absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium border",
+          getStatusColor(module.status)
+        )}>
+          <div className="flex items-center gap-1">
+            {module.status === "completed" ? (
+              <CheckCircle className="w-3 h-3" />
+            ) : (
+              <Clock className="w-3 h-3" />
+            )}
+            {module.status}
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            onClick={onEdit}
-            variant="ghost"
-            size="sm"
-            className="hover:bg-turbo-purple/20 text-turbo-purple hover:text-turbo-purple"
-          >
-            <Edit3 className="w-4 h-4" />
-          </Button>
-          
-          <Button
-            onClick={onDelete}
-            variant="ghost"
-            size="sm"
-            className="hover:bg-red-500/20 text-red-400 hover:text-red-400"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hover:bg-white/10 text-white/60 hover:text-white"
-          >
-            <MoreVertical className="w-4 h-4" />
-          </Button>
+        <div className="pt-8">
+          <BookOpen className="w-8 h-8 text-turbo-purple/60 mb-3" />
         </div>
       </div>
 
-      {/* Progress Bar for Draft Modules */}
-      {module.status === "draft" && (
-        <div className="mt-4 pt-4 border-t border-white/10">
-          <div className="flex items-center justify-between text-sm mb-2">
-            <span className="text-white/60">Module Progress</span>
-            <span className="text-white/60">
-              {module.content ? "50%" : "0%"}
-            </span>
-          </div>
-          <div className="w-full bg-white/10 rounded-full h-2">
-            <div 
-              className="bg-gradient-to-r from-turbo-purple to-turbo-indigo h-2 rounded-full transition-all duration-300"
-              style={{ width: module.content ? "50%" : "0%" }}
-            />
-          </div>
+      {/* Module Content */}
+      <div className="p-4 space-y-4">
+        {/* Title and Description */}
+        <div>
+          <h3 className="font-semibold text-white text-lg mb-2 line-clamp-1">
+            {module.title}
+          </h3>
+          <p className="text-white/60 text-sm line-clamp-2">
+            {module.description}
+          </p>
         </div>
-      )}
+
+        {/* Content Preview */}
+        <div className="text-white/60 text-sm">
+          {module.content ? (
+            <p className="line-clamp-2">{module.content.substring(0, 100)}...</p>
+          ) : (
+            <p className="italic">No content yet</p>
+          )}
+        </div>
+
+        {/* Dates */}
+        <div className="flex items-center justify-between text-xs text-white/50">
+          <div className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            <span>Created {formatDate(module.created_at)}</span>
+          </div>
+          {module.updated_at !== module.created_at && (
+            <span>Updated {formatDate(module.updated_at)}</span>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 pt-2">
+          <Button
+            onClick={handleEdit}
+            size="sm"
+            className="flex-1 bg-turbo-purple/20 hover:bg-turbo-purple/30 text-turbo-purple border border-turbo-purple/30"
+          >
+            <Edit3 className="w-3 h-3 mr-1" />
+            Edit
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleEdit}
+            className="border-white/20 text-white/60 hover:text-white hover:bg-white/10"
+          >
+            <Eye className="w-3 h-3 mr-1" />
+            View
+          </Button>
+        </div>
+      </div>
     </motion.div>
   );
-};
+}

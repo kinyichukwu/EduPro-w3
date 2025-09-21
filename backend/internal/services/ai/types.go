@@ -28,6 +28,7 @@ type Service interface {
 	GenerateQuiz(req *GeminiRequest) (*models.QuizResponse, error)
 	GenerateExplanation(req *GeminiRequest) (*models.ExplanationResponse, error)
 	GenerateFlashcards(req *GeminiRequest) (*models.FlashcardGenerationResponse, error)
+	GenerateContent(prompt string) (string, error)
 	IsHealthy() bool
 }
 

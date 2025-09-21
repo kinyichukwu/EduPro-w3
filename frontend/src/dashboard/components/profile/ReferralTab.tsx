@@ -8,8 +8,6 @@ import {
   ArrowRight,
   Bell
 } from "lucide-react";
-import { TabsContent } from "@/shared/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 
@@ -32,7 +30,7 @@ export const ReferralTab = () => {
   };
 
   return (
-    <TabsContent value="referral" className="space-y-6">
+    <div className="space-y-6">
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -41,12 +39,10 @@ export const ReferralTab = () => {
       >
         {/* Coming Soon Hero */}
         <motion.div variants={itemVariants}>
-          <Card className="border-white/10 bg-gradient-to-br from-dark-card/80 via-dark-card/60 to-purple-900/20 backdrop-blur-xl relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-transparent to-blue-500/10" />
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-transparent rounded-full blur-2xl" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-400/20 to-transparent rounded-full blur-xl" />
+          <div className="bg-white/5 rounded-lg p-8 md:p-12 border border-white/10 text-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-blue-500/5" />
             
-            <CardContent className="relative p-8 md:p-12 text-center">
+            <div className="relative z-10">
               <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-purple-500/20 to-blue-500/20 backdrop-blur-sm border border-purple-500/30">
                 <Users className="h-10 w-10 text-purple-400" />
               </div>
@@ -57,11 +53,11 @@ export const ReferralTab = () => {
                   Coming Soon
                 </Badge>
                 
-                <h1 className="text-3xl md:text-4xl font-bold text-white">
+                <h1 className="text-3xl md:text-4xl font-bold gradient-text">
                   Referral Program
                 </h1>
                 
-                <p className="text-lg text-muted-foreground">
+                <p className="text-lg text-white/60">
                   Share EduPro with friends and earn amazing rewards together. 
                   Our referral system is being crafted to give you the best experience.
                 </p>
@@ -76,67 +72,59 @@ export const ReferralTab = () => {
                   Notify Me When Ready
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
 
         {/* Preview Features */}
         <motion.div variants={itemVariants}>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="rounded-lg bg-green-500/10 p-2 border border-green-500/20">
-                    <Gift className="h-5 w-5 text-green-400" />
-                  </div>
-                  <h3 className="font-semibold text-white">Earn Rewards</h3>
+            <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rounded-lg bg-green-500/10 p-2 border border-green-500/20">
+                  <Gift className="h-5 w-5 text-green-400" />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Get EduPro coins and premium features for every successful referral.
-                </p>
-              </CardContent>
-            </Card>
+                <h3 className="font-semibold text-white">Earn Rewards</h3>
+              </div>
+              <p className="text-sm text-white/60">
+                Get EduPro coins and premium features for every successful referral.
+              </p>
+            </div>
 
-            <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="rounded-lg bg-blue-500/10 p-2 border border-blue-500/20">
-                    <Users className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <h3 className="font-semibold text-white">Build Community</h3>
+            <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rounded-lg bg-blue-500/10 p-2 border border-blue-500/20">
+                  <Users className="h-5 w-5 text-blue-400" />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Help friends succeed in their studies while growing your network.
-                </p>
-              </CardContent>
-            </Card>
+                <h3 className="font-semibold text-white">Build Community</h3>
+              </div>
+              <p className="text-sm text-white/60">
+                Help friends succeed in their studies while growing your network.
+              </p>
+            </div>
 
-            <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
-              <CardContent className="p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="rounded-lg bg-yellow-500/10 p-2 border border-yellow-500/20">
-                    <Star className="h-5 w-5 text-yellow-400" />
-                  </div>
-                  <h3 className="font-semibold text-white">Unlock Tiers</h3>
+            <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="rounded-lg bg-yellow-500/10 p-2 border border-yellow-500/20">
+                  <Star className="h-5 w-5 text-yellow-400" />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Progress through referral tiers to unlock exclusive benefits.
-                </p>
-              </CardContent>
-            </Card>
+                <h3 className="font-semibold text-white">Unlock Tiers</h3>
+              </div>
+              <p className="text-sm text-white/60">
+                Progress through referral tiers to unlock exclusive benefits.
+              </p>
+            </div>
           </div>
         </motion.div>
 
         {/* Timeline */}
         <motion.div variants={itemVariants}>
-          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Clock className="h-5 w-5 text-purple-400" />
-                Development Timeline
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+              <Clock className="h-5 w-5 text-purple-400" />
+              Development Timeline
+            </h2>
+            <div className="space-y-4">
               <div className="space-y-4">
                 <div className="flex items-center gap-4 p-4 rounded-lg bg-dark-accent/20 border border-white/10">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500/20 border border-green-500/30">
@@ -190,30 +178,28 @@ export const ReferralTab = () => {
                   </Badge>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
 
         {/* Stay Updated */}
         <motion.div variants={itemVariants}>
-          <Card className="border-white/10 bg-gradient-to-r from-purple-500/10 to-blue-500/10 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold text-white">Stay in the loop</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Be the first to know when referrals go live and get early access.
-                  </p>
-                </div>
-                <Button className="bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600">
-                  Join Waitlist
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+          <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg p-6 border border-white/10">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-white">Stay in the loop</h3>
+                <p className="text-sm text-white/60">
+                  Be the first to know when referrals go live and get early access.
+                </p>
               </div>
-            </CardContent>
-          </Card>
+              <Button className="bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600">
+                Join Waitlist
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </motion.div>
       </motion.div>
-    </TabsContent>
+    </div>
   );
 };

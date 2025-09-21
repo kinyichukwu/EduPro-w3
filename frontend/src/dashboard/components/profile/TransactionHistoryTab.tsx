@@ -13,8 +13,6 @@ import {
   Coins,
   Wallet,
 } from "lucide-react";
-import { TabsContent } from "@/shared/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { mockTransactions } from "@/dashboard/constants/profile";
 import { useState, useMemo, useEffect } from "react"
@@ -95,7 +93,7 @@ export const TransactionHistoryTab = () => {
   )
 
   return (
-    <TabsContent value="transactions" className="space-y-6">
+    <div className="space-y-6">
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -103,14 +101,13 @@ export const TransactionHistoryTab = () => {
         className="space-y-6"
       >
         <motion.div variants={itemVariants}>
-          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <div className="flex flex-col space-y-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <TrendingUp size={20} />
-                    Transaction History
-                  </CardTitle>
+          <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                  <TrendingUp size={20} />
+                  Transaction History
+                </h2>
                   
                   {/* Conversion Button */}
                   <Dialog open={showConversionModal} onOpenChange={setShowConversionModal}>
@@ -131,79 +128,72 @@ export const TransactionHistoryTab = () => {
                           Currency Conversion
                         </DialogTitle>
                       </DialogHeader>
-                      <ConversionModal />
+                      <ConversionModal onClose={() => setShowConversionModal(false)} />
                     </DialogContent>
                   </Dialog>
                 </div>
 
-                {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card className="border-green-500/20 bg-green-500/5">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total Earned</p>
-                          <p className="text-xl sm:text-2xl font-bold text-green-400">+{totalEarned}</p>
-                        </div>
-                        <div className="rounded-lg bg-green-500/10 p-2 border border-green-500/20">
-                          <TrendingUp className="h-6 w-6 text-green-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="border-green-500/20 bg-green-500/5 rounded-lg p-4 border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-white/60">Total Earned</p>
+                      <p className="text-xl sm:text-2xl font-bold text-green-400">+{totalEarned}</p>
+                    </div>
+                    <div className="rounded-lg bg-green-500/10 p-2 border border-green-500/20">
+                      <TrendingUp className="h-6 w-6 text-green-400" />
+                    </div>
+                  </div>
+                </div>
 
-                  <Card className="border-red-500/20 bg-red-500/5">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total Spent</p>
-                          <p className="text-xl sm:text-2xl font-bold text-red-400">-{totalSpent}</p>
-                        </div>
-                        <div className="rounded-lg bg-red-500/10 p-2 border border-red-500/20">
-                          <TrendingDown className="h-6 w-6 text-red-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className={cn(
-                    "border-white/10",
-                    totalEarned - totalSpent >= 0 ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"
-                  )}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Net Balance</p>
-                          <p
-                            className={cn(
-                              "text-xl sm:text-2xl font-bold",
-                              totalEarned - totalSpent >= 0 ? "text-green-400" : "text-red-400",
-                            )}
-                          >
-                            {totalEarned - totalSpent >= 0 ? "+" : ""}
-                            {totalEarned - totalSpent}
-                          </p>
-                        </div>
-                        <div className={cn(
-                          "rounded-lg p-2 border",
-                          totalEarned - totalSpent >= 0 
-                            ? "bg-green-500/10 border-green-500/20" 
-                            : "bg-red-500/10 border-red-500/20"
-                        )}>
-                          <Coins className={cn(
-                            "h-6 w-6",
-                            totalEarned - totalSpent >= 0 ? "text-green-400" : "text-red-400"
-                          )} />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                <div className="border-red-500/20 bg-red-500/5 rounded-lg p-4 border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-white/60">Total Spent</p>
+                      <p className="text-xl sm:text-2xl font-bold text-red-400">-{totalSpent}</p>
+                    </div>
+                    <div className="rounded-lg bg-red-500/10 p-2 border border-red-500/20">
+                      <TrendingDown className="h-6 w-6 text-red-400" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className={cn(
+                  "border rounded-lg p-4",
+                  totalEarned - totalSpent >= 0 ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"
+                )}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-white/60">Net Balance</p>
+                      <p
+                        className={cn(
+                          "text-xl sm:text-2xl font-bold",
+                          totalEarned - totalSpent >= 0 ? "text-green-400" : "text-red-400",
+                        )}
+                      >
+                        {totalEarned - totalSpent >= 0 ? "+" : ""}
+                        {totalEarned - totalSpent}
+                      </p>
+                    </div>
+                    <div className={cn(
+                      "rounded-lg p-2 border",
+                      totalEarned - totalSpent >= 0 
+                        ? "bg-green-500/10 border-green-500/20" 
+                        : "bg-red-500/10 border-red-500/20"
+                    )}>
+                      <Coins className={cn(
+                        "h-6 w-6",
+                        totalEarned - totalSpent >= 0 ? "text-green-400" : "text-red-400"
+                      )} />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Card className="border-white/10 bg-dark-accent/20">
-                <CardContent className="p-4">
+            </div>
+            
+            <div className="space-y-4 mt-6">
+              <div className="border-white/10 bg-dark-accent/20 rounded-lg p-4 border">
                   <div className="flex flex-col md:flex-row max-md:space-y-4 md:space-x-4">
                     <div className="flex-1">
                       <div className="relative">
@@ -256,13 +246,12 @@ export const TransactionHistoryTab = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
 
               <div className="space-y-3">
                 {filteredTransactions.length === 0 ? (
                   <div className="p-16 text-center rounded-lg border border-white/10 bg-dark-accent/10">
-                    <p className="text-muted-foreground">No transactions found matching your criteria.</p>
+                    <p className="text-white/60">No transactions found matching your criteria.</p>
                   </div>
                 ) : (
                   filteredTransactions.map((transaction) => {
@@ -349,16 +338,20 @@ export const TransactionHistoryTab = () => {
                   })
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
       </motion.div>
-    </TabsContent>
+    </div>
   );
 };
 
 // Conversion Modal Component
-const ConversionModal = () => {
+interface ConversionModalProps {
+  onClose: () => void;
+}
+
+const ConversionModal = ({ onClose }: ConversionModalProps) => {
   const [conversionType, setConversionType] = useState<"edu-to-sol" | "sol-to-edu">("edu-to-sol")
   const [amount, setAmount] = useState("")
   const [isConverting, setIsConverting] = useState(false)
@@ -399,6 +392,17 @@ const ConversionModal = () => {
 
     fetchBalances()
   }, [connected, userWallet])
+
+  // Close modal when wallet connects (to avoid z-index issues with wallet selection)
+  useEffect(() => {
+    if (connected) {
+      // Small delay to ensure wallet connection is fully processed
+      const timer = setTimeout(() => {
+        onClose()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [connected, onClose])
 
   // Get swap quote when amount or conversion type changes
   useEffect(() => {
@@ -466,7 +470,10 @@ const ConversionModal = () => {
             <p className="text-muted-foreground mb-4">
               Connect your Solana wallet to access the swap functionality and view your balances.
             </p>
-            <WalletMultiButton className="!bg-white/10 !text-white !border !border-white/20 !rounded-lg !px-6 !py-2 !font-medium hover:!bg-white/20 transition-colors" />
+            
+            <div onClick={() => onClose()}>
+              <WalletMultiButton className="!bg-white/10 !text-white !border !border-white/20 !rounded-lg !px-6 !py-2 !font-medium hover:!bg-white/20 transition-colors" />
+            </div>
           </div>
         </div>
       ) : (

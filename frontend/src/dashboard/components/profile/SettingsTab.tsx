@@ -14,13 +14,6 @@ import {
   LogOut,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/card";
-import { TabsContent } from "@/shared/components/ui/tabs";
 // import { Switch } from "@/shared/components/ui/switch";
 import { Label } from "@/shared/components/ui/label";
 import { useGetOnboardingStatus } from "@/dashboard/hooks/useOnboarding";
@@ -97,7 +90,7 @@ export const SettingsTab = () => {
   };
 
   return (
-    <TabsContent value="settings" className="space-y-6">
+    <div className="space-y-6">
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -106,12 +99,12 @@ export const SettingsTab = () => {
       >
         {/* Personal Info */}
         <motion.div variants={itemVariants}>
-          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-white">
+          <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+            <div className="flex flex-row items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                 <User size={20} className="text-blue-400" />
                 Personal Information
-              </CardTitle>
+              </h2>
               <Button
                 variant="ghost"
                 size="sm"
@@ -123,8 +116,8 @@ export const SettingsTab = () => {
                   {isEditing ? "Save" : "Edit"}
                 </span>
               </Button>
-            </CardHeader>
-            <CardContent className="space-y-6">
+            </div>
+            <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-sm font-medium text-muted-foreground">Full Name</Label>
@@ -175,21 +168,19 @@ export const SettingsTab = () => {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </motion.div>
 
         {/* Academic Profile */}
         {onboardingData?.onboarding_data && (
           <motion.div variants={itemVariants}>
-            <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
-                  <User size={20} className="text-green-400" />
-                  Academic Profile
-                </CardTitle>
-              </CardHeader>
-            <CardContent className="space-y-4">
+            <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+              <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                <User size={20} className="text-green-400" />
+                Academic Profile
+              </h2>
+              <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Role-specific information */}
                 {onboardingData.onboarding_data.role === "jamb" &&
@@ -296,21 +287,19 @@ export const SettingsTab = () => {
                   </>
                 )}
               </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Security */}
         <motion.div variants={itemVariants}>
-          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Shield size={20} className="text-orange-400" />
-                Security
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+              <Shield size={20} className="text-orange-400" />
+              Security
+            </h2>
+            <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-dark-accent/20 rounded-xl border border-white/10 hover:bg-dark-accent/30 transition-colors">
                 <div className="space-y-1">
                   <div className="font-medium text-white">Password</div>
@@ -331,158 +320,55 @@ export const SettingsTab = () => {
               </div>
               <Switch />
             </div> */}
-          </CardContent>
-        </Card>
-      </motion.div>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Wallet Connection */}
         <motion.div variants={itemVariants}>
-          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Wallet size={20} className="text-purple-400" />
-                Wallet Connection
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="text-sm text-muted-foreground">
-                  Connect your Solana wallet to access payment features, earn
-                  rewards, and manage your digital assets.
-                </div>
-                <WalletSection />
+          <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+              <Wallet size={20} className="text-purple-400" />
+              Wallet Connection
+            </h2>
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground">
+                Connect your Solana wallet to access payment features, earn
+                rewards, and manage your digital assets.
               </div>
-            </CardContent>
-          </Card>
+              <WalletSection />
+            </div>
+          </div>
         </motion.div>
 
-      {/* Notifications */}
-      {/* <motion.div variants={itemVariants}>
-        <Card className="border-white/5 bg-dark-card/40 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell size={20} />
-              Notifications
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-dark-accent/10 rounded-xl border border-white/5">
-              <div>
-                <div className="font-medium">Product Updates</div>
-                <div className="text-sm text-dark-muted">
-                  Get notified about new features
-                </div>
-              </div>
-              <Switch
-                checked={notifications.productUpdates}
-                onCheckedChange={(checked) =>
-                  setNotifications((prev) => ({
-                    ...prev,
-                    productUpdates: checked,
-                  }))
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between p-4 bg-dark-accent/10 rounded-xl border border-white/5">
-              <div>
-                <div className="font-medium">Promotional Offers</div>
-                <div className="text-sm text-dark-muted">
-                  Receive special deals and discounts
-                </div>
-              </div>
-              <Switch
-                checked={notifications.promotionalOffers}
-                onCheckedChange={(checked) =>
-                  setNotifications((prev) => ({
-                    ...prev,
-                    promotionalOffers: checked,
-                  }))
-                }
-              />
-            </div>
-            <div className="flex items-center justify-between p-4 bg-dark-accent/10 rounded-xl border border-white/5">
-              <div>
-                <div className="font-medium">Weekly Digest</div>
-                <div className="text-sm text-dark-muted">
-                  Summary of your activity
-                </div>
-              </div>
-              <Switch
-                checked={notifications.weeklyDigest}
-                onCheckedChange={(checked) =>
-                  setNotifications((prev) => ({
-                    ...prev,
-                    weeklyDigest: checked,
-                  }))
-                }
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div> */}
-
-      {/* Data & Privacy */}
-      {/* <motion.div variants={itemVariants}>
-        <Card className="border-white/5 bg-dark-card/40 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText size={20} />
-              Data & Privacy
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-dark-accent/10 rounded-xl border border-white/5 hover:bg-dark-accent/20 transition-colors">
-              <div>
-                <div className="font-medium">Download My Data</div>
-                <div className="text-sm text-dark-muted">
-                  Export your data in JSON/CSV format
+        {/* Account Actions */}
+        <motion.div variants={itemVariants}>
+          <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+              <LogOut size={20} className="text-red-400" />
+              Account Actions
+            </h2>
+            <div className="flex max-md:flex-col md:items-center justify-between gap-4 p-4 bg-dark-accent/20 rounded-xl border border-white/10 hover:bg-dark-accent/30 transition-colors">
+              <div className="space-y-1">
+                <div className="font-medium text-white">Sign Out</div>
+                <div className="text-sm text-muted-foreground">
+                  Sign out of your account on this device
                 </div>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="border-white/10 hover:border-turbo-purple/50"
+                onClick={() => signOut()}
+                disabled={loading.signOut}
+                className="border-red-500/20 bg-red-500/10 text-red-400 hover:border-red-500/50 hover:text-red-300 hover:bg-red-500/20"
               >
-                <Download size={16} className="mr-2" />
-                Download
+                <LogOut size={16} className="mr-2" />
+                {loading.signOut ? "Signing out..." : "Sign Out"}
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </motion.div> */}
-
-        {/* Account Actions */}
-        <motion.div variants={itemVariants}>
-          <Card className="border-white/10 bg-dark-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <LogOut size={20} className="text-red-400" />
-                Account Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex max-md:flex-col md:items-center justify-between gap-4 p-4 bg-dark-accent/20 rounded-xl border border-white/10 hover:bg-dark-accent/30 transition-colors">
-                <div className="space-y-1">
-                  <div className="font-medium text-white">Sign Out</div>
-                  <div className="text-sm text-muted-foreground">
-                    Sign out of your account on this device
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => signOut()}
-                  disabled={loading.signOut}
-                  className="border-red-500/20 bg-red-500/10 text-red-400 hover:border-red-500/50 hover:text-red-300 hover:bg-red-500/20"
-                >
-                  <LogOut size={16} className="mr-2" />
-                  {loading.signOut ? "Signing out..." : "Sign Out"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          </div>
         </motion.div>
       </motion.div>
-    </TabsContent>
+    </div>
   );
 };

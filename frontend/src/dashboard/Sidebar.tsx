@@ -1,6 +1,6 @@
 import {
-    Home,
-    UserRound,
+  Home,
+  UserRound,
   // Zap,
   BookText,
   BookOpen,
@@ -30,8 +30,8 @@ const navItems = [
   },
   {
     icon: <BrainCircuit size={22} />,
-    label: "AI Tutor",
-    path: "/dashboard/ai-tutor",
+    label: "AI Creator",
+    path: "/dashboard/ai-creator",
     color: "text-turbo-purple",
   },
   {

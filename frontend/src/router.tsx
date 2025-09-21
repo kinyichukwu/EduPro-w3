@@ -83,9 +83,9 @@ export const AppRoutes = () => {
         {/* Dashboard routes - publicly accessible; protect specific routes as needed */}
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<DashboardHome />} />
-          <Route path="ai-tutor" element={<ChatView />} />
-          <Route path="ai-tutor/:id" element={<Topic />} />
-          <Route path="ai-tutor/:id/:id" element={<Tutor />} />
+          <Route path="ai-creator" element={<ChatView />} />
+          <Route path="ai-creator/:courseId" element={<Topic />} />
+          <Route path="ai-creator/:courseId/modules" element={<Tutor />} />
           <Route path="chats" element={<GeneralChats />} />
           <Route path="chats/:chatId" element={<GeneralChats />} />
           <Route

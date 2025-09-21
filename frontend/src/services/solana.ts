@@ -13,6 +13,7 @@ import type {
   TokenInfo,
 } from "../shared/types/solana/wallet";
 import type { PaymentStatusResponse } from "../shared/types/solana/solana-pay";
+import type { SwapRequest, SwapResponse } from "../shared/types/solana/swap";
 import { apiService } from "./index";
 
 class SolanaAPI {
@@ -83,6 +84,38 @@ class SolanaAPI {
     token_mint: string;
   }): Promise<any> {
     const response = await apiService.deductFromWallet(request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
+
+  // Swap endpoints
+  async getSwapQuote(request: SwapRequest): Promise<SwapResponse> {
+    const response = await apiService.getSwapQuote(request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
+
+  async executeSwap(request: SwapRequest): Promise<SwapResponse> {
+    const response = await apiService.executeSwap(request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
+
+  // Wallet balance endpoints
+  async getWalletBalance(address: string): Promise<any> {
+    const response = await apiService.getWalletBalance(address);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
+
+  async getTokenBalance(address: string, mintAddress: string): Promise<any> {
+    const response = await apiService.getTokenBalance(address, mintAddress);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
+
+  async getEduTokenBalance(address: string): Promise<any> {
+    const response = await apiService.getEduTokenBalance(address);
     if (response.error) throw new Error(response.error);
     return response.data!;
   }

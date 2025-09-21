@@ -17,12 +17,15 @@ import { TabsContent } from "@/shared/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { mockTransactions } from "@/dashboard/constants/profile";
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Input } from "@/shared/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select"
 import { Button } from "@/shared/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/shared/components/ui/dialog"
 import { cn } from "@/shared/lib/utils"
+import { solanaAPI } from "@/services/solana"
+import { useWallet } from "@solana/wallet-adapter-react"
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
 
 const categoryIcons = {
   quiz: BookOpen,
@@ -359,46 +362,136 @@ const ConversionModal = () => {
   const [conversionType, setConversionType] = useState<"edu-to-sol" | "sol-to-edu">("edu-to-sol")
   const [amount, setAmount] = useState("")
   const [isConverting, setIsConverting] = useState(false)
+  const [balances, setBalances] = useState<{ edu: number; sol: number }>({ edu: 0, sol: 0 })
+  const [isLoading, setIsLoading] = useState(true)
+  const [swapQuote, setSwapQuote] = useState<any>(null)
 
-  // Mock exchange rates (in a real app, these would come from an API)
-  const exchangeRates = {
-    "edu-to-sol": 0.001, // 1 EDU = 0.001 SOL
-    "sol-to-edu": 1000,  // 1 SOL = 1000 EDU
-  }
+  // Get real wallet address from Solana wallet adapter
+  const { connected, publicKey } = useWallet()
+  const userWallet = publicKey?.toString() || ""
 
-  const convertedAmount = amount ? (parseFloat(amount) * exchangeRates[conversionType]).toFixed(6) : "0"
+  // Get wallet balances when wallet is connected
+  useEffect(() => {
+    const fetchBalances = async () => {
+      if (!connected || !userWallet) {
+        setIsLoading(false)
+        return
+      }
+
+      setIsLoading(true)
+      try {
+        const [eduBalance, solBalance] = await Promise.all([
+          solanaAPI.getEduTokenBalance(userWallet),
+          solanaAPI.getWalletBalance(userWallet)
+        ])
+        setBalances({
+          edu: eduBalance.edutoken_balance / 1e9, // Convert from lamports to EDU
+          sol: solBalance.balance_sol
+        })
+      } catch (error) {
+        console.error("Failed to fetch balances:", error)
+        // Set default values on error
+        setBalances({ edu: 0, sol: 0 })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchBalances()
+  }, [connected, userWallet])
+
+  // Get swap quote when amount or conversion type changes
+  useEffect(() => {
+    const getSwapQuote = async () => {
+      if (!connected || !userWallet || !amount || parseFloat(amount) <= 0) {
+        setSwapQuote(null)
+        return
+      }
+
+      try {
+        const swapRequest = {
+          inputMint: conversionType === "edu-to-sol" ? "8kNjLpVVoMK6QY5zQgjavDYmLzULnboxrPcry6Cf4urV" : "So11111111111111111111111111111111111111112",
+          outputMint: conversionType === "edu-to-sol" ? "So11111111111111111111111111111111111111112" : "8kNjLpVVoMK6QY5zQgjavDYmLzULnboxrPcry6Cf4urV",
+          amount: Math.floor(parseFloat(amount) * 1e9), // Convert to lamports
+          slippageBps: 100, // 1%
+          userWallet: userWallet
+        }
+
+        const quote = await solanaAPI.getSwapQuote(swapRequest)
+        setSwapQuote(quote)
+      } catch (error) {
+        console.error("Failed to get swap quote:", error)
+        setSwapQuote(null)
+      }
+    }
+
+    getSwapQuote()
+  }, [amount, conversionType, userWallet, connected])
 
   const handleConversion = async () => {
-    if (!amount || parseFloat(amount) <= 0) return
-    
+    if (!connected || !userWallet || !amount || parseFloat(amount) <= 0) return
+
     setIsConverting(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setIsConverting(false)
-    
-    // In a real app, you would handle the actual conversion here
-    alert(`Conversion successful! ${amount} ${conversionType === "edu-to-sol" ? "EDU" : "SOL"} converted to ${convertedAmount} ${conversionType === "edu-to-sol" ? "SOL" : "EDU"}`)
+    try {
+      // Use the existing swap quote to execute the swap
+      const result = await solanaAPI.executeSwap(swapQuote)
+
+      // Refresh balances
+      const [eduBalance, solBalance] = await Promise.all([
+        solanaAPI.getEduTokenBalance(userWallet),
+        solanaAPI.getWalletBalance(userWallet)
+      ])
+      setBalances({
+        edu: eduBalance.edutoken_balance / 1e9,
+        sol: solBalance.balance_sol
+      })
+
+      alert(`Conversion successful! Transaction: ${result.swapTransaction}`)
+    } catch (error) {
+      console.error("Conversion failed:", error)
+      alert(`Conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsConverting(false)
+    }
   }
 
   return (
     <div className="space-y-6">
-      {/* Current Balances */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/10">
-          <div className="flex items-center gap-2 mb-2">
-            <Coins className="h-4 w-4 text-yellow-400" />
-            <span className="text-sm text-muted-foreground">EDU Balance</span>
+      {/* Wallet Connection Check */}
+      {!connected ? (
+        <div className="p-8 text-center bg-dark-accent/20 rounded-xl border border-white/10">
+          <div className="mb-4">
+            <Wallet className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">Connect Your Wallet</h3>
+            <p className="text-muted-foreground mb-4">
+              Connect your Solana wallet to access the swap functionality and view your balances.
+            </p>
+            <WalletMultiButton className="!bg-white/10 !text-white !border !border-white/20 !rounded-lg !px-6 !py-2 !font-medium hover:!bg-white/20 transition-colors" />
           </div>
-          <p className="text-xl font-bold text-white">2,847 EDU</p>
         </div>
-        <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/10">
-          <div className="flex items-center gap-2 mb-2">
-            <Wallet className="h-4 w-4 text-blue-400" />
-            <span className="text-sm text-muted-foreground">SOL Balance</span>
+      ) : (
+        <>
+          {/* Current Balances */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/10">
+              <div className="flex items-center gap-2 mb-2">
+                <Coins className="h-4 w-4 text-yellow-400" />
+                <span className="text-sm text-muted-foreground">EDU Balance</span>
+              </div>
+              <p className="text-xl font-bold text-white">
+                {isLoading ? "..." : `${balances.edu.toFixed(2)} EDU`}
+              </p>
+            </div>
+            <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/10">
+              <div className="flex items-center gap-2 mb-2">
+                <Wallet className="h-4 w-4 text-blue-400" />
+                <span className="text-sm text-muted-foreground">SOL Balance</span>
+              </div>
+              <p className="text-xl font-bold text-white">
+                {isLoading ? "..." : `${balances.sol.toFixed(4)} SOL`}
+              </p>
+            </div>
           </div>
-          <p className="text-xl font-bold text-white">0.125 SOL</p>
-        </div>
-      </div>
 
       {/* Conversion Type Selector */}
       <div className="space-y-3">
@@ -438,16 +531,16 @@ const ConversionModal = () => {
       </div>
 
       {/* Conversion Preview */}
-      {amount && (
+      {amount && swapQuote && (
         <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/5">
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">You will receive:</span>
             <div className="text-right">
               <p className="text-lg font-bold text-white">
-                {convertedAmount} {conversionType === "edu-to-sol" ? "SOL" : "EDU"}
+                {swapQuote.outAmount || "0"} {conversionType === "edu-to-sol" ? "SOL" : "EDU"}
               </p>
               <p className="text-xs text-muted-foreground">
-                Rate: 1 {conversionType === "edu-to-sol" ? "EDU" : "SOL"} = {exchangeRates[conversionType]} {conversionType === "edu-to-sol" ? "SOL" : "EDU"}
+                Rate: 1 {conversionType === "edu-to-sol" ? "EDU" : "SOL"} = {(parseFloat(swapQuote.outAmount) / parseFloat(amount)).toFixed(6)} {conversionType === "edu-to-sol" ? "SOL" : "EDU"}
               </p>
             </div>
           </div>
@@ -468,7 +561,15 @@ const ConversionModal = () => {
       {/* Convert Button */}
       <Button
         onClick={() => void handleConversion()}
-        disabled={!amount || parseFloat(amount) <= 0 || isConverting}
+        disabled={
+          !connected ||
+          !amount ||
+          parseFloat(amount) <= 0 ||
+          isConverting ||
+          isLoading ||
+          (conversionType === "edu-to-sol" && parseFloat(amount) > balances.edu) ||
+          (conversionType === "sol-to-edu" && parseFloat(amount) > balances.sol)
+        }
         className="w-full bg-white/10 text-white border border-white/20 hover:bg-white/20"
       >
         {isConverting ? (
@@ -483,6 +584,8 @@ const ConversionModal = () => {
           </>
         )}
       </Button>
+        </>
+      )}
     </div>
   )
 }

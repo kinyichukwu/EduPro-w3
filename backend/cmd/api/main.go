@@ -89,6 +89,10 @@ func main() {
 	walletHandler := handlers.NewWalletHandler(solanaService, dbClient, nftService)
 	paymentHandler := handlers.NewPaymentHandler(solanaService)
 	edupoTokenHandler := handlers.NewEduProTokenHandler(solanaService)
+	solanaHandler, err := handlers.NewSolanaHandler(cfg, logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize Solana handler", zap.Error(err))
+	}
 	testAuthHandler := handlers.NewTestAuthHandler(cfg)
 
 	// Initialize NFT handler
@@ -98,7 +102,7 @@ func main() {
 	flashcardHandler := handlers.NewFlashcardHandler(dbClient, aiService)
 
 	// Setup router
-	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler, nftHandler, flashcardHandler, edupoTokenHandler, testAuthHandler)
+	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler, nftHandler, flashcardHandler, edupoTokenHandler, solanaHandler, testAuthHandler)
 
 	// Create HTTP server
 	srv := &http.Server{
@@ -135,7 +139,7 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler, walletHandler *handlers.WalletHandler, paymentHandler *handlers.PaymentHandler, nftHandler *handlers.NFTHandler, flashcardHandler *handlers.FlashcardHandler, edupoTokenHandler *handlers.EduProTokenHandler, testAuthHandler *handlers.TestAuthHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler, walletHandler *handlers.WalletHandler, paymentHandler *handlers.PaymentHandler, nftHandler *handlers.NFTHandler, flashcardHandler *handlers.FlashcardHandler, edupoTokenHandler *handlers.EduProTokenHandler, solanaHandler *handlers.SolanaHandler, testAuthHandler *handlers.TestAuthHandler) *gin.Engine {
 	router := gin.New()
 
 	// Setup middleware
@@ -232,6 +236,35 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			{
 				edupoTokensProtected.POST("/buy", edupoTokenHandler.BuyEduProTokens)
 			}
+		}
+
+		// Solana routes (protected)
+		solanaRoutes := api.Group("/solana")
+		solanaRoutes.Use(middleware.JWTMiddleware(cfg))
+		{
+			// Wallet balance endpoints
+			solanaRoutes.GET("/wallet/:address/balance", solanaHandler.GetWalletBalance)
+			solanaRoutes.GET("/wallet/:address/token-balance", solanaHandler.GetTokenBalance)
+			solanaRoutes.GET("/wallet/:address/edutoken-balance", solanaHandler.GetEduTokenBalance)
+
+			// Transaction endpoints
+			solanaRoutes.GET("/transaction/:signature", solanaHandler.VerifyTransaction)
+			solanaRoutes.POST("/transaction/wait/:signature", solanaHandler.WaitForConfirmation)
+
+			// Payment endpoints
+			solanaRoutes.POST("/payment/create-url", solanaHandler.CreatePaymentURL)
+			solanaRoutes.POST("/payment/process-course", solanaHandler.ProcessCoursePayment)
+
+			// Swap endpoints
+			solanaRoutes.POST("/swap/quote", solanaHandler.GetSwapQuote)
+			solanaRoutes.POST("/swap/execute", solanaHandler.ExecuteSwap)
+
+			// Reward endpoints
+			solanaRoutes.POST("/reward/distribute", solanaHandler.DistributeReward)
+			solanaRoutes.GET("/reward/calculate", solanaHandler.CalculateReward)
+
+			// Stats endpoints
+			solanaRoutes.GET("/stats", solanaHandler.GetBlockchainStats)
 		}
 
 		// NFT routes (protected)

@@ -625,6 +625,34 @@ class ApiService {
       body: JSON.stringify(request),
     });
   }
+
+  // Swap endpoints
+  async getSwapQuote(request: any): Promise<ApiResponse<any>> {
+    return this.request<any>("/solana/swap/quote", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async executeSwap(request: any): Promise<ApiResponse<any>> {
+    return this.request<any>("/solana/swap/execute", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  // Wallet balance endpoints
+  async getWalletBalance(address: string): Promise<ApiResponse<any>> {
+    return this.request<any>(`/solana/wallet/${address}/balance`);
+  }
+
+  async getTokenBalance(address: string, mintAddress: string): Promise<ApiResponse<any>> {
+    return this.request<any>(`/solana/wallet/${address}/token-balance?mint=${mintAddress}`);
+  }
+
+  async getEduTokenBalance(address: string): Promise<ApiResponse<any>> {
+    return this.request<any>(`/solana/wallet/${address}/edutoken-balance`);
+  }
 }
 
 export const apiService = new ApiService();

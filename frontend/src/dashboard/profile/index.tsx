@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   CreditCard,
@@ -21,14 +21,44 @@ import {
   TabsTrigger,
 } from "@/shared/components/ui/tabs";
 import { Badge } from "@/shared/components/ui/badge";
-import { mockUserData } from "../constants/profile";
 import { ReferralTab, SettingsTab, RewardsTab, TransactionHistoryTab } from "../components/profile";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { solanaAPI } from "@/services/solana";
 
 export const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState("settings");
+  const [eduproBalance, setEduproBalance] = useState<number>(0);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const user = useAuthStore((s) => s.user);
+
+  // Get wallet connection status
+  const { connected, publicKey } = useWallet();
+  const userWallet = publicKey?.toString() || "";
+
+  // Fetch EduPro token balance when wallet is connected
+  useEffect(() => {
+    const fetchEduProBalance = async () => {
+      if (!connected || !userWallet) {
+        setEduproBalance(0);
+        return;
+      }
+
+      setIsLoadingBalance(true);
+      try {
+        const balance = await solanaAPI.getEduTokenBalance(userWallet);
+        setEduproBalance(balance.edutoken_balance / 1e9); // Convert from lamports to EDU
+      } catch (error) {
+        console.error("Failed to fetch EduPro balance:", error);
+        setEduproBalance(0);
+      } finally {
+        setIsLoadingBalance(false);
+      }
+    };
+
+    fetchEduProBalance();
+  }, [connected, userWallet]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -99,7 +129,7 @@ export const ProfilePage = () => {
                     </div>
                     <div>
                       <p className="text-3xl font-bold text-white">
-                        {mockUserData?.eduproCoins?.toLocaleString()}
+                        {isLoadingBalance ? "..." : (connected ? eduproBalance.toFixed(2) : "-")}
                       </p>
                       <p className="text-sm text-yellow-400 font-medium">EduPro Coins</p>
                     </div>
@@ -162,7 +192,9 @@ export const ProfilePage = () => {
                     <Coins className="h-5 w-5 text-orange-400" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-white">+{mockUserData?.eduproCoins && Math.floor(mockUserData.eduproCoins * 0.15).toLocaleString()}</p>
+                    <p className="text-2xl font-bold text-white">
+                      {connected && eduproBalance > 0 ? `+${Math.floor(eduproBalance * 0.15).toLocaleString()}` : "-"}
+                    </p>
                     <p className="text-xs text-muted-foreground">This Month</p>
                   </div>
                 </div>

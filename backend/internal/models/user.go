@@ -88,8 +88,8 @@ type PaymentTransaction struct {
 	ConfirmedAt *time.Time `json:"confirmed_at,omitempty" db:"confirmed_at"`
 }
 
-// Course represents a purchasable course
-type Course struct {
+// PurchasableCourse represents a purchasable course (legacy/payment related)
+type PurchasableCourse struct {
 	ID            uuid.UUID  `json:"id" db:"id"`
 	Title         string     `json:"title" db:"title"`
 	Description   *string    `json:"description,omitempty" db:"description"`

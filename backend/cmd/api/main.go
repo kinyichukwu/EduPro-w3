@@ -101,8 +101,12 @@ func main() {
 	// Initialize flashcard handler
 	flashcardHandler := handlers.NewFlashcardHandler(dbClient, aiService)
 
+	// Initialize course and module handlers
+	courseHandler := handlers.NewCourseHandler(dbClient)
+	moduleHandler := handlers.NewModuleHandler(dbClient)
+
 	// Setup router
-	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler, nftHandler, flashcardHandler, edupoTokenHandler, solanaHandler, testAuthHandler)
+	router := setupRouter(cfg, healthHandler, queryHandler, authHandler, userHandler, ragHandler, walletHandler, paymentHandler, nftHandler, flashcardHandler, courseHandler, moduleHandler, edupoTokenHandler, solanaHandler, testAuthHandler)
 
 	// Create HTTP server
 	srv := &http.Server{
@@ -139,7 +143,7 @@ func main() {
 	logger.Info("Server exited")
 }
 
-func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler, walletHandler *handlers.WalletHandler, paymentHandler *handlers.PaymentHandler, nftHandler *handlers.NFTHandler, flashcardHandler *handlers.FlashcardHandler, edupoTokenHandler *handlers.EduProTokenHandler, solanaHandler *handlers.SolanaHandler, testAuthHandler *handlers.TestAuthHandler) *gin.Engine {
+func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, queryHandler *handlers.QueryHandler, authHandler *handlers.AuthHandler, userHandler *handlers.UserHandler, ragHandler *handlers.RAGHandler, walletHandler *handlers.WalletHandler, paymentHandler *handlers.PaymentHandler, nftHandler *handlers.NFTHandler, flashcardHandler *handlers.FlashcardHandler, courseHandler *handlers.CourseHandler, moduleHandler *handlers.ModuleHandler, edupoTokenHandler *handlers.EduProTokenHandler, solanaHandler *handlers.SolanaHandler, testAuthHandler *handlers.TestAuthHandler) *gin.Engine {
 	router := gin.New()
 
 	// Setup middleware
@@ -313,15 +317,39 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			flashcards.POST("/study/sessions", flashcardHandler.StartStudySession)
 			flashcards.PUT("/study/sessions/:sessionId", flashcardHandler.EndStudySession)
 
-			// Statistics routes
-			flashcards.GET("/stats", flashcardHandler.GetFlashcardStats)
-		}
+		// Statistics routes
+		flashcards.GET("/stats", flashcardHandler.GetFlashcardStats)
+	}
 
-		// Internal routes (for integration)
-		internal := api.Group("/internal")
-		{
-			internal.POST("/users", authHandler.CreateUser)
-		}
+	// Course routes (protected)
+	courses := api.Group("/courses")
+	courses.Use(middleware.JWTMiddleware(cfg))
+	{
+		// Course management
+		courses.POST("", courseHandler.CreateCourse)
+		courses.GET("", courseHandler.GetCourses)
+		courses.GET("/stats", courseHandler.GetCourseStats)
+		courses.GET("/:id", courseHandler.GetCourse)
+		courses.PUT("/:id", courseHandler.UpdateCourse)
+		courses.DELETE("/:id", courseHandler.DeleteCourse)
+
+		// Module management
+		courses.POST("/:courseId/modules", moduleHandler.CreateModule)
+		courses.GET("/:courseId/modules", moduleHandler.GetModules)
+		courses.GET("/:courseId/modules/:moduleId", moduleHandler.GetModule)
+		courses.PUT("/:courseId/modules/:moduleId", moduleHandler.UpdateModule)
+		courses.DELETE("/:courseId/modules/:moduleId", moduleHandler.DeleteModule)
+
+		// Module links management
+		courses.POST("/:courseId/modules/:moduleId/links", moduleHandler.AddModuleLink)
+		courses.DELETE("/:courseId/modules/:moduleId/links/:linkId", moduleHandler.DeleteModuleLink)
+	}
+
+	// Internal routes (for integration)
+	internal := api.Group("/internal")
+	{
+		internal.POST("/users", authHandler.CreateUser)
+	}
 	}
 
 	// Root endpoint

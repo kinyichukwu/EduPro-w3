@@ -261,6 +261,7 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			solanaRoutes.POST("/payment/create-url", solanaHandler.CreatePaymentURL)
 			solanaRoutes.POST("/payment/process-course", solanaHandler.ProcessCoursePayment)
 
+			
 			// Swap endpoints
 			solanaRoutes.POST("/swap/quote", solanaHandler.GetSwapQuote)
 			solanaRoutes.POST("/swap/execute", solanaHandler.ExecuteSwap)

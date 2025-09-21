@@ -1,30 +1,18 @@
 import { motion } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
-import { 
-  BookOpen, 
-  Users, 
-  DollarSign, 
-  Edit3, 
-  Eye, 
+import {
+  BookOpen,
+  Users,
+  DollarSign,
+  Edit3,
+  Eye,
   MoreVertical,
   Calendar,
-  Settings
+  Settings,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/shared/lib/utils";
-
-interface Course {
-  id: number;
-  title: string;
-  description: string;
-  modules: number;
-  students: number;
-  earnings: number;
-  status: "draft" | "published" | "archived";
-  createdAt: Date;
-  updatedAt: Date;
-  thumbnail?: string;
-}
+import { Course } from "@/services/api";
 
 interface CourseCardProps {
   course: Course;
@@ -55,8 +43,8 @@ export const CourseCard = ({ course }: CourseCardProps) => {
     }
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -70,21 +58,23 @@ export const CourseCard = ({ course }: CourseCardProps) => {
     >
       {/* Course Thumbnail/Header */}
       <div className="relative h-32 bg-gradient-to-br from-turbo-purple/20 to-turbo-indigo/20 flex items-center justify-center">
-        {course.thumbnail ? (
-          <img 
-            src={course.thumbnail} 
+        {course.thumbnail_url ? (
+          <img
+            src={course.thumbnail_url}
             alt={course.title}
             className="w-full h-full object-cover"
           />
         ) : (
           <BookOpen className="w-12 h-12 text-turbo-purple/60" />
         )}
-        
+
         {/* Status Badge */}
-        <div className={cn(
-          "absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium border",
-          getStatusColor(course.status)
-        )}>
+        <div
+          className={cn(
+            "absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium border",
+            getStatusColor(course.status)
+          )}
+        >
           {course.status}
         </div>
 
@@ -116,19 +106,19 @@ export const CourseCard = ({ course }: CourseCardProps) => {
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 text-turbo-purple">
               <BookOpen className="w-4 h-4" />
-              <span className="font-medium">{course.modules}</span>
+              <span className="font-medium">{course.total_modules}</span>
             </div>
             <p className="text-xs text-white/60 mt-1">Modules</p>
           </div>
-          
+
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 text-turbo-indigo">
               <Users className="w-4 h-4" />
-              <span className="font-medium">{course.students}</span>
+              <span className="font-medium">{course.students_count}</span>
             </div>
             <p className="text-xs text-white/60 mt-1">Students</p>
           </div>
-          
+
           <div className="text-center">
             <div className="flex items-center justify-center gap-1 text-green-500">
               <DollarSign className="w-4 h-4" />
@@ -142,10 +132,10 @@ export const CourseCard = ({ course }: CourseCardProps) => {
         <div className="flex items-center justify-between text-xs text-white/50">
           <div className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            <span>Created {formatDate(course.createdAt)}</span>
+            <span>Created {formatDate(course.created_at)}</span>
           </div>
-          {course.updatedAt.getTime() !== course.createdAt.getTime() && (
-            <span>Updated {formatDate(course.updatedAt)}</span>
+          {course.updated_at !== course.created_at && (
+            <span>Updated {formatDate(course.updated_at)}</span>
           )}
         </div>
 
@@ -159,7 +149,7 @@ export const CourseCard = ({ course }: CourseCardProps) => {
             <Edit3 className="w-4 h-4 mr-2" />
             Edit
           </Button>
-          
+
           {course.status === "published" && (
             <Button
               onClick={handleViewCourse}
@@ -171,7 +161,7 @@ export const CourseCard = ({ course }: CourseCardProps) => {
               View
             </Button>
           )}
-          
+
           {course.status === "draft" && (
             <Button
               variant="ghost"

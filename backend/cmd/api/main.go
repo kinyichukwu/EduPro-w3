@@ -334,15 +334,15 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 		courses.DELETE("/:id", courseHandler.DeleteCourse)
 
 		// Module management
-		courses.POST("/:courseId/modules", moduleHandler.CreateModule)
-		courses.GET("/:courseId/modules", moduleHandler.GetModules)
-		courses.GET("/:courseId/modules/:moduleId", moduleHandler.GetModule)
-		courses.PUT("/:courseId/modules/:moduleId", moduleHandler.UpdateModule)
-		courses.DELETE("/:courseId/modules/:moduleId", moduleHandler.DeleteModule)
+		courses.POST("/:id/modules", moduleHandler.CreateModule)
+		courses.GET("/:id/modules", moduleHandler.GetModules)
+		courses.GET("/:id/modules/:moduleId", moduleHandler.GetModule)
+		courses.PUT("/:id/modules/:moduleId", moduleHandler.UpdateModule)
+		courses.DELETE("/:id/modules/:moduleId", moduleHandler.DeleteModule)
 
 		// Module links management
-		courses.POST("/:courseId/modules/:moduleId/links", moduleHandler.AddModuleLink)
-		courses.DELETE("/:courseId/modules/:moduleId/links/:linkId", moduleHandler.DeleteModuleLink)
+		courses.POST("/:id/modules/:moduleId/links", moduleHandler.AddModuleLink)
+		courses.DELETE("/:id/modules/:moduleId/links/:linkId", moduleHandler.DeleteModuleLink)
 	}
 
 	// Internal routes (for integration)

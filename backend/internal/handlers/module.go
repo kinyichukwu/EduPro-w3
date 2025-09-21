@@ -66,7 +66,7 @@ func (h *ModuleHandler) CreateModule(c *gin.Context) {
 		return
 	}
 
-	courseIDStr := c.Param("courseId")
+	courseIDStr := c.Param("id")
 	courseID, err := uuid.Parse(courseIDStr)
 	if err != nil {
 		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
@@ -134,7 +134,7 @@ func (h *ModuleHandler) GetModules(c *gin.Context) {
 		return
 	}
 
-	courseIDStr := c.Param("courseId")
+	courseIDStr := c.Param("id")
 	courseID, err := uuid.Parse(courseIDStr)
 	if err != nil {
 		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
@@ -183,7 +183,7 @@ func (h *ModuleHandler) GetModule(c *gin.Context) {
 		return
 	}
 
-	courseIDStr := c.Param("courseId")
+	courseIDStr := c.Param("id")
 	courseID, err := uuid.Parse(courseIDStr)
 	if err != nil {
 		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
@@ -257,7 +257,7 @@ func (h *ModuleHandler) UpdateModule(c *gin.Context) {
 		return
 	}
 
-	courseIDStr := c.Param("courseId")
+	courseIDStr := c.Param("id")
 	courseID, err := uuid.Parse(courseIDStr)
 	if err != nil {
 		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
@@ -328,7 +328,7 @@ func (h *ModuleHandler) DeleteModule(c *gin.Context) {
 		return
 	}
 
-	courseIDStr := c.Param("courseId")
+	courseIDStr := c.Param("id")
 	courseID, err := uuid.Parse(courseIDStr)
 	if err != nil {
 		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
@@ -390,7 +390,7 @@ func (h *ModuleHandler) AddModuleLink(c *gin.Context) {
 		return
 	}
 
-	courseIDStr := c.Param("courseId")
+	courseIDStr := c.Param("id")
 	courseID, err := uuid.Parse(courseIDStr)
 	if err != nil {
 		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
@@ -476,7 +476,7 @@ func (h *ModuleHandler) DeleteModuleLink(c *gin.Context) {
 		return
 	}
 
-	courseIDStr := c.Param("courseId")
+	courseIDStr := c.Param("id")
 	courseID, err := uuid.Parse(courseIDStr)
 	if err != nil {
 		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)

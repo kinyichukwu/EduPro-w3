@@ -90,6 +90,91 @@ export interface AskResponse {
   citations: Citation[];
 }
 
+// Course Types
+export interface Course {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  status: "draft" | "published" | "archived";
+  total_modules: number;
+  completed_modules: number;
+  students_count: number;
+  earnings: number;
+  price: number;
+  thumbnail_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CourseModule {
+  id: string;
+  course_id: string;
+  title: string;
+  description: string;
+  content: string;
+  order_index: number;
+  status: "draft" | "completed";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ModuleLink {
+  id: string;
+  module_id: string;
+  url: string;
+  title?: string;
+  description?: string;
+  created_at: string;
+}
+
+export interface ModuleWithLinks {
+  module: CourseModule;
+  links: ModuleLink[];
+}
+
+export interface CourseStats {
+  total_courses: number;
+  published_courses: number;
+  draft_courses: number;
+  total_students: number;
+  total_earnings: number;
+}
+
+// Request Types
+export interface CreateCourseRequest {
+  title: string;
+  description: string;
+}
+
+export interface UpdateCourseRequest {
+  title?: string;
+  description?: string;
+  status?: "draft" | "published" | "archived";
+  thumbnail_url?: string;
+}
+
+export interface CreateModuleRequest {
+  title: string;
+  description: string;
+  content?: string;
+  order_index: number;
+}
+
+export interface UpdateModuleRequest {
+  title?: string;
+  description?: string;
+  content?: string;
+  order_index?: number;
+  status?: "draft" | "completed";
+}
+
+export interface AddModuleLinkRequest {
+  url: string;
+  title?: string;
+  description?: string;
+}
+
 const API_BASE_URL = getApiBaseUrl();
 
 // Derive the API origin (scheme + host) for non-/api endpoints like /health
@@ -646,12 +731,139 @@ class ApiService {
     return this.request<any>(`/solana/wallet/${address}/balance`);
   }
 
-  async getTokenBalance(address: string, mintAddress: string): Promise<ApiResponse<any>> {
-    return this.request<any>(`/solana/wallet/${address}/token-balance?mint=${mintAddress}`);
+  async getTokenBalance(
+    address: string,
+    mintAddress: string
+  ): Promise<ApiResponse<any>> {
+    return this.request<any>(
+      `/solana/wallet/${address}/token-balance?mint=${mintAddress}`
+    );
   }
 
   async getEduTokenBalance(address: string): Promise<ApiResponse<any>> {
     return this.request<any>(`/solana/wallet/${address}/edutoken-balance`);
+  }
+
+  // Course Management APIs
+  async createCourse(
+    request: CreateCourseRequest
+  ): Promise<ApiResponse<Course>> {
+    return this.request<Course>("/courses", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getCourses(params?: {
+    status?: "draft" | "published" | "archived";
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<Course[]>> {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.append("status", params.status);
+    if (params?.page) searchParams.append("page", params.page.toString());
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+
+    const url = `/courses${searchParams.toString() ? `?${searchParams}` : ""}`;
+    return this.request<Course[]>(url);
+  }
+
+  async getCourse(courseId: string): Promise<ApiResponse<Course>> {
+    return this.request<Course>(`/courses/${courseId}`);
+  }
+
+  async updateCourse(
+    courseId: string,
+    request: UpdateCourseRequest
+  ): Promise<ApiResponse<Course>> {
+    return this.request<Course>(`/courses/${courseId}`, {
+      method: "PUT",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async deleteCourse(courseId: string): Promise<ApiResponse<void>> {
+    return this.request<void>(`/courses/${courseId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async getCourseStats(): Promise<ApiResponse<CourseStats>> {
+    return this.request<CourseStats>("/courses/stats");
+  }
+
+  // Module Management APIs
+  async createModule(
+    courseId: string,
+    request: CreateModuleRequest
+  ): Promise<ApiResponse<CourseModule>> {
+    return this.request<CourseModule>(`/courses/${courseId}/modules`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getModules(courseId: string): Promise<ApiResponse<CourseModule[]>> {
+    return this.request<CourseModule[]>(`/courses/${courseId}/modules`);
+  }
+
+  async getModule(
+    courseId: string,
+    moduleId: string
+  ): Promise<ApiResponse<ModuleWithLinks>> {
+    return this.request<ModuleWithLinks>(
+      `/courses/${courseId}/modules/${moduleId}`
+    );
+  }
+
+  async updateModule(
+    courseId: string,
+    moduleId: string,
+    request: UpdateModuleRequest
+  ): Promise<ApiResponse<CourseModule>> {
+    return this.request<CourseModule>(
+      `/courses/${courseId}/modules/${moduleId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(request),
+      }
+    );
+  }
+
+  async deleteModule(
+    courseId: string,
+    moduleId: string
+  ): Promise<ApiResponse<void>> {
+    return this.request<void>(`/courses/${courseId}/modules/${moduleId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async addModuleLink(
+    courseId: string,
+    moduleId: string,
+    request: AddModuleLinkRequest
+  ): Promise<ApiResponse<ModuleLink>> {
+    return this.request<ModuleLink>(
+      `/courses/${courseId}/modules/${moduleId}/links`,
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      }
+    );
+  }
+
+  async deleteModuleLink(
+    courseId: string,
+    moduleId: string,
+    linkId: string
+  ): Promise<ApiResponse<void>> {
+    return this.request<void>(
+      `/courses/${courseId}/modules/${moduleId}/links/${linkId}`,
+      {
+        method: "DELETE",
+      }
+    );
   }
 }
 

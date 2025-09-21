@@ -28,7 +28,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   const navItems = [
     { icon: BarChart3, name: "Dashboard", path: "/dashboard" },
-    { icon: BrainCircuit, name: "Chatbot", path: "/dashboard/ai-tutor" },
+    { icon: BrainCircuit, name: "AI Creator", path: "/dashboard/ai-creator" },
     { icon: SquareStack, name: "Flashcards", path: "/dashboard/flashcards" },
     { icon: BookOpen, name: "Quizzes", path: "/dashboard/quizzes" },
     {

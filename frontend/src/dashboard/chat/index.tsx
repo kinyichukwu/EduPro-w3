@@ -210,7 +210,7 @@ export default function ChatView() {
   const navigate = useNavigate()
 
   const handlePlayCourse = (course: Course) => {
-    navigate(`/dashboard/ai-tutor/${course.title.trim().replace(/\s+/g, "-")}`);
+    navigate(`/dashboard/ai-creator/${course.title.trim().replace(/\s+/g, "-")}`);
   };
 
   const handleCreateCourse = (newCourse: Omit<Course, "id">) => {
@@ -259,10 +259,10 @@ export default function ChatView() {
         <div className="flex max-md:flex-col gap-y-5 lg:items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold gradient-text">
-              AI Tutor Sessions
+              AI Creator Sessions
             </h1>
             <p className="text-white/60 mt-1">
-              Start learning with personalized AI tutoring
+              Start creating courses with AI assistance
             </p>
           </div>
 

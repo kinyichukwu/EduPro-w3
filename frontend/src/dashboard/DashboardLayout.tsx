@@ -47,8 +47,8 @@ const navItems = [
   },
   {
     icon: <BrainCircuit size={22} />,
-    label: "AI Tutor",
-    path: "/dashboard/ai-tutor",
+    label: "AI Creator",
+    path: "/dashboard/ai-creator",
     color: "text-turbo-purple",
   },
   {
@@ -106,7 +106,7 @@ export const DashboardLayout = () => {
   };
 
   const isChatPage =
-    /^\/dashboard\/ai-tutor\/[^/]+\/[^/]+$/.test(location.pathname) ||
+    /^\/dashboard\/ai-creator\/[^/]+\/[^/]+$/.test(location.pathname) ||
     /^\/dashboard\/chats(\/.+)?$/.test(location.pathname);
 
   const { pathname } = useLocation();

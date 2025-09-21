@@ -121,7 +121,7 @@ export const mockTransactions: Transaction[] = [
   {
     id: "4",
     type: "spent",
-    title: "AI tutoring session",
+    title: "AI creator session",
     description: "30-minute Chemistry help session",
     amount: -75,
     date: new Date("2024-01-17T17:20:00"),

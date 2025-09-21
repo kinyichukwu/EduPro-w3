@@ -43,13 +43,13 @@ export const DashboardHome = () => {
   // Main feature cards that navigate to different sections
   const featureCards = [
     {
-      title: "AI Tutor",
-      description: "Get intelligent tutoring and personalized learning support",
+      title: "AI Creator",
+      description: "Create courses with AI assistance and earn from teaching",
       icon: <BrainCircuit size={24} />,
       stats: { value: 15, label: "Sessions This Week" },
       color: "from-green to-teal",
-      path: "/dashboard/ai-tutor",
-      action: "Ask AI",
+      path: "/dashboard/ai-creator",
+      action: "Create Course",
     },
     {
       title: "Library",

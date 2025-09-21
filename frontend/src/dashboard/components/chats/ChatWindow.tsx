@@ -32,7 +32,7 @@ export function ChatWindow({ chatId, className = "" }: ChatWindowProps) {
   const agents = [
     {
       id: "tutor",
-      name: "AI Tutor",
+      name: "AI Creator",
       description: "General academic assistance",
       icon: "🎓",
     },

@@ -57,7 +57,7 @@ export default function Topic() {
   const selectedCourse = location.pathname.split("/").filter(Boolean).pop()?.replace(/-/g, " ")
 
   const handleStartTopic = (topic: Topic) => {
-    navigate(`/dashboard/ai-tutor/${selectedCourse?.trim().replace(/\s+/g, "-")}/${topic.title.trim().replace(/\s+/g, "-")}`);    
+    navigate(`/dashboard/ai-creator/${selectedCourse?.trim().replace(/\s+/g, "-")}/${topic.title.trim().replace(/\s+/g, "-")}`);    
   };
 
   const handleReturn = () => {
@@ -85,7 +85,7 @@ export default function Topic() {
               {selectedCourse}
             </h1>
             <p className="text-white/60 mt-1">
-              Choose a topic to start your AI tutoring session
+              Choose a topic to start your AI creator session
             </p>
           </div>
         </div>

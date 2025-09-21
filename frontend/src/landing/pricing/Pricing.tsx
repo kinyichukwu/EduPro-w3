@@ -28,7 +28,7 @@ const pricingPlans = [
     description: "Our most popular plan",
     features: [
       "Access to all 100+ courses",
-      "Advanced AI tutoring",
+      "Advanced AI course creation",
       "Personalized learning paths",
       "Detailed analytics",
       "Priority support",

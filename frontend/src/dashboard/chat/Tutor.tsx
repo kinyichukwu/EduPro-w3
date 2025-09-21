@@ -81,7 +81,7 @@ export default function Tutor() {
     setMessages([
       {
         role: "assistant",
-        content: `Welcome! Let's dive into ${topic}. I'm your AI tutor and I'll guide you through the concepts step by step with interactive exercises. Are you ready to begin?`,
+        content: `Welcome! Let's dive into ${topic}. I'm your AI creator assistant and I'll help you build engaging course content step by step. Are you ready to begin?`,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -109,7 +109,7 @@ export default function Tutor() {
             </h2>
             <p className="text-sm text-white/60 flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
-              AI Tutor Session
+              AI Creator Session
             </p>
           </div>
         </div>

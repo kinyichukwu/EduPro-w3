@@ -1,14 +1,12 @@
 import { motion } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
-import { 
-  BookOpen, 
-  Edit3, 
-  Trash2, 
-  Eye, 
+import {
+  BookOpen,
+  Edit3,
+  Eye,
   Calendar,
-  Link as LinkIcon,
   CheckCircle,
-  Clock
+  Clock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/shared/lib/utils";
@@ -19,7 +17,7 @@ interface ModuleCardProps {
   courseId: string;
 }
 
-export function ModuleCard({ module, courseId }: ModuleCardProps) {
+export const ModuleCard = ({ module, courseId }: ModuleCardProps) => {
   const navigate = useNavigate();
 
   const handleEdit = () => {
@@ -60,10 +58,12 @@ export function ModuleCard({ module, courseId }: ModuleCardProps) {
         </div>
 
         {/* Status Badge */}
-        <div className={cn(
-          "absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium border",
-          getStatusColor(module.status)
-        )}>
+        <div
+          className={cn(
+            "absolute top-3 right-3 px-2 py-1 rounded-full text-xs font-medium border",
+            getStatusColor(module.status)
+          )}
+        >
           <div className="flex items-center gap-1">
             {module.status === "completed" ? (
               <CheckCircle className="w-3 h-3" />
@@ -94,7 +94,9 @@ export function ModuleCard({ module, courseId }: ModuleCardProps) {
         {/* Content Preview */}
         <div className="text-white/60 text-sm">
           {module.content ? (
-            <p className="line-clamp-2">{module.content.substring(0, 100)}...</p>
+            <p className="line-clamp-2">
+              {module.content.substring(0, 100)}...
+            </p>
           ) : (
             <p className="italic">No content yet</p>
           )}
@@ -121,7 +123,7 @@ export function ModuleCard({ module, courseId }: ModuleCardProps) {
             <Edit3 className="w-3 h-3 mr-1" />
             Edit
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -135,4 +137,4 @@ export function ModuleCard({ module, courseId }: ModuleCardProps) {
       </div>
     </motion.div>
   );
-}
+};

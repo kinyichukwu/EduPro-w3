@@ -875,7 +875,10 @@ class ApiService {
   }
 
   // AI Content Generation
-  async generateModuleTitle(courseId: string, request: GenerateContentRequest): Promise<ApiResponse<GenerateContentResponse>> {
+  async generateModuleTitle(
+    courseId: string,
+    request: GenerateContentRequest
+  ): Promise<ApiResponse<GenerateContentResponse>> {
     return this.request<GenerateContentResponse>(
       `/courses/${courseId}/modules/generate-title`,
       {
@@ -885,7 +888,10 @@ class ApiService {
     );
   }
 
-  async generateModuleContent(courseId: string, request: GenerateContentRequest): Promise<ApiResponse<GenerateContentResponse>> {
+  async generateModuleContent(
+    courseId: string,
+    request: GenerateContentRequest
+  ): Promise<ApiResponse<GenerateContentResponse>> {
     return this.request<GenerateContentResponse>(
       `/courses/${courseId}/modules/generate-content`,
       {

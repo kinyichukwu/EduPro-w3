@@ -2,17 +2,14 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
-import { 
-  ArrowLeft, 
-  Plus, 
-  BookOpen, 
-  Edit3, 
-  Trash2, 
+import {
+  ArrowLeft,
+  Plus,
+  BookOpen,
   Settings,
   Users,
-  Clock,
   DollarSign,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { CreateModuleModal } from "./CreateModuleModal";
 import { ModuleCard } from "./ModuleCard";
@@ -26,8 +23,12 @@ export default function CourseDetail() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Fetch course data
-  const { data: course, isLoading: courseLoading, error: courseError } = useCourse(courseId!);
-  
+  const {
+    data: course,
+    isLoading: courseLoading,
+    error: courseError,
+  } = useCourse(courseId!);
+
   // Fetch and manage modules
   const {
     modules,
@@ -37,20 +38,21 @@ export default function CourseDetail() {
     createModule,
   } = useModuleManagement(courseId!);
 
-  const handleCreateModule = async (moduleData: { 
-    title: string; 
-    description: string; 
-    useAI: boolean; 
-    aiPrompt?: string 
+  const handleCreateModule = async (moduleData: {
+    title: string;
+    description: string;
+    useAI: boolean;
+    aiPrompt?: string;
+    content?: string;
   }) => {
     try {
       const request: CreateModuleRequest = {
         title: moduleData.title,
         description: moduleData.description,
         order_index: modules.length + 1,
-        content: moduleData.useAI ? `AI-generated content for: ${moduleData.aiPrompt}` : "",
+        content: moduleData.content || "",
       };
-      
+
       await createModule(request);
       setShowCreateModal(false);
     } catch (error) {
@@ -62,8 +64,12 @@ export default function CourseDetail() {
     return (
       <div className="h-full w-full flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-white mb-2">Course not found</h2>
-          <p className="text-white/60 mb-4">The course you're looking for doesn't exist.</p>
+          <h2 className="text-xl font-semibold text-white mb-2">
+            Course not found
+          </h2>
+          <p className="text-white/60 mb-4">
+            The course you're looking for doesn't exist.
+          </p>
           <Button onClick={() => navigate("/dashboard/ai-creator")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Courses
@@ -88,9 +94,13 @@ export default function CourseDetail() {
     return (
       <div className="h-full w-full flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-white mb-2">Failed to load course</h2>
+          <h2 className="text-xl font-semibold text-white mb-2">
+            Failed to load course
+          </h2>
           <p className="text-white/60 mb-4">
-            {courseError instanceof Error ? courseError.message : "Something went wrong"}
+            {courseError instanceof Error
+              ? courseError.message
+              : "Something went wrong"}
           </p>
           <Button onClick={() => navigate("/dashboard/ai-creator")}>
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -134,13 +144,15 @@ export default function CourseDetail() {
           <h1 className="text-3xl font-bold text-white mb-2">{course.title}</h1>
           <p className="text-white/60 text-lg">{course.description}</p>
           <div className="flex items-center gap-4 mt-4">
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-              course.status === "published" 
-                ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                : course.status === "draft"
-                ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
-            }`}>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                course.status === "published"
+                  ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                  : course.status === "draft"
+                  ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                  : "bg-gray-500/20 text-gray-400 border border-gray-500/30"
+              }`}
+            >
               {course.status}
             </span>
             <span className="text-white/40 text-sm">
@@ -157,7 +169,9 @@ export default function CourseDetail() {
                 <BookOpen className="w-5 h-5 text-turbo-purple" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{course.total_modules}</p>
+                <p className="text-2xl font-bold text-white">
+                  {course.total_modules}
+                </p>
                 <p className="text-sm text-white/60">Modules</p>
               </div>
             </div>
@@ -169,7 +183,9 @@ export default function CourseDetail() {
                 <Users className="w-5 h-5 text-turbo-indigo" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{course.students_count}</p>
+                <p className="text-2xl font-bold text-white">
+                  {course.students_count}
+                </p>
                 <p className="text-sm text-white/60">Students</p>
               </div>
             </div>
@@ -181,7 +197,9 @@ export default function CourseDetail() {
                 <DollarSign className="w-5 h-5 text-green-500" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">${course.earnings}</p>
+                <p className="text-2xl font-bold text-white">
+                  ${course.earnings}
+                </p>
                 <p className="text-sm text-white/60">Earned</p>
               </div>
             </div>
@@ -195,10 +213,11 @@ export default function CourseDetail() {
           <div>
             <h2 className="text-xl font-semibold text-white">Course Modules</h2>
             <p className="text-white/60 text-sm mt-1">
-              {course.completed_modules} of {course.total_modules} modules completed
+              {course.completed_modules} of {course.total_modules} modules
+              completed
             </p>
           </div>
-          
+
           <Button
             onClick={() => setShowCreateModal(true)}
             disabled={isCreating}
@@ -218,9 +237,13 @@ export default function CourseDetail() {
             <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <BookOpen className="w-8 h-8 text-red-400" />
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">Failed to load modules</h3>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              Failed to load modules
+            </h3>
             <p className="text-white/60 mb-6">
-              {modulesError instanceof Error ? modulesError.message : "Something went wrong"}
+              {modulesError instanceof Error
+                ? modulesError.message
+                : "Something went wrong"}
             </p>
             <Button
               onClick={() => window.location.reload()}
@@ -252,7 +275,9 @@ export default function CourseDetail() {
         ) : modules.length === 0 ? (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-white/20 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">No modules yet</h3>
+            <h3 className="text-xl font-semibold text-white mb-2">
+              No modules yet
+            </h3>
             <p className="text-white/60 mb-6">
               Start building your course by adding your first module
             </p>
@@ -280,10 +305,7 @@ export default function CourseDetail() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <ModuleCard 
-                    module={module} 
-                    courseId={courseId!}
-                  />
+                  <ModuleCard module={module} courseId={courseId!} />
                 </motion.div>
               ))}
           </div>
@@ -294,6 +316,7 @@ export default function CourseDetail() {
       <CreateModuleModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
+        courseId={courseId || ""}
         onCreateModule={handleCreateModule}
       />
     </div>

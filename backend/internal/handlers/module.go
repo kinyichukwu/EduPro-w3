@@ -122,12 +122,14 @@ func (h *ModuleHandler) GenerateModuleTitle(c *gin.Context) {
 	}
 	
 	promptBuilder.WriteString(fmt.Sprintf("New module requirement: %s\n\n", req.Prompt))
-	promptBuilder.WriteString("Generate an appropriate module title that:\n")
+	promptBuilder.WriteString("Generate an appropriate module title and description that:\n")
 	promptBuilder.WriteString("1. Fits logically with existing modules\n")
 	promptBuilder.WriteString("2. Uses appropriate numbering/sequencing\n")
 	promptBuilder.WriteString("3. Is clear and engaging\n")
 	promptBuilder.WriteString("4. Follows educational best practices\n\n")
-	promptBuilder.WriteString("Return ONLY the title, no additional text or formatting.")
+	promptBuilder.WriteString("Return the response in this exact format:\n")
+	promptBuilder.WriteString("Title: [module title]\n")
+	promptBuilder.WriteString("Description: [brief description of what this module covers]")
 
 	generatedTitle, err := h.aiClient.GenerateContent(promptBuilder.String())
 	if err != nil {
@@ -137,13 +139,13 @@ func (h *ModuleHandler) GenerateModuleTitle(c *gin.Context) {
 	}
 
 	// Clean up the response (remove quotes, extra whitespace)
-	generatedTitle = strings.Trim(strings.TrimSpace(generatedTitle), "\"'")
+	generatedContent := strings.TrimSpace(generatedTitle)
 
 	response := models.GenerateContentResponse{
-		Content: generatedTitle,
+		Content: generatedContent,
 	}
 
-	SuccessResponse(c, http.StatusOK, "Module title generated successfully", response)
+	SuccessResponse(c, http.StatusOK, "Module title and description generated successfully", response)
 }
 
 // GenerateModuleContent generates module content using AI

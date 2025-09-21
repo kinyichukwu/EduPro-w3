@@ -4,7 +4,6 @@ import {
   BookOpen,
   Users,
   DollarSign,
-  Edit3,
   Eye,
   MoreVertical,
   Calendar,
@@ -23,11 +22,6 @@ export const CourseCard = ({ course }: CourseCardProps) => {
 
   const handleEditCourse = () => {
     navigate(`/dashboard/ai-creator/${course.id}`);
-  };
-
-  const handleViewCourse = () => {
-    // Navigate to course preview/view
-    console.log("View course:", course.id);
   };
 
   const getStatusColor = (status: Course["status"]) => {
@@ -143,35 +137,21 @@ export const CourseCard = ({ course }: CourseCardProps) => {
         <div className="flex gap-2 pt-2">
           <Button
             onClick={handleEditCourse}
-            className="flex-1 bg-turbo-purple/20 hover:bg-turbo-purple/30 text-turbo-purple border border-turbo-purple/30 hover:border-turbo-purple/50"
+            className="flex-[3] bg-turbo-purple/20 hover:bg-turbo-purple/30 text-turbo-purple border border-turbo-purple/30 hover:border-turbo-purple/50"
             size="sm"
           >
-            <Edit3 className="w-4 h-4 mr-2" />
-            Edit
+            <Eye className="w-4 h-4 mr-2" />
+            View Course
           </Button>
 
-          {course.status === "published" && (
-            <Button
-              onClick={handleViewCourse}
-              variant="ghost"
-              size="sm"
-              className="flex-1 hover:bg-white/10 text-white/70 hover:text-white"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              View
-            </Button>
-          )}
-
-          {course.status === "draft" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1 hover:bg-white/10 text-white/70 hover:text-white"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Setup
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 hover:bg-white/10 text-white/70 hover:text-white"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Setup
+          </Button>
         </div>
       </div>
     </motion.div>

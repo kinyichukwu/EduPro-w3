@@ -295,9 +295,9 @@ export const ProfilePage = () => {
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-br from-turbo-purple/20 to-turbo-indigo/20 rounded-lg">
-                    <img 
-                      src="/Edupro.svg" 
-                      alt="EduPro" 
+                    <img
+                      src="/Edupro.svg"
+                      alt="EduPro"
                       className="w-5 h-5 object-contain"
                     />
                   </div>
@@ -316,42 +316,40 @@ export const ProfilePage = () => {
         {/* Main Content */}
         <motion.div variants={itemVariants}>
           <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 p-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-white">Profile Management</h2>
-                
-                {/* Filter Tabs */}
-                <div className="flex gap-2">
-                  {[
-                    { value: "rewards", icon: CreditCard, label: "Rewards" },
-                    { value: "referral", icon: Share2, label: "Referral" },
-                    { value: "transactions", icon: History, label: "Transactions" },
-                    { value: "settings", icon: Settings, label: "Settings" }
-                  ].map(({ value, icon: Icon, label }) => (
-                    <button
-                      key={value}
-                      onClick={() => setActiveTab(value)}
-                      className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium transition-all capitalize ${
-                        activeTab === value
-                          ? "bg-turbo-purple text-white"
-                          : "text-white/60 hover:text-white hover:bg-white/10"
-                      }`}
-                    >
-                      <Icon size={16} />
-                      <span className="hidden sm:inline">{label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-white">Profile Management</h2>
 
-              {/* Tab Content */}
-              <div className="min-h-[400px]">
-                {activeTab === "rewards" && <RewardsTab />}
-                {activeTab === "referral" && <ReferralTab />}
-                {activeTab === "transactions" && <TransactionHistoryTab />}
-                {activeTab === "settings" && <SettingsTab />}
+              {/* Filter Tabs */}
+              <div className="flex gap-2">
+                {[
+                  { value: "rewards", icon: CreditCard, label: "Rewards" },
+                  { value: "referral", icon: Share2, label: "Referral" },
+                  { value: "transactions", icon: History, label: "Transactions" },
+                  { value: "settings", icon: Settings, label: "Settings" }
+                ].map(({ value, icon: Icon, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => setActiveTab(value)}
+                    className={`flex items-center gap-2 px-3 py-1 rounded-lg text-sm font-medium transition-all capitalize ${
+                      activeTab === value
+                        ? "bg-turbo-purple text-white"
+                        : "text-white/60 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    <Icon size={16} />
+                    <span className="hidden sm:inline">{label}</span>
+                  </button>
+                ))}
               </div>
-            </Tabs>
+            </div>
+
+            {/* Tab Content */}
+            <div className="min-h-[400px]">
+              {activeTab === "rewards" && <RewardsTab />}
+              {activeTab === "referral" && <ReferralTab />}
+              {activeTab === "transactions" && <TransactionHistoryTab />}
+              {activeTab === "settings" && <SettingsTab />}
+            </div>
           </section>
         </motion.div>
       </motion.div>

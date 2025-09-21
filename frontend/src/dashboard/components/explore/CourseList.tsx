@@ -1,6 +1,5 @@
 import { Course } from "@/dashboard/constants/explore";
 import { motion } from "framer-motion";
-import { Card, CardContent } from "@/shared/components/ui/card";
 import { Badge } from "@/shared/components/ui/badge";
 import { Users, Star, Clock, Coins } from "lucide-react";
 
@@ -12,8 +11,8 @@ export const CourseListItem: React.FC<{ course: Course }> = ({ course }) => {
       // transition={{ delay: index * 0.05 }}
       whileHover={{ x: 5 }}
     >
-      <Card className="border-white/5 bg-dark-card/40 backdrop-blur-sm hover:bg-dark-card/60 transition-all duration-300 cursor-pointer">
-        <CardContent className="p-2 sm:p-4">
+      <div className="border border-white/5 bg-dark-card/40 backdrop-blur-sm hover:bg-dark-card/60 transition-all duration-300 cursor-pointer rounded-xl ">
+        <div className="p-2 sm:p-4">
           <div className="flex gap-4">
             <div className="w-32 min-h-full bg-gradient-to-br from-turbo-purple/20 to-turbo-indigo/20 rounded-lg flex items-center justify-center flex-shrink-0">
             </div>
@@ -79,8 +78,8 @@ export const CourseListItem: React.FC<{ course: Course }> = ({ course }) => {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </motion.div>
   );
 };

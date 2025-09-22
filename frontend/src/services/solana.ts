@@ -13,7 +13,7 @@ import type {
   TokenInfo,
 } from "../shared/types/solana/wallet";
 import type { PaymentStatusResponse } from "../shared/types/solana/solana-pay";
-import type { SwapRequest, SwapResponse } from "../shared/types/solana/swap";
+import type { SwapRequest, SwapResponse, SwapQuoteResponse, SwapExecuteResponse } from "../shared/types/solana/swap";
 import { apiService } from "./index";
 
 class SolanaAPI {
@@ -89,13 +89,13 @@ class SolanaAPI {
   }
 
   // Swap endpoints
-  async getSwapQuote(request: SwapRequest): Promise<SwapResponse> {
+  async getSwapQuote(request: SwapRequest): Promise<SwapQuoteResponse> {
     const response = await apiService.getSwapQuote(request);
     if (response.error) throw new Error(response.error);
     return response.data!;
   }
 
-  async executeSwap(request: SwapRequest): Promise<SwapResponse> {
+  async executeSwap(request: SwapRequest): Promise<SwapExecuteResponse> {
     const response = await apiService.executeSwap(request);
     if (response.error) throw new Error(response.error);
     return response.data!;

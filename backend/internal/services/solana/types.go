@@ -63,6 +63,40 @@ type SwapResponse struct {
 	PriorityFee          uint64 `json:"priorityFee"`
 }
 
+// SignSwapTransactionRequest represents a request to sign a swap transaction
+type SignSwapTransactionRequest struct {
+	SwapID      string `json:"swapId" validate:"required"`
+	Transaction string `json:"transaction" validate:"required"`
+	UserWallet  string `json:"userWallet" validate:"required"`
+	Signature   string `json:"signature" validate:"required"`
+}
+
+// SubmitSwapTransactionRequest represents a request to submit a swap transaction
+type SubmitSwapTransactionRequest struct {
+	SwapID      string `json:"swapId" validate:"required"`
+	Transaction string `json:"transaction" validate:"required"`
+	Signature   string `json:"signature" validate:"required"`
+	UserWallet  string `json:"userWallet" validate:"required"`
+}
+
+// SwapStatus represents the status of a swap
+type SwapStatus struct {
+	SwapID            string     `json:"swapId"`
+	Status            string     `json:"status"` // pending, signed, submitted, completed, failed
+	UserWallet        string     `json:"userWallet"`
+	OrgWallet         string     `json:"orgWallet"`
+	InputAmount       uint64     `json:"inputAmount"`
+	OutputAmount      uint64     `json:"outputAmount"`
+	FixedRate         float64    `json:"fixedRate"`
+	SOLTransaction    string     `json:"solTransaction,omitempty"`
+	EduProTransaction string     `json:"edupoTransaction,omitempty"`
+	SOLSignature      string     `json:"solSignature,omitempty"`
+	EduProSignature   string     `json:"edupoSignature,omitempty"`
+	CreatedAt         time.Time  `json:"createdAt"`
+	ExpiresAt         int64      `json:"expiresAt"`
+	CompletedAt       *time.Time `json:"completedAt,omitempty"`
+}
+
 // StakingPosition represents a staking position
 type StakingPosition struct {
 	UserID              string    `json:"user_id"`
@@ -190,4 +224,3 @@ const (
 	RewardStatusDistributed = "distributed"
 	RewardStatusFailed      = "failed"
 )
-

@@ -264,6 +264,9 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			// Swap endpoints
 			solanaRoutes.POST("/swap/quote", solanaHandler.GetSwapQuote)
 			solanaRoutes.POST("/swap/execute", solanaHandler.ExecuteSwap)
+			solanaRoutes.POST("/swap/sign", solanaHandler.SignSwapTransaction)
+			solanaRoutes.POST("/swap/submit", solanaHandler.SubmitSwapTransaction)
+			solanaRoutes.GET("/swap/status/:swapId", solanaHandler.GetSwapStatus)
 
 			// Reward endpoints
 			solanaRoutes.POST("/reward/distribute", solanaHandler.DistributeReward)

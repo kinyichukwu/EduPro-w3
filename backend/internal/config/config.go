@@ -52,7 +52,7 @@ func Load() (*Config, error) {
 		BucketName:        getEnv("BUCKET_NAME", "documents"),
 		SolanaConfig:      NewSolanaConfig(),
 		// Solana Configuration
-		SolanaRPCURL:              getEnv("SOLANA_RPC_URL", "https://api.devnet.solana.com"),
+		SolanaRPCURL:              getEnv("SOLANA_RPC_URL", getEnv("SOLANA_RPC_ENDPOINT", "https://api.devnet.solana.com")),
 		EduProMintAddress:         getEnv("EDUPRO_MINT_ADDRESS", ""),
 		EduProMintAuthoritySecret: getEnv("EDUPRO_MINT_AUTHORITY_SECRET_BASE58", ""),
 		EduProJupiterAPIBase:      getEnv("EDUPRO_JUPITER_API_BASE", "https://quote-api.jup.ag/v6"),

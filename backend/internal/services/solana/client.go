@@ -179,12 +179,13 @@ func (c *Client) VerifyTransaction(ctx context.Context, signature string) (*Tran
 
 // GetRecentBlockhash gets a recent blockhash for transaction building
 func (c *Client) GetRecentBlockhash(ctx context.Context) (solana.Hash, error) {
-	recent, err := c.RpcClient.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+	// Use the new getLatestBlockhash method instead of deprecated getRecentBlockhash
+	latest, err := c.RpcClient.GetLatestBlockhash(ctx, rpc.CommitmentFinalized)
 	if err != nil {
-		return solana.Hash{}, fmt.Errorf("failed to get recent blockhash: %w", err)
+		return solana.Hash{}, fmt.Errorf("failed to get latest blockhash: %w", err)
 	}
 
-	return recent.Value.Blockhash, nil
+	return latest.Value.Blockhash, nil
 }
 
 // EstimateTransactionFee estimates the fee for a transaction
@@ -202,6 +203,16 @@ func (c *Client) SendTransaction(ctx context.Context, tx *solana.Transaction) (s
 	}
 
 	return sig.String(), nil
+}
+
+// SubmitTransaction submits a raw transaction to the network
+func (c *Client) SubmitTransaction(ctx context.Context, txBytes []byte) (solana.Signature, error) {
+	sig, err := c.RpcClient.SendRawTransaction(ctx, txBytes)
+	if err != nil {
+		return solana.Signature{}, fmt.Errorf("failed to submit transaction: %w", err)
+	}
+
+	return sig, nil
 }
 
 // WaitForConfirmation waits for a transaction to be confirmed

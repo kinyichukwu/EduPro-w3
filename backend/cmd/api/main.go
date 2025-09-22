@@ -261,7 +261,6 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			solanaRoutes.POST("/payment/create-url", solanaHandler.CreatePaymentURL)
 			solanaRoutes.POST("/payment/process-course", solanaHandler.ProcessCoursePayment)
 
-			
 			// Swap endpoints
 			solanaRoutes.POST("/swap/quote", solanaHandler.GetSwapQuote)
 			solanaRoutes.POST("/swap/execute", solanaHandler.ExecuteSwap)
@@ -320,43 +319,43 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			flashcards.POST("/study/sessions", flashcardHandler.StartStudySession)
 			flashcards.PUT("/study/sessions/:sessionId", flashcardHandler.EndStudySession)
 
-		// Statistics routes
-		flashcards.GET("/stats", flashcardHandler.GetFlashcardStats)
-	}
+			// Statistics routes
+			flashcards.GET("/stats", flashcardHandler.GetFlashcardStats)
+		}
 
-	// Course routes (protected)
-	courses := api.Group("/courses")
-	courses.Use(middleware.JWTMiddleware(cfg))
-	{
-		// Course management
-		courses.POST("", courseHandler.CreateCourse)
-		courses.GET("", courseHandler.GetCourses)
-		courses.GET("/stats", courseHandler.GetCourseStats)
-		courses.GET("/:id", courseHandler.GetCourse)
-		courses.PUT("/:id", courseHandler.UpdateCourse)
-		courses.DELETE("/:id", courseHandler.DeleteCourse)
+		// Course routes (protected)
+		courses := api.Group("/courses")
+		courses.Use(middleware.JWTMiddleware(cfg))
+		{
+			// Course management
+			courses.POST("", courseHandler.CreateCourse)
+			courses.GET("", courseHandler.GetCourses)
+			courses.GET("/stats", courseHandler.GetCourseStats)
+			courses.GET("/:id", courseHandler.GetCourse)
+			courses.PUT("/:id", courseHandler.UpdateCourse)
+			courses.DELETE("/:id", courseHandler.DeleteCourse)
 
-		// Module management
-		courses.POST("/:id/modules", moduleHandler.CreateModule)
-		courses.GET("/:id/modules", moduleHandler.GetModules)
-		courses.GET("/:id/modules/:moduleId", moduleHandler.GetModule)
-		courses.PUT("/:id/modules/:moduleId", moduleHandler.UpdateModule)
-		courses.DELETE("/:id/modules/:moduleId", moduleHandler.DeleteModule)
+			// Module management
+			courses.POST("/:id/modules", moduleHandler.CreateModule)
+			courses.GET("/:id/modules", moduleHandler.GetModules)
+			courses.GET("/:id/modules/:moduleId", moduleHandler.GetModule)
+			courses.PUT("/:id/modules/:moduleId", moduleHandler.UpdateModule)
+			courses.DELETE("/:id/modules/:moduleId", moduleHandler.DeleteModule)
 
-		// AI content generation
-		courses.POST("/:id/modules/generate-title", moduleHandler.GenerateModuleTitle)
-		courses.POST("/:id/modules/generate-content", moduleHandler.GenerateModuleContent)
+			// AI content generation
+			courses.POST("/:id/modules/generate-title", moduleHandler.GenerateModuleTitle)
+			courses.POST("/:id/modules/generate-content", moduleHandler.GenerateModuleContent)
 
-		// Module links management
-		courses.POST("/:id/modules/:moduleId/links", moduleHandler.AddModuleLink)
-		courses.DELETE("/:id/modules/:moduleId/links/:linkId", moduleHandler.DeleteModuleLink)
-	}
+			// Module links management
+			courses.POST("/:id/modules/:moduleId/links", moduleHandler.AddModuleLink)
+			courses.DELETE("/:id/modules/:moduleId/links/:linkId", moduleHandler.DeleteModuleLink)
+		}
 
-	// Internal routes (for integration)
-	internal := api.Group("/internal")
-	{
-		internal.POST("/users", authHandler.CreateUser)
-	}
+		// Internal routes (for integration)
+		internal := api.Group("/internal")
+		{
+			internal.POST("/users", authHandler.CreateUser)
+		}
 	}
 
 	// Root endpoint

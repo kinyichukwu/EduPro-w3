@@ -73,8 +73,8 @@ type UpdateChatRequest struct {
 
 // FixedPriceSwapRequest represents a request for a fixed-price SOL to EduPro token swap
 type FixedPriceSwapRequest struct {
-	UserWallet     string  `json:"user_wallet" validate:"required"`
-	SOLAmount      float64 `json:"sol_amount" validate:"required,min=0.001"`
-	EduProAmount   float64 `json:"edupo_amount,omitempty"` // Optional, will be calculated if not provided
-	FixedRate      float64 `json:"fixed_rate,omitempty"`   // Optional, will use default if not provided
+	UserWallet   string  `json:"user_wallet" validate:"required"`
+	SOLAmount    float64 `json:"sol_amount" validate:"required,min=0.001"`
+	EduProAmount float64 `json:"edupo_amount,omitempty"` // Optional, will be calculated if not provided
+	FixedRate    float64 `json:"fixed_rate,omitempty"`   // Optional, will use default if not provided
 }

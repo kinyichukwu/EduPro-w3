@@ -6,6 +6,7 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { Button } from "../../../shared/components/ui/button";
 import { Alert, AlertDescription } from "../../../shared/components/ui/alert";
 import { DeductModal } from "../wallet/DeductModal";
+import { SwapModal } from "../../../shared/components";
 import {
   Loader2,
   CheckCircle,
@@ -13,6 +14,7 @@ import {
   Copy,
   ExternalLink,
   Minus,
+  ArrowRightLeft,
 } from "lucide-react";
 
 export const WalletSection: React.FC = () => {
@@ -35,6 +37,7 @@ export const WalletSection: React.FC = () => {
   );
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
   const [showDeductModal, setShowDeductModal] = useState(false);
+  const [showSwapModal, setShowSwapModal] = useState(false);
 
   // Load wallets on component mount
   useEffect(() => {
@@ -329,6 +332,30 @@ export const WalletSection: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Swap SOL to EduPro Button */}
+          {hasVerifiedWallet && (
+            <div className="p-4 bg-green-500/10 rounded-xl border border-green-500/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-300">
+                    Swap SOL to EduPro Tokens
+                  </p>
+                  <p className="text-xs text-green-400 mt-1">
+                    Exchange SOL for EduPro tokens at 1:1000 rate
+                  </p>
+                </div>
+                <Button
+                  onClick={() => setShowSwapModal(true)}
+                  size="sm"
+                  className="bg-white/10 text-white border border-white/20 hover:bg-white/20"
+                >
+                  <ArrowRightLeft className="mr-2 h-3 w-3" />
+                  Swap Tokens
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -356,6 +383,17 @@ export const WalletSection: React.FC = () => {
         onClose={() => setShowDeductModal(false)}
         onSuccess={() => {
           setShowDeductModal(false);
+          // Optionally refresh wallet data
+          loadWallets();
+        }}
+      />
+
+      {/* Swap Modal */}
+      <SwapModal
+        isOpen={showSwapModal}
+        onClose={() => setShowSwapModal(false)}
+        onSuccess={() => {
+          setShowSwapModal(false);
           // Optionally refresh wallet data
           loadWallets();
         }}

@@ -1,4 +1,4 @@
-// Solana swap types for Jupiter integration
+// Solana swap types for EduPro token swaps
 export interface SwapRequest {
   inputMint: string;
   outputMint: string;
@@ -37,10 +37,35 @@ export interface SwapExecuteResponse {
   expiresAt: number;
 }
 
-export interface SwapResponse {
-  swapTransaction: string;
-  lastValidBlockHeight: number;
-  priorityFee: number;
+export interface SignSwapTransactionRequest {
+  swapId: string;
+  transaction: string;
+  userWallet: string;
+  signature: string;
+}
+
+export interface SubmitSwapTransactionRequest {
+  swapId: string;
+  transaction: string;
+  signature: string;
+  userWallet: string;
+}
+
+export interface SwapStatus {
+  swapId: string;
+  status: string; // pending, signed, submitted, completed, failed
+  userWallet: string;
+  orgWallet: string;
+  inputAmount: number;
+  outputAmount: number;
+  fixedRate: number;
+  solTransaction?: string;
+  edupoTransaction?: string;
+  solSignature?: string;
+  edupoSignature?: string;
+  createdAt: string;
+  expiresAt: number;
+  completedAt?: string;
 }
 
 export interface WalletBalance {

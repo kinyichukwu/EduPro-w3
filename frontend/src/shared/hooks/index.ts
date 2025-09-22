@@ -5,3 +5,4 @@ export { useClickOutside } from "./useClickOutside";
 export { useScrollLock } from "./useScrollLock";
 export { useWallet } from "./useWallet";
 export { useSolanaPayment } from "./useSolanaPayment";
+export { useSwap } from "./useSwap";

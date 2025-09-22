@@ -13,8 +13,15 @@ import type {
   TokenInfo,
 } from "../shared/types/solana/wallet";
 import type { PaymentStatusResponse } from "../shared/types/solana/solana-pay";
-import type { SwapRequest, SwapResponse, SwapQuoteResponse, SwapExecuteResponse } from "../shared/types/solana/swap";
+import type { 
+  SwapRequest, 
+  SwapExecuteResponse,
+  SignSwapTransactionRequest,
+  SubmitSwapTransactionRequest,
+  SwapStatus
+} from "../shared/types/solana/swap";
 import { apiService } from "./index";
+import { swapApiService } from "./swapApi";
 
 class SolanaAPI {
   // Wallet endpoints
@@ -62,6 +69,37 @@ class SolanaAPI {
     return response.data!;
   }
 
+  // Swap endpoints
+  async getSwapQuote(request: SwapRequest): Promise<SwapExecuteResponse> {
+    const response = await swapApiService.getSwapQuote(request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
+
+  async executeSwap(request: SwapRequest): Promise<SwapExecuteResponse> {
+    const response = await swapApiService.executeSwap(request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
+
+  async signSwapTransaction(request: SignSwapTransactionRequest): Promise<any> {
+    const response = await swapApiService.signSwapTransaction(request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
+
+  async submitSwapTransaction(request: SubmitSwapTransactionRequest): Promise<any> {
+    const response = await swapApiService.submitSwapTransaction(request);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
+
+  async getSwapStatus(swapId: string): Promise<SwapStatus> {
+    const response = await swapApiService.getSwapStatus(swapId);
+    if (response.error) throw new Error(response.error);
+    return response.data!;
+  }
+
   async getSupportedTokens(): Promise<TokenInfo[]> {
     const response = await apiService.getSupportedTokens();
     if (response.error) throw new Error(response.error);
@@ -84,19 +122,6 @@ class SolanaAPI {
     token_mint: string;
   }): Promise<any> {
     const response = await apiService.deductFromWallet(request);
-    if (response.error) throw new Error(response.error);
-    return response.data!;
-  }
-
-  // Swap endpoints
-  async getSwapQuote(request: SwapRequest): Promise<SwapQuoteResponse> {
-    const response = await apiService.getSwapQuote(request);
-    if (response.error) throw new Error(response.error);
-    return response.data!;
-  }
-
-  async executeSwap(request: SwapRequest): Promise<SwapExecuteResponse> {
-    const response = await apiService.executeSwap(request);
     if (response.error) throw new Error(response.error);
     return response.data!;
   }

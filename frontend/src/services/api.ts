@@ -1,5 +1,12 @@
 import { supabase } from "../lib/supabaseClient";
 import { getApiBaseUrl } from "./index";
+import type {
+  SwapRequest,
+  SwapExecuteResponse,
+  SignSwapTransactionRequest,
+  SubmitSwapTransactionRequest,
+  SwapStatus,
+} from "../shared/types/solana/swap";
 
 // RAG Types
 export interface Citation {
@@ -292,6 +299,49 @@ class ApiService {
       "Content-Type": "application/json",
       Authorization: `Bearer ${session.access_token}`,
     };
+  }
+
+  private async requestWithCustomAuth<T>(
+    endpoint: string,
+    authToken: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+          ...options.headers,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          error:
+            data.error || `HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+
+      // Handle backend APIResponse wrapper
+      if (data && typeof data === "object" && "success" in data) {
+        if (data.success) {
+          return { data: data.data };
+        } else {
+          return { error: data.error || "API request failed" };
+        }
+      }
+
+      return { data };
+    } catch (error) {
+      console.error("API request failed:", error);
+      return {
+        error:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      };
+    }
   }
 
   private async request<T>(
@@ -719,20 +769,6 @@ class ApiService {
     });
   }
 
-  // Swap endpoints
-  async getSwapQuote(request: any): Promise<ApiResponse<any>> {
-    return this.request<any>("/solana/swap/quote", {
-      method: "POST",
-      body: JSON.stringify(request),
-    });
-  }
-
-  async executeSwap(request: any): Promise<ApiResponse<any>> {
-    return this.request<any>("/solana/swap/execute", {
-      method: "POST",
-      body: JSON.stringify(request),
-    });
-  }
 
   // Wallet balance endpoints
   async getWalletBalance(address: string): Promise<ApiResponse<any>> {
@@ -899,6 +935,41 @@ class ApiService {
         body: JSON.stringify(request),
       }
     );
+  }
+
+  // Solana swap endpoints
+  async getSwapQuote(request: SwapRequest): Promise<ApiResponse<SwapExecuteResponse>> {
+    return this.request<SwapExecuteResponse>("/api/solana/swap/quote", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async executeSwap(request: SwapRequest): Promise<ApiResponse<SwapExecuteResponse>> {
+    return this.request<SwapExecuteResponse>("/api/solana/swap/execute", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async signSwapTransaction(request: SignSwapTransactionRequest): Promise<ApiResponse<any>> {
+    return this.request<any>("/api/solana/swap/sign", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async submitSwapTransaction(request: SubmitSwapTransactionRequest): Promise<ApiResponse<any>> {
+    return this.request<any>("/api/solana/swap/submit", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getSwapStatus(swapId: string): Promise<ApiResponse<SwapStatus>> {
+    return this.request<SwapStatus>(`/api/solana/swap/status/${swapId}`, {
+      method: "GET",
+    });
   }
 }
 

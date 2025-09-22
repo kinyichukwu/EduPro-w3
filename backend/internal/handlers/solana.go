@@ -663,6 +663,10 @@ func (h *SolanaHandler) createEduProTokenTransferTransaction(fromWallet, toWalle
 		return "", fmt.Errorf("failed to find to token account: %w", err)
 	}
 
+	// Check if the from token account exists and has sufficient balance
+	// For now, we'll assume the organization wallet has the tokens
+	// In production, you should check the balance and create accounts if needed
+
 	// Create token transfer instruction
 	transferInstruction := token.NewTransferInstruction(
 		amount,
@@ -750,12 +754,12 @@ func (h *SolanaHandler) SubmitSwapTransaction(c *gin.Context) {
 
 	ctx := context.Background()
 
-	// Decode the signed transaction
-	txBytes, err := base64.StdEncoding.DecodeString(req.Transaction)
+	// Decode the signed transaction (use the signature, not the original transaction)
+	txBytes, err := base64.StdEncoding.DecodeString(req.Signature)
 	if err != nil {
 		utils.SendError(c, &models.APIError{
 			Code:    http.StatusBadRequest,
-			Message: "Invalid transaction data",
+			Message: "Invalid signed transaction data",
 		})
 		return
 	}

@@ -1,1 +1,1 @@
-export { DeductModal } from './DeductModal';
+// No exports - DeductModal has been removed

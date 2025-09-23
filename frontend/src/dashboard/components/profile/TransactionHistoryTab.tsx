@@ -13,6 +13,8 @@ import {
   Coins,
   Wallet,
   Loader2,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
 import { mockTransactions } from "@/dashboard/constants/profile";
@@ -25,6 +27,10 @@ import { cn } from "@/shared/lib/utils"
 import { solanaAPI } from "@/services/solana"
 import { useWallet } from "@solana/wallet-adapter-react"
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui"
+import { useSwap } from "@/shared/hooks/useSwap"
+import { Alert, AlertDescription } from "@/shared/components/ui/alert"
+import { Progress } from "@/shared/components/ui/progress"
+import type { SwapRequest } from "@/shared/types/solana/swap"
 
 const categoryIcons = {
   quiz: BookOpen,
@@ -353,129 +359,96 @@ interface ConversionModalProps {
 }
 
 const ConversionModal = ({ onClose }: ConversionModalProps) => {
+  const { publicKey, connected } = useWallet();
+  const {
+    isLoading,
+    error,
+    swapData,
+    step,
+    currentTransaction,
+    executeSwap,
+    signAndSubmitSOL,
+    signAndSubmitEduPro,
+    completeSwap,
+    reset,
+  } = useSwap();
+
   const [conversionType, setConversionType] = useState<"edu-to-sol" | "sol-to-edu">("sol-to-edu")
   const [amount, setAmount] = useState("")
-  const [isConverting, setIsConverting] = useState(false)
   const [balances, setBalances] = useState<{ edu: number; sol: number }>({ edu: 0, sol: 0 })
-  const [isLoading, setIsLoading] = useState(true)
-  const [swapQuote, setSwapQuote] = useState<any>(null)
-  const [isGettingQuote, setIsGettingQuote] = useState(false)
-  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [isLoadingBalances, setIsLoadingBalances] = useState(true)
+  const [isAutoMode, setIsAutoMode] = useState<boolean>(true);
 
-  // Get real wallet address from Solana wallet adapter
-  const { connected, publicKey } = useWallet()
-  const userWallet = publicKey?.toString() || ""
-
-  // Token addresses from API documentation
+  // Token addresses
   const SOL_MINT = "So11111111111111111111111111111111111111112"
   const EDUPRO_MINT = "8kNjLpVVoMK6QY5zQgjavDYmLzULnboxrPcry6Cf4urV"
+  const FIXED_RATE = 1000; // 1 SOL = 1000 EduPro tokens
+
+  // Calculate conversion amounts
+  const amountNum = parseFloat(amount) || 0;
+  const amountInSmallestUnit = Math.floor(amountNum * 1e9);
+  const convertedAmount = conversionType === "sol-to-edu" ? amountNum * FIXED_RATE : amountNum / FIXED_RATE;
 
   // Get wallet balances when wallet is connected
   useEffect(() => {
     const fetchBalances = async () => {
-      if (!connected || !userWallet) {
-        setIsLoading(false)
+      if (!connected || !publicKey) {
+        setIsLoadingBalances(false)
         return
       }
 
-      setIsLoading(true)
+      setIsLoadingBalances(true)
       try {
         const [eduBalance, solBalance] = await Promise.all([
-          solanaAPI.getEduTokenBalance(userWallet),
-          solanaAPI.getWalletBalance(userWallet)
+          solanaAPI.getEduTokenBalance(publicKey.toString()),
+          solanaAPI.getWalletBalance(publicKey.toString())
         ])
         setBalances({
-          edu: eduBalance.edutoken_balance / 1e9, // Convert from token units to EDU
+          edu: eduBalance.edutoken_balance / 1e9,
           sol: solBalance.balance_sol
         })
       } catch (error) {
         console.error("Failed to fetch balances:", error)
-        // Set default values on error
         setBalances({ edu: 0, sol: 0 })
       } finally {
-        setIsLoading(false)
+        setIsLoadingBalances(false)
       }
     }
 
     fetchBalances()
-  }, [connected, userWallet])
+  }, [connected, publicKey])
+
+  // Reset swap state when modal opens
+  useEffect(() => {
+    if (connected) {
+      reset();
+    }
+  }, [connected, reset]);
 
   // Track previous connection state to only close modal on new connections
   const prevConnectedRef = useRef(connected)
   
-  // Close modal when wallet connects (to avoid z-index issues with wallet selection)
-  // Only close if wallet was previously disconnected and now connects
   useEffect(() => {
     const wasDisconnected = !prevConnectedRef.current
     
     if (connected && wasDisconnected) {
-      // Small delay to ensure wallet connection is fully processed
       const timer = setTimeout(() => {
         onClose()
       }, 100)
       
-      // Update the ref for next time
       prevConnectedRef.current = connected
-      
       return () => clearTimeout(timer)
     }
     
-    // Always update the ref
     prevConnectedRef.current = connected
   }, [connected, onClose])
 
-  // Get swap quote when amount or conversion type changes
-  useEffect(() => {
-    const getSwapQuote = async () => {
-      if (!connected || !userWallet || !amount || parseFloat(amount) <= 0) {
-        setSwapQuote(null)
-        return
-      }
-
-      setIsGettingQuote(true)
-      try {
-        // Convert amounts to proper units based on conversion direction
-        let amountInSmallestUnit: number
-        
-        if (conversionType === "sol-to-edu") {
-          // Converting SOL to EduPro: amount is in SOL, convert to lamports
-          amountInSmallestUnit = Math.floor(parseFloat(amount) * 1e9)
-        } else {
-          // Converting EduPro to SOL: amount is in EduPro tokens, convert to token units
-          amountInSmallestUnit = Math.floor(parseFloat(amount) * 1e9)
-        }
-
-        const swapRequest = {
-          inputMint: conversionType === "sol-to-edu" ? SOL_MINT : EDUPRO_MINT,
-          outputMint: conversionType === "sol-to-edu" ? EDUPRO_MINT : SOL_MINT,
-          amount: amountInSmallestUnit,
-          slippageBps: 100, // 1%
-          userWallet: userWallet
-        }
-
-        const quote = await solanaAPI.getSwapQuote(swapRequest)
-        setSwapQuote(quote)
-      } catch (error) {
-        console.error("Failed to get swap quote:", error)
-        setSwapQuote(null)
-      } finally {
-        setIsGettingQuote(false)
-      }
-    }
-
-    // Debounce the quote request
-    const timeoutId = setTimeout(getSwapQuote, 500)
-    return () => clearTimeout(timeoutId)
-  }, [amount, conversionType, userWallet, connected, SOL_MINT, EDUPRO_MINT])
-
-  const handleGetQuote = async () => {
-    if (!connected || !userWallet || !amount || parseFloat(amount) <= 0) {
-      alert("Please enter a valid amount")
-      return
+  const handleSwap = async () => {
+    if (!publicKey || !connected) {
+      return;
     }
 
     // Check if user has sufficient balance
-    const amountNum = parseFloat(amount)
     if (conversionType === "sol-to-edu" && amountNum > balances.sol) {
       alert("Insufficient SOL balance")
       return
@@ -485,37 +458,57 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
       return
     }
 
-    setShowConfirmation(true)
-  }
-
-  const handleConfirmConversion = async () => {
-    if (!swapQuote) return
-
-    setIsConverting(true)
     try {
-      // Execute the swap with the same parameters used for the quote
-      const swapRequest = {
-        inputMint: swapQuote.inputMint,
-        outputMint: swapQuote.outputMint,
-        amount: parseInt(swapQuote.inAmount),
+      const request: SwapRequest = {
+        inputMint: conversionType === "sol-to-edu" ? SOL_MINT : EDUPRO_MINT,
+        outputMint: conversionType === "sol-to-edu" ? EDUPRO_MINT : SOL_MINT,
+        amount: amountInSmallestUnit,
         slippageBps: 100,
-        userWallet: userWallet
+        userWallet: publicKey.toString(),
+      };
+
+      if (isAutoMode) {
+        await completeSwap(request);
+        // Refresh balances after successful swap
+        setTimeout(async () => {
+          try {
+            const [eduBalance, solBalance] = await Promise.all([
+              solanaAPI.getEduTokenBalance(publicKey.toString()),
+              solanaAPI.getWalletBalance(publicKey.toString())
+            ])
+            setBalances({
+              edu: eduBalance.edutoken_balance / 1e9,
+              sol: solBalance.balance_sol
+            })
+          } catch (error) {
+            console.error("Failed to refresh balances:", error)
+          }
+        }, 3000)
+      } else {
+        await executeSwap(request);
       }
+    } catch (error) {
+      console.error("Swap failed:", error);
+    }
+  };
 
-      const result = await solanaAPI.executeSwap(swapRequest)
+  const handleSignSOL = async () => {
+    try {
+      await signAndSubmitSOL();
+    } catch (error) {
+      console.error("Failed to sign SOL transaction:", error);
+    }
+  };
 
-      // Show success message with transaction details
-      const outputAmount = (parseFloat(result.outAmount) / 1e9).toFixed(conversionType === "sol-to-edu" ? 2 : 6)
-      const outputToken = conversionType === "sol-to-edu" ? "EduPro tokens" : "SOL"
-      
-      alert(`✅ Swap Executed Successfully!\n\n🆔 Swap ID: ${result.swapId}\n📊 Status: ${result.status}\n\n💰 You will receive: ${outputAmount} ${outputToken}\n\n⚠️ Important: ${result.message}\n\n🔗 The swap involves two transactions that need to be signed. Please check your wallet for transaction prompts.`)
-
-      // Refresh balances after a delay to allow for transaction confirmation
+  const handleSignEduPro = async () => {
+    try {
+      await signAndSubmitEduPro();
+      // Refresh balances after successful completion
       setTimeout(async () => {
         try {
           const [eduBalance, solBalance] = await Promise.all([
-            solanaAPI.getEduTokenBalance(userWallet),
-            solanaAPI.getWalletBalance(userWallet)
+            solanaAPI.getEduTokenBalance(publicKey!.toString()),
+            solanaAPI.getWalletBalance(publicKey!.toString())
           ])
           setBalances({
             edu: eduBalance.edutoken_balance / 1e9,
@@ -523,39 +516,56 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
           })
         } catch (error) {
           console.error("Failed to refresh balances:", error)
-          // Don't alert here as the swap was successful
         }
       }, 3000)
-
-      // Reset form
-      setAmount("")
-      setSwapQuote(null)
-      setShowConfirmation(false)
     } catch (error) {
-      console.error("Conversion failed:", error)
-      
-      // Better error handling
-      let errorMessage = "Unknown error occurred"
-      if (error instanceof Error) {
-        errorMessage = error.message
-      } else if (typeof error === 'string') {
-        errorMessage = error
-      }
-      
-      // Check for specific error types
-      if (errorMessage.includes("Insufficient")) {
-        alert(`❌ Swap Failed: Insufficient Balance\n\nPlease ensure you have enough ${conversionType === "sol-to-edu" ? "SOL" : "EduPro tokens"} in your wallet to complete this swap.`)
-      } else if (errorMessage.includes("expired")) {
-        alert(`❌ Swap Failed: Quote Expired\n\nThe swap quote has expired. Please try again to get a fresh quote.`)
-      } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
-        alert(`❌ Swap Failed: Network Error\n\nPlease check your internet connection and try again.`)
-      } else {
-        alert(`❌ Swap Failed\n\nError: ${errorMessage}\n\nPlease try again or contact support if the issue persists.`)
-      }
-    } finally {
-      setIsConverting(false)
+      console.error("Failed to sign EduPro transaction:", error);
     }
-  }
+  };
+
+  const getStepDescription = () => {
+    switch (step) {
+      case "executing":
+        return "Creating swap transactions...";
+      case "signing":
+        if (currentTransaction === "sol") {
+          return "Please sign the SOL transaction in your wallet";
+        } else if (currentTransaction === "edupo") {
+          return "Please sign the EduPro transaction in your wallet";
+        }
+        return "Ready to sign transactions";
+      case "submitting":
+        return "Submitting transactions to blockchain...";
+      case "completed":
+        return "Swap completed successfully!";
+      case "error":
+        return "Swap failed";
+      default:
+        return "Ready to swap";
+    }
+  };
+
+  const getProgressValue = () => {
+    switch (step) {
+      case "executing":
+        return 25;
+      case "signing":
+        return currentTransaction === "sol" ? 50 : 75;
+      case "submitting":
+        return 90;
+      case "completed":
+        return 100;
+      default:
+        return 0;
+    }
+  };
+
+  const isStepCompleted = (targetStep: string) => {
+    const stepOrder = ["idle", "executing", "signing", "submitting", "completed"];
+    const currentIndex = stepOrder.indexOf(step);
+    const targetIndex = stepOrder.indexOf(targetStep);
+    return currentIndex > targetIndex;
+  };
 
   return (
     <div className="space-y-6">
@@ -584,10 +594,10 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
                   <Coins className="h-4 w-4 text-yellow-400" />
                   <span className="text-sm text-muted-foreground">EDU Balance</span>
                 </div>
-                {isLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                {isLoadingBalances && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
               </div>
               <p className="text-xl font-bold text-white">
-                {isLoading ? "..." : `${balances.edu.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EDU`}
+                {isLoadingBalances ? "..." : `${balances.edu.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EDU`}
               </p>
             </div>
             <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/10">
@@ -596,16 +606,47 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
                   <Wallet className="h-4 w-4 text-blue-400" />
                   <span className="text-sm text-muted-foreground">SOL Balance</span>
                 </div>
-                {isLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                {isLoadingBalances && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
               </div>
               <p className="text-xl font-bold text-white">
-                {isLoading ? "..." : `${balances.sol.toFixed(4)} SOL`}
+                {isLoadingBalances ? "..." : `${balances.sol.toFixed(4)} SOL`}
               </p>
             </div>
           </div>
 
-      {!showConfirmation ? (
-        <>
+          {/* Swap Details */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-2">
+                <Coins className="h-4 w-4" />
+                <span className="text-sm font-medium">You pay</span>
+              </div>
+              <div className="text-right">
+                <div className="font-medium">{amount || "0"} {conversionType === "sol-to-edu" ? "SOL" : "EDU"}</div>
+                <div className="text-xs text-muted-foreground">
+                  {amountInSmallestUnit.toLocaleString()} {conversionType === "sol-to-edu" ? "lamports" : "token units"}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center">
+              <ArrowLeftRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-2">
+                <Coins className="h-4 w-4" />
+                <span className="text-sm font-medium">You receive</span>
+              </div>
+              <div className="text-right">
+                <div className="font-medium">{convertedAmount.toLocaleString()} {conversionType === "sol-to-edu" ? "EDU" : "SOL"}</div>
+                <div className="text-xs text-muted-foreground">
+                  Fixed rate: 1 {conversionType === "sol-to-edu" ? "SOL" : "EDU"} = {FIXED_RATE} {conversionType === "sol-to-edu" ? "EDU" : "SOL"}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Conversion Type Selector */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-white">Conversion Direction</label>
@@ -614,6 +655,7 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
                 variant={conversionType === "sol-to-edu" ? "default" : "outline"}
                 onClick={() => setConversionType("sol-to-edu")}
                 className={conversionType === "sol-to-edu" ? "bg-white/10 text-white border-white/20" : "bg-dark-accent/20 text-muted-foreground border-white/10 hover:bg-dark-accent/30"}
+                disabled={isLoading}
               >
                 <Wallet className="h-4 w-4 mr-2" />
                 SOL → EDU
@@ -622,6 +664,7 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
                 variant={conversionType === "edu-to-sol" ? "default" : "outline"}
                 onClick={() => setConversionType("edu-to-sol")}
                 className={conversionType === "edu-to-sol" ? "bg-white/10 text-white border-white/20" : "bg-dark-accent/20 text-muted-foreground border-white/10 hover:bg-dark-accent/30"}
+                disabled={isLoading}
               >
                 <Coins className="h-4 w-4 mr-2" />
                 EDU → SOL
@@ -630,64 +673,118 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
           </div>
 
           {/* Amount Input */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <label className="text-sm font-medium text-white">
-              Amount to Convert ({conversionType === "sol-to-edu" ? "SOL" : "EDU"})
+              Amount ({conversionType === "sol-to-edu" ? "SOL" : "EDU"})
             </label>
-            <div className="relative">
-              <Input
-                type="number"
-                placeholder="Enter amount"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="bg-dark-accent/20 border-white/10 text-white pr-20"
-                step="0.001"
-                min="0"
-              />
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-muted-foreground">
-                {conversionType === "sol-to-edu" ? "SOL" : "EDU"}
-              </div>
-            </div>
+            <Input
+              type="number"
+              step={conversionType === "sol-to-edu" ? "0.001" : "1"}
+              min={conversionType === "sol-to-edu" ? "0.001" : "1"}
+              placeholder="Enter amount"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              disabled={isLoading}
+              className="bg-dark-accent/20 border-white/10 text-white"
+            />
             <div className="text-xs text-muted-foreground">
               Available: {conversionType === "sol-to-edu" ? `${balances.sol.toFixed(4)} SOL` : `${balances.edu.toFixed(2)} EDU`}
             </div>
           </div>
 
-          {/* Real-time Quote Preview */}
-          {amount && parseFloat(amount) > 0 && (
-            <div className="space-y-3">
-              {isGettingQuote ? (
-                <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/10 text-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mx-auto mb-2"></div>
-                  <p className="text-sm text-muted-foreground">Getting quote...</p>
-                </div>
-              ) : swapQuote ? (
-                <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/10">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">You will receive:</span>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-green-400">
-                          {(parseFloat(swapQuote.outAmount) / 1e9).toFixed(conversionType === "sol-to-edu" ? 2 : 6)} {conversionType === "sol-to-edu" ? "EDU" : "SOL"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Exchange Rate:</span>
-                      <span>1 {conversionType === "sol-to-edu" ? "SOL" : "EDU"} = {swapQuote.fixedRate || 1000} {conversionType === "sol-to-edu" ? "EDU" : "SOL"}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Swap Type:</span>
-                      <span className="text-blue-400">Fixed Price</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/20 text-center">
-                  <p className="text-sm text-red-400">Unable to get quote. Please try again.</p>
-                </div>
-              )}
+          {/* Mode Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white">Swap Mode</label>
+            <div className="flex gap-2">
+              <Button
+                variant={isAutoMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsAutoMode(true)}
+                disabled={isLoading}
+                className={isAutoMode ? "bg-white/10 text-white border-white/20" : "bg-dark-accent/20 text-muted-foreground border-white/10 hover:bg-dark-accent/30"}
+              >
+                Auto (Recommended)
+              </Button>
+              <Button
+                variant={!isAutoMode ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsAutoMode(false)}
+                disabled={isLoading}
+                className={!isAutoMode ? "bg-white/10 text-white border-white/20" : "bg-dark-accent/20 text-muted-foreground border-white/10 hover:bg-dark-accent/30"}
+              >
+                Manual
+              </Button>
             </div>
+          </div>
+
+          {/* Progress */}
+          {isLoading && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span>{getStepDescription()}</span>
+                <span>{getProgressValue()}%</span>
+              </div>
+              <Progress value={getProgressValue()} className="w-full" />
+            </div>
+          )}
+
+          {/* Manual Steps */}
+          {!isAutoMode && swapData && (
+            <div className="space-y-3">
+              <div className="text-sm font-medium">Transaction Steps:</div>
+              
+              {/* SOL Transaction */}
+              <div className="flex items-center justify-between p-2 border rounded">
+                <div className="flex items-center gap-2">
+                  {isStepCompleted("signing") ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <div className="h-4 w-4 rounded-full border-2 border-muted-foreground" />
+                  )}
+                  <span className="text-sm">Sign {conversionType === "sol-to-edu" ? "SOL" : "EDU"} Transaction</span>
+                </div>
+                {step === "signing" && currentTransaction === "sol" && (
+                  <Button size="sm" onClick={handleSignSOL} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign"}
+                  </Button>
+                )}
+              </div>
+
+              {/* EduPro Transaction */}
+              <div className="flex items-center justify-between p-2 border rounded">
+                <div className="flex items-center gap-2">
+                  {isStepCompleted("completed") ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <div className="h-4 w-4 rounded-full border-2 border-muted-foreground" />
+                  )}
+                  <span className="text-sm">Sign {conversionType === "sol-to-edu" ? "EDU" : "SOL"} Transaction</span>
+                </div>
+                {step === "submitting" && (
+                  <Button size="sm" onClick={handleSignEduPro} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <Alert variant="destructive">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Success Display */}
+          {step === "completed" && (
+            <Alert>
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>
+                Swap completed successfully! You received {convertedAmount.toLocaleString()} {conversionType === "sol-to-edu" ? "EDU" : "SOL"} tokens.
+              </AlertDescription>
+            </Alert>
           )}
 
           {/* Important Info */}
@@ -703,112 +800,37 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
             </div>
           </div>
 
-          {/* Get Quote Button */}
-          <Button
-            onClick={handleGetQuote}
-            disabled={
-              !connected ||
-              !amount ||
-              parseFloat(amount) <= 0 ||
-              isGettingQuote ||
-              isLoading ||
-              !swapQuote ||
-              (conversionType === "sol-to-edu" && parseFloat(amount) > balances.sol) ||
-              (conversionType === "edu-to-sol" && parseFloat(amount) > balances.edu)
-            }
-            className="w-full bg-gradient-to-r from-turbo-purple to-turbo-indigo text-white border-0 hover:from-turbo-purple/80 hover:to-turbo-indigo/80"
-          >
-            {isGettingQuote ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Getting Quote...
-              </>
-            ) : (
-              <>
-                <ArrowLeftRight className="h-4 w-4 mr-2" />
-                Review Swap
-              </>
-            )}
-          </Button>
-        </>
-      ) : (
-        <>
-          {/* Confirmation Step */}
-          <div className="space-y-4">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-white mb-2">Confirm Swap</h3>
-              <p className="text-sm text-muted-foreground">Please review the details before proceeding</p>
-            </div>
-
-            {/* Swap Summary */}
-            <div className="p-4 bg-dark-accent/20 rounded-lg border border-white/10">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">You're sending:</span>
-                  <span className="text-white font-medium">
-                    {amount} {conversionType === "sol-to-edu" ? "SOL" : "EDU"}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">You'll receive:</span>
-                  <span className="text-green-400 font-medium">
-                    {swapQuote && (parseFloat(swapQuote.outAmount) / 1e9).toFixed(conversionType === "sol-to-edu" ? 2 : 6)} {conversionType === "sol-to-edu" ? "EDU" : "SOL"}
-                  </span>
-                </div>
-                <div className="border-t border-white/10 pt-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Exchange Rate:</span>
-                    <span className="text-white text-sm">
-                      1 {conversionType === "sol-to-edu" ? "SOL" : "EDU"} = {swapQuote?.fixedRate || 1000} {conversionType === "sol-to-edu" ? "EDU" : "SOL"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Warning */}
-            <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-              <div className="flex items-start gap-2">
-                <div className="w-2 h-2 bg-yellow-400 rounded-full mt-1.5"></div>
-                <div>
-                  <p className="text-xs text-yellow-300">
-                    You will need to sign two transactions: one to send {conversionType === "sol-to-edu" ? "SOL to the organization wallet" : "EDU tokens to the organization"} and another to receive {conversionType === "sol-to-edu" ? "EDU tokens" : "SOL"} in your wallet.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowConfirmation(false)}
-                className="flex-1 bg-dark-accent/20 text-muted-foreground border-white/10 hover:bg-dark-accent/30"
-                disabled={isConverting}
-              >
-                Back
-              </Button>
-              <Button
-                onClick={handleConfirmConversion}
-                disabled={isConverting}
-                className="flex-1 bg-gradient-to-r from-turbo-purple to-turbo-indigo text-white border-0 hover:from-turbo-purple/80 hover:to-turbo-indigo/80"
-              >
-                {isConverting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <ArrowLeftRight className="h-4 w-4 mr-2" />
-                    Execute Swap
-                  </>
-                )}
-              </Button>
-            </div>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSwap}
+              disabled={
+                !connected ||
+                !amount ||
+                parseFloat(amount) <= 0 ||
+                isLoading ||
+                isLoadingBalances ||
+                (conversionType === "sol-to-edu" && amountNum > balances.sol) ||
+                (conversionType === "edu-to-sol" && amountNum > balances.edu)
+              }
+              className="flex-1 bg-gradient-to-r from-turbo-purple to-turbo-indigo text-white border-0 hover:from-turbo-purple/80 hover:to-turbo-indigo/80"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {isAutoMode ? "Processing..." : "Execute Swap"}
+                </>
+              ) : (
+                <>
+                  <ArrowLeftRight className="h-4 w-4 mr-2" />
+                  {isAutoMode ? "Complete Swap" : "Execute Swap"}
+                </>
+              )}
+            </Button>
+            <Button variant="outline" onClick={onClose} disabled={isLoading} className="bg-dark-accent/20 text-muted-foreground border-white/10 hover:bg-dark-accent/30">
+              Cancel
+            </Button>
           </div>
-        </>
-      )}
         </>
       )}
     </div>

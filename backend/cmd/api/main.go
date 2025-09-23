@@ -345,6 +345,12 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			courses.GET("/:id", courseHandler.GetCourse)
 			courses.PUT("/:id", courseHandler.UpdateCourse)
 			courses.DELETE("/:id", courseHandler.DeleteCourse)
+			
+			// Course status and learning endpoints
+			courses.PATCH("/:id/status", courseHandler.UpdateCourseStatus)
+			courses.GET("/:id/learn", courseHandler.GetCourseLearningContent)
+			courses.GET("/:id/progress", courseHandler.GetCourseProgress)
+			courses.PATCH("/:id/progress", courseHandler.UpdateCourseProgress)
 
 			// Module management
 			courses.POST("/:id/modules", moduleHandler.CreateModule)
@@ -360,6 +366,14 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			// Module links management
 			courses.POST("/:id/modules/:moduleId/links", moduleHandler.AddModuleLink)
 			courses.DELETE("/:id/modules/:moduleId/links/:linkId", moduleHandler.DeleteModuleLink)
+		}
+
+		// Chapter routes (protected) - Direct module access
+		chapters := api.Group("/chapters")
+		chapters.Use(middleware.JWTMiddleware(cfg))
+		{
+			chapters.PUT("/:id", moduleHandler.UpdateChapter)
+			chapters.DELETE("/:id", moduleHandler.DeleteChapter)
 		}
 
 		// Internal routes (for integration)

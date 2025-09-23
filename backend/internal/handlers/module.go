@@ -842,3 +842,144 @@ func (h *ModuleHandler) DeleteModuleLink(c *gin.Context) {
 
 	SuccessResponse(c, http.StatusOK, "Link deleted successfully", nil)
 }
+
+// UpdateChapter updates a full chapter/module by ID
+// @Summary Update full chapter
+// @Description Update a full chapter/module by its ID
+// @Tags chapters
+// @Accept json
+// @Produce json
+// @Param id path string true "Chapter/Module ID"
+// @Param request body models.UpdateModuleRequest true "Chapter update request"
+// @Success 200 {object} models.APIResponse{data=models.CourseModule} "Chapter updated successfully"
+// @Failure 400 {object} models.APIResponse "Bad request"
+// @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 404 {object} models.APIResponse "Chapter not found"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Router /api/chapters/{id} [put]
+func (h *ModuleHandler) UpdateChapter(c *gin.Context) {
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	moduleIDStr := c.Param("id")
+	moduleID, err := uuid.Parse(moduleIDStr)
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid chapter ID", err)
+		return
+	}
+
+	var req models.UpdateModuleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Validation failed", err)
+		return
+	}
+
+	// Get module to find course and verify ownership
+	module, err := h.db.GetModuleByID(moduleID)
+	if err != nil {
+		if err.Error() == "module not found" {
+			ErrorResponse(c, http.StatusNotFound, "Chapter not found", err)
+			return
+		}
+		zap.L().Error("Failed to get module", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve chapter", err)
+		return
+	}
+
+	// Verify course ownership
+	_, err = h.db.GetCourse(module.CourseID, user.ID)
+	if err != nil {
+		if err.Error() == "course not found" {
+			ErrorResponse(c, http.StatusNotFound, "Course not found or access denied", err)
+			return
+		}
+		zap.L().Error("Failed to verify course ownership", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to verify course", err)
+		return
+	}
+
+	updatedModule, err := h.db.UpdateModule(moduleID, module.CourseID, &req)
+	if err != nil {
+		if err.Error() == "module not found" {
+			ErrorResponse(c, http.StatusNotFound, "Chapter not found", err)
+			return
+		}
+		zap.L().Error("Failed to update module", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to update chapter", err)
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Chapter updated successfully", updatedModule)
+}
+
+// DeleteChapter deletes a chapter/module by ID
+// @Summary Delete chapter
+// @Description Delete a chapter/module by its ID
+// @Tags chapters
+// @Produce json
+// @Param id path string true "Chapter/Module ID"
+// @Success 200 {object} models.APIResponse "Chapter deleted successfully"
+// @Failure 400 {object} models.APIResponse "Invalid chapter ID"
+// @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 404 {object} models.APIResponse "Chapter not found"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Router /api/chapters/{id} [delete]
+func (h *ModuleHandler) DeleteChapter(c *gin.Context) {
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	moduleIDStr := c.Param("id")
+	moduleID, err := uuid.Parse(moduleIDStr)
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid chapter ID", err)
+		return
+	}
+
+	// Get module to find course and verify ownership
+	module, err := h.db.GetModuleByID(moduleID)
+	if err != nil {
+		if err.Error() == "module not found" {
+			ErrorResponse(c, http.StatusNotFound, "Chapter not found", err)
+			return
+		}
+		zap.L().Error("Failed to get module", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve chapter", err)
+		return
+	}
+
+	// Verify course ownership
+	_, err = h.db.GetCourse(module.CourseID, user.ID)
+	if err != nil {
+		if err.Error() == "course not found" {
+			ErrorResponse(c, http.StatusNotFound, "Course not found or access denied", err)
+			return
+		}
+		zap.L().Error("Failed to verify course ownership", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to verify course", err)
+		return
+	}
+
+	err = h.db.DeleteModule(moduleID, module.CourseID)
+	if err != nil {
+		if err.Error() == "module not found" {
+			ErrorResponse(c, http.StatusNotFound, "Chapter not found", err)
+			return
+		}
+		zap.L().Error("Failed to delete module", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to delete chapter", err)
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Chapter deleted successfully", nil)
+}

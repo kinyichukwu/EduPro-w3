@@ -56,6 +56,19 @@ type CourseEnrollment struct {
 	Progress    float64    `json:"progress" db:"progress"`
 }
 
+// ModuleProgress represents a user's progress in a specific module
+type ModuleProgress struct {
+	ID         uuid.UUID  `json:"id" db:"id"`
+	UserID     uuid.UUID  `json:"user_id" db:"user_id"`
+	ModuleID   uuid.UUID  `json:"module_id" db:"module_id"`
+	Completed  bool       `json:"completed" db:"completed"`
+	Progress   float64    `json:"progress" db:"progress"`
+	StartedAt  *time.Time `json:"started_at" db:"started_at"`
+	CompletedAt *time.Time `json:"completed_at" db:"completed_at"`
+	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at" db:"updated_at"`
+}
+
 // Request/Response models
 
 // CreateCourseRequest represents the request to create a new course
@@ -127,4 +140,34 @@ type GenerateContentRequest struct {
 // GenerateContentResponse represents the response from content generation
 type GenerateContentResponse struct {
 	Content string `json:"content"`
+}
+
+// UpdateCourseStatusRequest represents the request to update course status
+type UpdateCourseStatusRequest struct {
+	Status string `json:"status" validate:"required,oneof=draft published archived"`
+}
+
+// CourseProgressRequest represents the request to update course progress
+type CourseProgressRequest struct {
+	ModuleID   uuid.UUID `json:"module_id" validate:"required"`
+	Completed  bool      `json:"completed"`
+	Progress   float64   `json:"progress" validate:"min=0,max=100"`
+}
+
+// CourseProgressResponse represents the user's progress in a course
+type CourseProgressResponse struct {
+	CourseID         uuid.UUID `json:"course_id"`
+	UserID           uuid.UUID `json:"user_id"`
+	Progress         float64   `json:"progress"`
+	CompletedModules int       `json:"completed_modules"`
+	TotalModules     int       `json:"total_modules"`
+	EnrolledAt       time.Time `json:"enrolled_at"`
+	CompletedAt      *time.Time `json:"completed_at"`
+}
+
+// CourseLearningContent represents the learning content structure
+type CourseLearningContent struct {
+	Course  Course         `json:"course"`
+	Modules []CourseModule `json:"modules"`
+	Progress *CourseProgressResponse `json:"progress,omitempty"`
 }

@@ -221,6 +221,34 @@ func (c *Client) DeleteModule(moduleID, courseID uuid.UUID) error {
 	return nil
 }
 
+// GetModuleByID retrieves a module by its ID only
+func (c *Client) GetModuleByID(moduleID uuid.UUID) (*models.CourseModule, error) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	query := `
+		SELECT id, course_id, title, description, content, order_index, status, created_at, updated_at
+		FROM course_modules 
+		WHERE id = $1
+	`
+
+	var module models.CourseModule
+	err := c.pool.QueryRow(ctx, query, moduleID).Scan(
+		&module.ID, &module.CourseID, &module.Title, &module.Description,
+		&module.Content, &module.OrderIndex, &module.Status,
+		&module.CreatedAt, &module.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("module not found")
+		}
+		logger.Error("Failed to get module", zap.Error(err))
+		return nil, fmt.Errorf("failed to get module: %w", err)
+	}
+
+	return &module, nil
+}
+
 // CreateModuleLink creates a new link for a module
 func (c *Client) CreateModuleLink(link *models.ModuleLink) error {
 	logger := utils.GetLogger()

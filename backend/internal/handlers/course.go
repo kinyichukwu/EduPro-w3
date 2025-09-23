@@ -294,3 +294,233 @@ func (h *CourseHandler) GetCourseStats(c *gin.Context) {
 
 	SuccessResponse(c, http.StatusOK, "Statistics retrieved successfully", stats)
 }
+
+// UpdateCourseStatus updates the status of a course
+// @Summary Update course status
+// @Description Update the status of a course (draft, published, archived)
+// @Tags courses
+// @Accept json
+// @Produce json
+// @Param id path string true "Course ID"
+// @Param request body models.UpdateCourseStatusRequest true "Status update request"
+// @Success 200 {object} models.APIResponse{data=models.Course} "Course status updated successfully"
+// @Failure 400 {object} models.APIResponse "Bad request"
+// @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 404 {object} models.APIResponse "Course not found"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Router /api/courses/{id}/status [patch]
+func (h *CourseHandler) UpdateCourseStatus(c *gin.Context) {
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	courseIDStr := c.Param("id")
+	courseID, err := uuid.Parse(courseIDStr)
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
+		return
+	}
+
+	var req models.UpdateCourseStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Validation failed", err)
+		return
+	}
+
+	// Create update request with only status field
+	updateReq := models.UpdateCourseRequest{
+		Status: &req.Status,
+	}
+
+	course, err := h.db.UpdateCourse(courseID, user.ID, &updateReq)
+	if err != nil {
+		if err.Error() == "course not found" {
+			ErrorResponse(c, http.StatusNotFound, "Course not found", err)
+			return
+		}
+		zap.L().Error("Failed to update course status", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to update course status", err)
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Course status updated successfully", course)
+}
+
+// GetCourseLearningContent retrieves course content for learning
+// @Summary Get course learning content
+// @Description Retrieve course with modules for learning purposes
+// @Tags courses
+// @Produce json
+// @Param id path string true "Course ID"
+// @Success 200 {object} models.APIResponse{data=models.CourseLearningContent} "Course content retrieved successfully"
+// @Failure 400 {object} models.APIResponse "Invalid course ID"
+// @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 404 {object} models.APIResponse "Course not found"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Router /api/courses/{id}/learn [get]
+func (h *CourseHandler) GetCourseLearningContent(c *gin.Context) {
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	courseIDStr := c.Param("id")
+	courseID, err := uuid.Parse(courseIDStr)
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
+		return
+	}
+
+	// Get course - for learning, we can access any published course
+	course, err := h.db.GetCourseForLearning(courseID)
+	if err != nil {
+		if err.Error() == "course not found" {
+			ErrorResponse(c, http.StatusNotFound, "Course not found or not published", err)
+			return
+		}
+		zap.L().Error("Failed to get course", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve course", err)
+		return
+	}
+
+	// Get course modules
+	modules, err := h.db.GetCourseModules(courseID)
+	if err != nil {
+		zap.L().Error("Failed to get course modules", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve course modules", err)
+		return
+	}
+
+	// Get user's progress if they're enrolled
+	var progress *models.CourseProgressResponse
+	progressData, err := h.db.GetUserCourseProgress(courseID, user.ID)
+	if err == nil {
+		progress = progressData
+	}
+
+	learningContent := models.CourseLearningContent{
+		Course:   *course,
+		Modules:  modules,
+		Progress: progress,
+	}
+
+	SuccessResponse(c, http.StatusOK, "Course content retrieved successfully", learningContent)
+}
+
+// GetCourseProgress retrieves user's progress in a course
+// @Summary Get course progress
+// @Description Retrieve user's progress in a specific course
+// @Tags courses
+// @Produce json
+// @Param id path string true "Course ID"
+// @Success 200 {object} models.APIResponse{data=models.CourseProgressResponse} "Progress retrieved successfully"
+// @Failure 400 {object} models.APIResponse "Invalid course ID"
+// @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 404 {object} models.APIResponse "Course not found or not enrolled"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Router /api/courses/{id}/progress [get]
+func (h *CourseHandler) GetCourseProgress(c *gin.Context) {
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	courseIDStr := c.Param("id")
+	courseID, err := uuid.Parse(courseIDStr)
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
+		return
+	}
+
+	progress, err := h.db.GetUserCourseProgress(courseID, user.ID)
+	if err != nil {
+		if err.Error() == "enrollment not found" {
+			ErrorResponse(c, http.StatusNotFound, "Course not found or not enrolled", err)
+			return
+		}
+		zap.L().Error("Failed to get course progress", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve progress", err)
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Progress retrieved successfully", progress)
+}
+
+// UpdateCourseProgress updates user's progress in a course
+// @Summary Update course progress
+// @Description Update user's progress in a specific course module
+// @Tags courses
+// @Accept json
+// @Produce json
+// @Param id path string true "Course ID"
+// @Param request body models.CourseProgressRequest true "Progress update request"
+// @Success 200 {object} models.APIResponse{data=models.CourseProgressResponse} "Progress updated successfully"
+// @Failure 400 {object} models.APIResponse "Bad request"
+// @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 404 {object} models.APIResponse "Course not found or not enrolled"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Router /api/courses/{id}/progress [patch]
+func (h *CourseHandler) UpdateCourseProgress(c *gin.Context) {
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	courseIDStr := c.Param("id")
+	courseID, err := uuid.Parse(courseIDStr)
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
+		return
+	}
+
+	var req models.CourseProgressRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Validation failed", err)
+		return
+	}
+
+	// Verify module belongs to course
+	_, err = h.db.GetModule(req.ModuleID, courseID)
+	if err != nil {
+		if err.Error() == "module not found" {
+			ErrorResponse(c, http.StatusBadRequest, "Module not found in this course", err)
+			return
+		}
+		zap.L().Error("Failed to verify module", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to verify module", err)
+		return
+	}
+
+	// Update module progress
+	err = h.db.UpdateModuleProgress(user.ID, req.ModuleID, req.Completed, req.Progress)
+	if err != nil {
+		zap.L().Error("Failed to update module progress", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to update progress", err)
+		return
+	}
+
+	// Get updated course progress
+	progress, err := h.db.GetUserCourseProgress(courseID, user.ID)
+	if err != nil {
+		zap.L().Error("Failed to get updated progress", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve updated progress", err)
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Progress updated successfully", progress)
+}

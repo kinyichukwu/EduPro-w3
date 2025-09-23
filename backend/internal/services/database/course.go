@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -268,4 +269,202 @@ func (c *Client) GetCourseStats(userID uuid.UUID) (*models.CourseStats, error) {
 	}
 
 	return &stats, nil
+}
+
+// GetCourseForLearning retrieves a course for learning (must be published)
+func (c *Client) GetCourseForLearning(courseID uuid.UUID) (*models.Course, error) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	query := `
+		SELECT id, user_id, title, description, status, total_modules, completed_modules, 
+			   students_count, earnings, price, thumbnail_url, created_at, updated_at
+		FROM courses 
+		WHERE id = $1 AND status = 'published'
+	`
+
+	var course models.Course
+	err := c.pool.QueryRow(ctx, query, courseID).Scan(
+		&course.ID, &course.UserID, &course.Title, &course.Description, &course.Status,
+		&course.TotalModules, &course.CompletedModules, &course.StudentsCount,
+		&course.Earnings, &course.Price, &course.ThumbnailURL,
+		&course.CreatedAt, &course.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("course not found")
+		}
+		logger.Error("Failed to get course for learning", zap.Error(err))
+		return nil, fmt.Errorf("failed to get course for learning: %w", err)
+	}
+
+	return &course, nil
+}
+
+// GetUserCourseProgress retrieves user's progress in a course
+func (c *Client) GetUserCourseProgress(courseID, userID uuid.UUID) (*models.CourseProgressResponse, error) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	// First, ensure user is enrolled
+	enrollmentQuery := `
+		SELECT id, enrolled_at, completed_at, progress
+		FROM course_enrollments 
+		WHERE course_id = $1 AND user_id = $2
+	`
+
+	var enrollmentID uuid.UUID
+	var enrolledAt time.Time
+	var completedAt *time.Time
+	var overallProgress float64
+
+	err := c.pool.QueryRow(ctx, enrollmentQuery, courseID, userID).Scan(
+		&enrollmentID, &enrolledAt, &completedAt, &overallProgress,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("enrollment not found")
+		}
+		logger.Error("Failed to get enrollment", zap.Error(err))
+		return nil, fmt.Errorf("failed to get enrollment: %w", err)
+	}
+
+	// Get total modules and completed modules count
+	moduleStatsQuery := `
+		SELECT 
+			COUNT(*) as total_modules,
+			COUNT(CASE WHEN mp.completed = true THEN 1 END) as completed_modules
+		FROM course_modules cm
+		LEFT JOIN module_progress mp ON cm.id = mp.module_id AND mp.user_id = $2
+		WHERE cm.course_id = $1
+	`
+
+	var totalModules, completedModules int
+	err = c.pool.QueryRow(ctx, moduleStatsQuery, courseID, userID).Scan(
+		&totalModules, &completedModules,
+	)
+	if err != nil {
+		logger.Error("Failed to get module stats", zap.Error(err))
+		return nil, fmt.Errorf("failed to get module stats: %w", err)
+	}
+
+	// Calculate progress based on completed modules if not set
+	if totalModules > 0 && overallProgress == 0 {
+		overallProgress = float64(completedModules) / float64(totalModules) * 100
+	}
+
+	progress := &models.CourseProgressResponse{
+		CourseID:         courseID,
+		UserID:           userID,
+		Progress:         overallProgress,
+		CompletedModules: completedModules,
+		TotalModules:     totalModules,
+		EnrolledAt:       enrolledAt,
+		CompletedAt:      completedAt,
+	}
+
+	return progress, nil
+}
+
+// UpdateModuleProgress updates or creates user's progress for a specific module
+func (c *Client) UpdateModuleProgress(userID, moduleID uuid.UUID, completed bool, progress float64) error {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	// Start a transaction
+	tx, err := c.pool.Begin(ctx)
+	if err != nil {
+		logger.Error("Failed to begin transaction", zap.Error(err))
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Upsert module progress
+	upsertQuery := `
+		INSERT INTO module_progress (id, user_id, module_id, completed, progress, started_at, completed_at, created_at, updated_at)
+		VALUES (uuid_generate_v4(), $1, $2, $3, $4, 
+			CASE WHEN $5 IS NULL THEN NOW() ELSE $5 END,
+			CASE WHEN $3 = true THEN NOW() ELSE NULL END,
+			NOW(), NOW())
+		ON CONFLICT (user_id, module_id) 
+		DO UPDATE SET 
+			completed = $3,
+			progress = $4,
+			started_at = COALESCE(module_progress.started_at, NOW()),
+			completed_at = CASE WHEN $3 = true THEN NOW() ELSE module_progress.completed_at END,
+			updated_at = NOW()
+	`
+
+	// Get current started_at if exists
+	var startedAt *time.Time
+	getStartedQuery := `SELECT started_at FROM module_progress WHERE user_id = $1 AND module_id = $2`
+	tx.QueryRow(ctx, getStartedQuery, userID, moduleID).Scan(&startedAt)
+
+	_, err = tx.Exec(ctx, upsertQuery, userID, moduleID, completed, progress, startedAt)
+	if err != nil {
+		logger.Error("Failed to update module progress", zap.Error(err))
+		return fmt.Errorf("failed to update module progress: %w", err)
+	}
+
+	// Get course ID for this module
+	var courseID uuid.UUID
+	courseQuery := `SELECT course_id FROM course_modules WHERE id = $1`
+	err = tx.QueryRow(ctx, courseQuery, moduleID).Scan(&courseID)
+	if err != nil {
+		logger.Error("Failed to get course ID", zap.Error(err))
+		return fmt.Errorf("failed to get course ID: %w", err)
+	}
+
+	// Ensure user is enrolled in the course
+	enrollQuery := `
+		INSERT INTO course_enrollments (id, course_id, user_id, enrolled_at, progress)
+		VALUES (uuid_generate_v4(), $1, $2, NOW(), 0.0)
+		ON CONFLICT (course_id, user_id) DO NOTHING
+	`
+	_, err = tx.Exec(ctx, enrollQuery, courseID, userID)
+	if err != nil {
+		logger.Error("Failed to ensure enrollment", zap.Error(err))
+		return fmt.Errorf("failed to ensure enrollment: %w", err)
+	}
+
+	// Update overall course progress
+	updateProgressQuery := `
+		UPDATE course_enrollments 
+		SET progress = (
+			SELECT COALESCE(AVG(CASE WHEN mp.completed THEN 100.0 ELSE mp.progress END), 0)
+			FROM course_modules cm
+			LEFT JOIN module_progress mp ON cm.id = mp.module_id AND mp.user_id = $2
+			WHERE cm.course_id = $1
+		),
+		completed_at = CASE 
+			WHEN (
+				SELECT COUNT(*) FROM course_modules WHERE course_id = $1
+			) = (
+				SELECT COUNT(*) FROM course_modules cm
+				INNER JOIN module_progress mp ON cm.id = mp.module_id 
+				WHERE cm.course_id = $1 AND mp.user_id = $2 AND mp.completed = true
+			) THEN NOW()
+			ELSE NULL 
+		END
+		WHERE course_id = $1 AND user_id = $2
+	`
+	_, err = tx.Exec(ctx, updateProgressQuery, courseID, userID)
+	if err != nil {
+		logger.Error("Failed to update course progress", zap.Error(err))
+		return fmt.Errorf("failed to update course progress: %w", err)
+	}
+
+	// Commit the transaction
+	if err = tx.Commit(ctx); err != nil {
+		logger.Error("Failed to commit transaction", zap.Error(err))
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	logger.Info("Module progress updated successfully", 
+		zap.String("user_id", userID.String()),
+		zap.String("module_id", moduleID.String()),
+		zap.Bool("completed", completed),
+		zap.Float64("progress", progress))
+
+	return nil
 }

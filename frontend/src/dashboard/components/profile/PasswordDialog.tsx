@@ -212,7 +212,7 @@ function PasswordDialog() {
               </div>
             </div>
           </form>
-          <DialogFooter>
+          <DialogFooter className='max-sm:flex-row max-sm:justify-end max-sm:gap-2'>
             <Button
               variant="outline"
               disabled={loading}

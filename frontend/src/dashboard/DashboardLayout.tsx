@@ -107,7 +107,8 @@ export const DashboardLayout = () => {
 
   const isChatPage =
     /^\/dashboard\/ai-creator\/[^/]+\/[^/]+$/.test(location.pathname) ||
-    /^\/dashboard\/chats(\/.+)?$/.test(location.pathname);
+    /^\/dashboard\/chats(\/.+)?$/.test(location.pathname) ||
+    /^\/dashboard\/course\/[^/]+$/.test(location.pathname);
 
   const { pathname } = useLocation();
 
@@ -121,7 +122,7 @@ export const DashboardLayout = () => {
         <Onboarding />
       ) : (
         <TooltipProvider>
-          <div className="w-full min-h-[100dvh] flex bg-dark-background text-dark-text relative ">
+          <div className="w-full max-w-[1440px] mx-auto min-h-[100dvh] flex bg-dark-background text-dark-text relative ">
             {/* Desktop Sidebar */}
             <Sidebar sidebarOpen={sidebarOpen} />
 
@@ -131,87 +132,89 @@ export const DashboardLayout = () => {
               )}
               style={{ boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)" }}
             >
-              <div className="flex items-center justify-between gap-2">
-                <div className="w-16 flex items-center justify-center max-md:hidden">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="md:flex hover:bg-white/10 text-dark-muted hover:text-white"
-                    onClick={() => setSidebarOpen(!sidebarOpen)}
+              <div className="w-full max-w-[1440px] mx-auto flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="w-16 flex items-center justify-center max-md:hidden">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="md:flex hover:bg-white/10 text-dark-muted hover:text-white"
+                      onClick={() => setSidebarOpen(!sidebarOpen)}
+                    >
+                      {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
+                    </Button>
+                  </div>
+                  {/* {location.pathname !== "/dashboard/chat" ? ( */}
+                  <Link
+                    to={"/dashboard/chats"}
+                    className="flex items-center cursor-pointer gap-2"
                   >
-                    {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
-                  </Button>
+                    <img
+                      src={EduproLogo}
+                      alt="Edupro Logo"
+                      className="w-8 h-8 text-white"
+                    />
+                    <span className="text-2xl font-bold gradient-text">
+                      EduPro AI
+                    </span>
+                  </Link>
                 </div>
-                {/* {location.pathname !== "/dashboard/chat" ? ( */}
-                <Link
-                  to={"/dashboard/chats"}
-                  className="flex items-center cursor-pointer gap-2"
-                >
-                  <img
-                    src={EduproLogo}
-                    alt="Edupro Logo"
-                    className="w-8 h-8 text-white"
-                  />
-                  <span className="text-2xl font-bold gradient-text">
-                    EduPro AI
-                  </span>
-                </Link>
-              </div>
 
-              {/* <SearchBar /> */}
+                {/* <SearchBar /> */}
 
-              <div className="flex items-center gap-2 md:gap-4">
-              {!user ? (
-                <>
-                  <Button
-                    className="text-sm"
-                    onClick={() => navigate("/login")}
-                  >
-                    Log in
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="text-sm"
-                    onClick={() => navigate("/register")}
-                  >
-                    Sign up
-                  </Button>
-                </>
-              ) : (
-                <>
-                  {/* <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="relative hover:bg-dark-accent/50 text-dark-muted hover:text-turbo-indigo"
-                      >
-                        <span className="sr-only">Notifications</span>
-                        <span
-                          className="absolute top-1 right-1 block h-2 w-2 rounded-full animate-pulse"
-                          style={{ backgroundColor: "#F43F5E" }}
-                        ></span>
-                        <Bell className="max-sm:h-[18px]" size={22} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Notifications</TooltipContent>
-                  </Tooltip> */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hover:bg-dark-accent/50"
-                    onClick={() => navigate("/dashboard/profile")}
-                  >
-                    <div className="h-7 sm:h-9 w-7 sm:w-9 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo ring-2 ring-turbo-indigo/70">
-                      <img
-                        src="https://ui.shadcn.com/avatars/01.png"
-                        className="h-full w-full rounded-full object-cover"
-                        alt="User avatar"
-                      />
-                    </div>
-                  </Button>
-                </>
-              )}
+                <div className="flex items-center gap-2 md:gap-4">
+                {!user ? (
+                  <>
+                    <Button
+                      className="text-sm"
+                      onClick={() => navigate("/login")}
+                    >
+                      Log in
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="text-sm"
+                      onClick={() => navigate("/register")}
+                    >
+                      Sign up
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {/* <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="relative hover:bg-dark-accent/50 text-dark-muted hover:text-turbo-indigo"
+                        >
+                          <span className="sr-only">Notifications</span>
+                          <span
+                            className="absolute top-1 right-1 block h-2 w-2 rounded-full animate-pulse"
+                            style={{ backgroundColor: "#F43F5E" }}
+                          ></span>
+                          <Bell className="max-sm:h-[18px]" size={22} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Notifications</TooltipContent>
+                    </Tooltip> */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="hover:bg-dark-accent/50"
+                      onClick={() => navigate("/dashboard/profile")}
+                    >
+                      <div className="h-7 sm:h-9 w-7 sm:w-9 rounded-full bg-gradient-to-r from-turbo-purple to-turbo-indigo ring-2 ring-turbo-indigo/70">
+                        <img
+                          src="https://ui.shadcn.com/avatars/01.png"
+                          className="h-full w-full rounded-full object-cover"
+                          alt="User avatar"
+                        />
+                      </div>
+                    </Button>
+                  </>
+                )}
+                </div>
               </div>
             </header>
 

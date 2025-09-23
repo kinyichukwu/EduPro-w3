@@ -24,6 +24,7 @@ import UploadNew from "./dashboard/library/upload";
 import Explore from "./dashboard/explore/index";
 import ExploreCategory from "./dashboard/explore/category";
 import ExploreCourseDetail from "./dashboard/explore/course-detail";
+import CourseLearningPage from "./dashboard/ai-tutor/CourseLearningPage";
 import { ProfilePage } from "./dashboard/profile";
 import {
   AdminLayout,
@@ -88,6 +89,7 @@ export const AppRoutes = () => {
           <Route path="ai-creator/:courseId/modules/:moduleId" element={<ModuleEditor />} />
           <Route path="chats" element={<GeneralChats />} />
           <Route path="chats/:chatId" element={<GeneralChats />} />
+          <Route path="course/:courseId" element={<CourseLearningPage />} />
           <Route
             path="flashcards"
             element={

@@ -190,6 +190,34 @@ export interface GenerateContentResponse {
   content: string;
 }
 
+// New API Types for Progress Tracking
+export interface UpdateCourseStatusRequest {
+  status: "draft" | "published" | "archived";
+}
+
+export interface CourseProgressRequest {
+  module_id: string;
+  completed: boolean;
+
+  progress: number; // 0-100
+}
+
+export interface CourseProgressResponse {
+  course_id: string;
+  user_id: string;
+  progress: number;
+  completed_modules: number;
+  total_modules: number;
+  enrolled_at: string;
+  completed_at?: string;
+}
+
+export interface CourseLearningContent {
+  course: Course;
+  modules: CourseModule[];
+  progress?: CourseProgressResponse;
+}
+
 const API_BASE_URL = getApiBaseUrl();
 
 // Derive the API origin (scheme + host) for non-/api endpoints like /health
@@ -769,7 +797,6 @@ class ApiService {
     });
   }
 
-
   // Wallet balance endpoints
   async getWalletBalance(address: string): Promise<ApiResponse<any>> {
     return this.request<any>(`/solana/wallet/${address}/balance`);
@@ -938,28 +965,36 @@ class ApiService {
   }
 
   // Solana swap endpoints
-  async getSwapQuote(request: SwapRequest): Promise<ApiResponse<SwapExecuteResponse>> {
+  async getSwapQuote(
+    request: SwapRequest
+  ): Promise<ApiResponse<SwapExecuteResponse>> {
     return this.request<SwapExecuteResponse>("/api/solana/swap/quote", {
       method: "POST",
       body: JSON.stringify(request),
     });
   }
 
-  async executeSwap(request: SwapRequest): Promise<ApiResponse<SwapExecuteResponse>> {
+  async executeSwap(
+    request: SwapRequest
+  ): Promise<ApiResponse<SwapExecuteResponse>> {
     return this.request<SwapExecuteResponse>("/api/solana/swap/execute", {
       method: "POST",
       body: JSON.stringify(request),
     });
   }
 
-  async signSwapTransaction(request: SignSwapTransactionRequest): Promise<ApiResponse<any>> {
+  async signSwapTransaction(
+    request: SignSwapTransactionRequest
+  ): Promise<ApiResponse<any>> {
     return this.request<any>("/api/solana/swap/sign", {
       method: "POST",
       body: JSON.stringify(request),
     });
   }
 
-  async submitSwapTransaction(request: SubmitSwapTransactionRequest): Promise<ApiResponse<any>> {
+  async submitSwapTransaction(
+    request: SubmitSwapTransactionRequest
+  ): Promise<ApiResponse<any>> {
     return this.request<any>("/api/solana/swap/submit", {
       method: "POST",
       body: JSON.stringify(request),
@@ -970,6 +1005,60 @@ class ApiService {
     return this.request<SwapStatus>(`/api/solana/swap/status/${swapId}`, {
       method: "GET",
     });
+  }
+
+  // New Course Progress & Learning APIs
+  async updateCourseStatus(
+    courseId: string,
+    request: UpdateCourseStatusRequest
+  ): Promise<ApiResponse<Course>> {
+    return this.request<Course>(`/courses/${courseId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async updateChapter(
+    chapterId: string,
+    request: UpdateModuleRequest
+  ): Promise<ApiResponse<CourseModule>> {
+    return this.request<CourseModule>(`/chapters/${chapterId}`, {
+      method: "PUT",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async deleteChapter(chapterId: string): Promise<ApiResponse<void>> {
+    return this.request<void>(`/chapters/${chapterId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async getCourseLearningContent(
+    courseId: string
+  ): Promise<ApiResponse<CourseLearningContent>> {
+    return this.request<CourseLearningContent>(`/courses/${courseId}/learn`);
+  }
+
+  async getCourseProgress(
+    courseId: string
+  ): Promise<ApiResponse<CourseProgressResponse>> {
+    return this.request<CourseProgressResponse>(
+      `/courses/${courseId}/progress`
+    );
+  }
+
+  async updateCourseProgress(
+    courseId: string,
+    request: CourseProgressRequest
+  ): Promise<ApiResponse<CourseProgressResponse>> {
+    return this.request<CourseProgressResponse>(
+      `/courses/${courseId}/progress`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(request),
+      }
+    );
   }
 }
 

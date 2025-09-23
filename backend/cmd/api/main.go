@@ -276,6 +276,14 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			solanaRoutes.GET("/stats", solanaHandler.GetBlockchainStats)
 		}
 
+		// Admin routes (protected)
+		admin := api.Group("/admin")
+		admin.Use(middleware.JWTMiddleware(cfg)) // TODO: Add admin-specific middleware
+		{
+			// Transfer endpoints
+			admin.POST("/transfer/edupro", solanaHandler.AdminTransferEduPro)
+		}
+
 		// NFT routes (protected)
 		nft := api.Group("/nft")
 		nft.Use(middleware.JWTMiddleware(cfg))

@@ -425,6 +425,33 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
     }
   }, [connected, reset]);
 
+  // Close modal and refresh balances when swap is completed
+  useEffect(() => {
+    if (step === "completed") {
+      // Refresh balances
+      const refreshBalances = async () => {
+        try {
+          const [eduBalance, solBalance] = await Promise.all([
+            solanaAPI.getEduTokenBalance(publicKey!.toString()),
+            solanaAPI.getWalletBalance(publicKey!.toString())
+          ])
+          setBalances({
+            edu: eduBalance.edutoken_balance / 1e9,
+            sol: solBalance.balance_sol
+          })
+        } catch (error) {
+          console.error("Failed to refresh balances:", error)
+        }
+      };
+
+      // Refresh balances and close modal after a short delay
+      setTimeout(() => {
+        refreshBalances();
+        onClose();
+      }, 2000); // Show success message for 2 seconds before closing
+    }
+  }, [step, publicKey, onClose]);
+
   // Track previous connection state to only close modal on new connections
   const prevConnectedRef = useRef(connected)
   
@@ -469,21 +496,7 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
 
       if (isAutoMode) {
         await completeSwap(request);
-        // Refresh balances after successful swap
-        setTimeout(async () => {
-          try {
-            const [eduBalance, solBalance] = await Promise.all([
-              solanaAPI.getEduTokenBalance(publicKey.toString()),
-              solanaAPI.getWalletBalance(publicKey.toString())
-            ])
-            setBalances({
-              edu: eduBalance.edutoken_balance / 1e9,
-              sol: solBalance.balance_sol
-            })
-          } catch (error) {
-            console.error("Failed to refresh balances:", error)
-          }
-        }, 3000)
+        // Balance refresh and modal close now handled by useEffect when step === "completed"
       } else {
         await executeSwap(request);
       }
@@ -503,21 +516,7 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
   const handleSignEduPro = async () => {
     try {
       await signAndSubmitEduPro();
-      // Refresh balances after successful completion
-      setTimeout(async () => {
-        try {
-          const [eduBalance, solBalance] = await Promise.all([
-            solanaAPI.getEduTokenBalance(publicKey!.toString()),
-            solanaAPI.getWalletBalance(publicKey!.toString())
-          ])
-          setBalances({
-            edu: eduBalance.edutoken_balance / 1e9,
-            sol: solBalance.balance_sol
-          })
-        } catch (error) {
-          console.error("Failed to refresh balances:", error)
-        }
-      }, 3000)
+      // Balance refresh and modal close now handled by useEffect when step === "completed"
     } catch (error) {
       console.error("Failed to sign EduPro transaction:", error);
     }

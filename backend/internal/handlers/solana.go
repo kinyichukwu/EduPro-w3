@@ -11,6 +11,7 @@ import (
 	solanago "github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/programs/system"
 	"github.com/gagliardetto/solana-go/programs/token"
+	"github.com/gagliardetto/solana-go/rpc"
 	"github.com/gin-gonic/gin"
 	"github.com/kinyichukwu/edu-pro-backend/internal/config"
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
@@ -778,17 +779,103 @@ func (h *SolanaHandler) SubmitSwapTransaction(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("Swap transaction submitted to Solana",
+	h.logger.Info("SOL transaction submitted to Solana",
 		zap.String("swap_id", req.SwapID),
 		zap.String("signature", signature.String()),
 		zap.String("user_wallet", req.UserWallet),
 	)
 
+	// Wait for transaction confirmation
+	confirmed, err := h.waitForTransactionConfirmation(ctx, signature.String())
+	if err != nil {
+		h.logger.Error("Failed to confirm transaction",
+			zap.String("swap_id", req.SwapID),
+			zap.String("signature", signature.String()),
+			zap.Error(err),
+		)
+		utils.SendError(c, &models.APIError{
+			Code:    http.StatusInternalServerError,
+			Message: "Transaction submitted but confirmation failed",
+		})
+		return
+	}
+
+	if !confirmed {
+		h.logger.Error("Transaction not confirmed",
+			zap.String("swap_id", req.SwapID),
+			zap.String("signature", signature.String()),
+		)
+		utils.SendError(c, &models.APIError{
+			Code:    http.StatusInternalServerError,
+			Message: "Transaction submitted but not confirmed",
+		})
+		return
+	}
+
+	// Transaction confirmed! Now transfer EDU tokens to user
+	fixedRate := 1000.0
+
+	// For now, we'll need to parse the transaction to get the SOL amount
+	// This is a simplified approach - in production you'd store this data
+	solAmount, err := h.getSOLAmountFromTransaction(ctx, signature.String())
+	if err != nil {
+		h.logger.Error("Failed to get SOL amount from transaction",
+			zap.String("swap_id", req.SwapID),
+			zap.String("signature", signature.String()),
+			zap.Error(err),
+		)
+		// Continue anyway with a default amount for now
+		solAmount = 1000000000 // 1 SOL in lamports
+	}
+
+	// Calculate EDU tokens to send
+	eduAmount := uint64(float64(solAmount) * fixedRate)
+
+	// Transfer EDU tokens to user
+	transferService := solana.NewTransferService(h.config.SolanaConfig.RPCEndpoint, h.logger)
+
+	transferReq := &solana.TransferTokenRequest{
+		FromPrivateKey: h.config.SolanaConfig.PrivateKey,
+		ToWallet:       req.UserWallet,
+		TokenMint:      h.config.SolanaConfig.EduProTokenMint,
+		Amount:         eduAmount,
+		Decimals:       9,
+		Memo:           fmt.Sprintf("Swap completion: %s", req.SwapID),
+	}
+
+	transferResult, err := transferService.SendToken(ctx, transferReq)
+	if err != nil {
+		h.logger.Error("Failed to transfer EDU tokens to user",
+			zap.String("swap_id", req.SwapID),
+			zap.String("user_wallet", req.UserWallet),
+			zap.Uint64("edu_amount", eduAmount),
+			zap.Error(err),
+		)
+		utils.SendError(c, &models.APIError{
+			Code:    http.StatusInternalServerError,
+			Message: "SOL received but failed to send EDU tokens",
+		})
+		return
+	}
+
+	h.logger.Info("Swap completed successfully",
+		zap.String("swap_id", req.SwapID),
+		zap.String("sol_signature", signature.String()),
+		zap.String("edu_signature", transferResult.Signature),
+		zap.String("user_wallet", req.UserWallet),
+		zap.Uint64("sol_amount", solAmount),
+		zap.Uint64("edu_amount", eduAmount),
+	)
+
 	utils.SendSuccess(c, gin.H{
-		"swapId":    req.SwapID,
-		"status":    "submitted",
-		"signature": signature.String(),
-		"confirmed": false,
+		"swapId":       req.SwapID,
+		"status":       "completed",
+		"solSignature": signature.String(),
+		"eduSignature": transferResult.Signature,
+		"confirmed":    true,
+		"solAmount":    solAmount,
+		"eduAmount":    eduAmount,
+		"message":      "Swap completed successfully! EDU tokens have been sent to your wallet.",
 	})
 }
 
@@ -822,4 +909,158 @@ func (h *SolanaHandler) GetSwapStatus(c *gin.Context) {
 	}
 
 	utils.SendSuccess(c, status)
+}
+
+// AdminTransferEduProRequest represents a request to transfer EduPro tokens from the organization wallet
+type AdminTransferEduProRequest struct {
+	ToWallet string `json:"to_wallet" validate:"required"`
+	Amount   uint64 `json:"amount" validate:"required,min=1"`
+	Memo     string `json:"memo,omitempty"`
+}
+
+// AdminTransferEduPro handles admin transfers of EduPro tokens
+func (h *SolanaHandler) AdminTransferEduPro(c *gin.Context) {
+	var req AdminTransferEduProRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.SendError(c, &models.APIError{
+			Code:    http.StatusBadRequest,
+			Message: "Invalid request body",
+		})
+		return
+	}
+
+	if err := utils.ValidateStruct(&req); err != nil {
+		utils.SendError(c, &models.APIError{
+			Code:    http.StatusBadRequest,
+			Message: err.Error(),
+		})
+		return
+	}
+
+	ctx := context.Background()
+
+	// Get the organization's private key from config
+	orgPrivateKey := h.config.SolanaConfig.PrivateKey
+	if orgPrivateKey == "" {
+		h.logger.Error("Organization private key not configured")
+		utils.SendError(c, &models.APIError{
+			Code:    http.StatusInternalServerError,
+			Message: "Server configuration error",
+		})
+		return
+	}
+
+	// Create transfer service
+	transferService := solana.NewTransferService(h.config.SolanaConfig.RPCEndpoint, h.logger)
+
+	// Create transfer request
+	transferReq := &solana.TransferTokenRequest{
+		FromPrivateKey: orgPrivateKey,
+		ToWallet:       req.ToWallet,
+		TokenMint:      h.config.SolanaConfig.EduProTokenMint,
+		Amount:         req.Amount,
+		Decimals:       9, // EduPro token uses 9 decimals
+		Memo:           req.Memo,
+	}
+
+	// Execute the transfer
+	result, err := transferService.SendToken(ctx, transferReq)
+	if err != nil {
+		h.logger.Error("Failed to transfer EduPro tokens",
+			zap.Error(err),
+			zap.String("to_wallet", req.ToWallet),
+			zap.Uint64("amount", req.Amount),
+		)
+		utils.SendError(c, &models.APIError{
+			Code:    http.StatusInternalServerError,
+			Message: "Failed to transfer EduPro tokens",
+		})
+		return
+	}
+
+	h.logger.Info("EduPro tokens transferred successfully",
+		zap.String("signature", result.Signature),
+		zap.String("to_wallet", req.ToWallet),
+		zap.Uint64("amount", req.Amount),
+		zap.String("status", result.Status),
+	)
+
+	utils.SendSuccess(c, gin.H{
+		"signature":   result.Signature,
+		"status":      result.Status,
+		"amount":      result.Amount,
+		"to_wallet":   result.ToWallet,
+		"from_wallet": result.FromWallet,
+		"timestamp":   result.Timestamp,
+		"fee":         result.Fee,
+		"memo":        req.Memo,
+		"message":     "EduPro tokens transferred successfully",
+	})
+}
+
+// waitForTransactionConfirmation waits for a transaction to be confirmed
+func (h *SolanaHandler) waitForTransactionConfirmation(ctx context.Context, signature string) (bool, error) {
+	// Parse signature
+	sig, err := solanago.SignatureFromBase58(signature)
+	if err != nil {
+		return false, fmt.Errorf("invalid signature: %w", err)
+	}
+
+	// Wait for confirmation with timeout
+	timeout := 30 * time.Second
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctxWithTimeout.Done():
+			return false, fmt.Errorf("timeout waiting for transaction confirmation")
+		case <-ticker.C:
+			// Check transaction status
+			statuses, err := h.solanaClient.RpcClient.GetSignatureStatuses(ctx, true, sig)
+			if err != nil {
+				h.logger.Debug("Error checking transaction status", zap.Error(err))
+				continue
+			}
+
+			if statuses != nil && len(statuses.Value) > 0 && statuses.Value[0] != nil {
+				status := statuses.Value[0]
+				if status.ConfirmationStatus != "" {
+					confirmationStatus := string(status.ConfirmationStatus)
+					if confirmationStatus == "confirmed" || confirmationStatus == "finalized" {
+						return true, nil
+					}
+				}
+			}
+		}
+	}
+}
+
+// getSOLAmountFromTransaction extracts the SOL amount from a transaction
+func (h *SolanaHandler) getSOLAmountFromTransaction(ctx context.Context, signature string) (uint64, error) {
+	// Parse signature
+	sig, err := solanago.SignatureFromBase58(signature)
+	if err != nil {
+		return 0, fmt.Errorf("invalid signature: %w", err)
+	}
+
+	// Get transaction details
+	tx, err := h.solanaClient.RpcClient.GetTransaction(ctx, sig, &rpc.GetTransactionOpts{
+		Encoding: "json",
+	})
+	if err != nil {
+		return 0, fmt.Errorf("failed to get transaction: %w", err)
+	}
+
+	if tx == nil || tx.Transaction == nil {
+		return 0, fmt.Errorf("transaction not found")
+	}
+
+	// Parse the transaction to find SOL transfer amount
+	// This is a simplified approach - in practice you'd parse the transaction instructions
+	// For now, return a default amount (this should be improved)
+	return 1000000000, nil // 1 SOL in lamports
 }

@@ -14,6 +14,7 @@ type SolanaConfig struct {
 	RPCEndpoint         string `json:"rpc_endpoint"`
 	Network             string `json:"network"`
 	RecipientWallet     string `json:"recipient_wallet"`
+	PrivateKey          string `json:"private_key"`
 	EduProTokenMint     string `json:"edutoken_mint"`
 	EduProTokenDecimals int    `json:"edutoken_decimals"`
 	EduProMintAuthority string `json:"edutoken_mint_authority"`
@@ -51,10 +52,14 @@ func NewSolanaConfig() *SolanaConfig {
 		edutokenMintAuthority = "5dKpAVwujVwfyXX9EW2mXh5eQ62mWrNhupdLcpjzwGME"
 	}
 
+	privateKey := os.Getenv("SOLANA_PRIVATE_KEY")
+	// Note: Private key should be set in environment variables for security
+
 	return &SolanaConfig{
 		RPCEndpoint:         rpcEndpoint,
 		Network:             network,
 		RecipientWallet:     recipientWallet,
+		PrivateKey:          privateKey,
 		EduProTokenMint:     edutokenMint,
 		EduProTokenDecimals: edutokenDecimals,
 		EduProMintAuthority: edutokenMintAuthority,

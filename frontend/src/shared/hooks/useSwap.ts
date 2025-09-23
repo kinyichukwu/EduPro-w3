@@ -111,17 +111,30 @@ export const useSwap = () => {
     }
   }, [walletSignTransaction, state.swapData]);
 
-  // Sign and submit SOL transaction
+  // Sign and submit SOL transaction (now handles complete swap)
   const signAndSubmitSOL = useCallback(async (): Promise<void> => {
     if (!publicKey || !state.swapData) {
       throw new Error("Wallet not connected or swap data not available");
     }
 
     try {
+      setState(prev => ({
+        ...prev,
+        currentTransaction: "sol",
+        step: "signing",
+        isLoading: true,
+      }));
+
       // Sign the SOL transaction
       const signature = await signSwapTransaction("sol");
 
-      // Submit the signed transaction
+      setState(prev => ({
+        ...prev,
+        currentTransaction: null,
+        step: "submitting",
+      }));
+
+      // Submit the signed transaction - backend now handles the complete swap
       const submitRequest: SubmitSwapTransactionRequest = {
         swapId: state.swapData.swapId,
         transaction: state.swapData.solTransaction,
@@ -129,15 +142,21 @@ export const useSwap = () => {
         userWallet: publicKey.toString(),
       };
 
-      await solanaAPI.submitSwapTransaction(submitRequest);
+      const result = await solanaAPI.submitSwapTransaction(submitRequest);
 
-      setState(prev => ({
-        ...prev,
-        currentTransaction: null,
-        step: "submitting",
-      }));
+      // Check if the swap was completed successfully
+      if (result.status === "completed") {
+        setState(prev => ({
+          ...prev,
+          step: "completed",
+          isLoading: false,
+          currentTransaction: null,
+        }));
+      } else {
+        throw new Error("Swap not completed successfully");
+      }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to sign and submit SOL transaction";
+      const errorMessage = error instanceof Error ? error.message : "Failed to complete swap";
       setState(prev => ({
         ...prev,
         error: errorMessage,
@@ -188,20 +207,32 @@ export const useSwap = () => {
     }
   }, [publicKey, state.swapData, signSwapTransaction]);
 
-  // Sign and submit SOL transaction with provided data
+  // Sign and submit SOL transaction with provided data (now handles complete swap)
   const signAndSubmitSOLWithData = useCallback(async (swapData: SwapExecuteResponse): Promise<void> => {
     if (!publicKey || !walletSignTransaction) {
       throw new Error("Wallet not connected");
     }
 
     try {
+      setState(prev => ({
+        ...prev,
+        currentTransaction: "sol",
+        step: "signing",
+      }));
+
       // Parse and sign the SOL transaction
       const transactionBuffer = Uint8Array.from(atob(swapData.solTransaction), c => c.charCodeAt(0));
       const transaction = Transaction.from(transactionBuffer);
       const signedTransaction = await walletSignTransaction(transaction);
       const signedTransactionBase64 = btoa(String.fromCharCode(...signedTransaction.serialize({ requireAllSignatures: false })));
 
-      // Submit the signed transaction
+      setState(prev => ({
+        ...prev,
+        currentTransaction: null,
+        step: "submitting",
+      }));
+
+      // Submit the signed transaction - backend now handles the complete swap
       const submitRequest: SubmitSwapTransactionRequest = {
         swapId: swapData.swapId,
         transaction: swapData.solTransaction,
@@ -209,15 +240,21 @@ export const useSwap = () => {
         userWallet: publicKey.toString(),
       };
 
-      await solanaAPI.submitSwapTransaction(submitRequest);
+      const result = await solanaAPI.submitSwapTransaction(submitRequest);
 
-      setState(prev => ({
-        ...prev,
-        currentTransaction: null,
-        step: "submitting",
-      }));
+      // Check if the swap was completed successfully
+      if (result.status === "completed") {
+        setState(prev => ({
+          ...prev,
+          step: "completed",
+          isLoading: false,
+          currentTransaction: null,
+        }));
+      } else {
+        throw new Error("Swap not completed successfully");
+      }
     } catch (error) {
-      let errorMessage = "Failed to sign and submit SOL transaction";
+      let errorMessage = "Failed to complete swap";
       if (error instanceof Error) {
         errorMessage = error.message;
         // Provide more specific error messages
@@ -312,12 +349,10 @@ export const useSwap = () => {
       // 1. Execute swap to get transactions
       const swapData = await executeSwap(request);
 
-      // 2. Sign and submit SOL transaction
+      // 2. Sign and submit SOL transaction - backend now handles EDU transfer automatically
       await signAndSubmitSOLWithData(swapData);
 
-      // 3. Sign and submit EduPro transaction
-      await signAndSubmitEduProWithData(swapData);
-
+      // Swap is now complete! Backend has already transferred EDU tokens
       setState(prev => ({
         ...prev,
         step: "completed",
@@ -334,7 +369,7 @@ export const useSwap = () => {
       }));
       throw error;
     }
-  }, [publicKey, executeSwap, signAndSubmitSOLWithData, signAndSubmitEduProWithData]);
+  }, [publicKey, executeSwap, signAndSubmitSOLWithData]);
 
   // Get swap status
   const getSwapStatus = useCallback(async (swapId: string): Promise<SwapStatus> => {

@@ -1,6 +1,13 @@
 import { motion } from "framer-motion";
 import { Button } from "@/shared/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/shared/components/ui/dropdown-menu";
+import {
   BookOpen,
   Users,
   DollarSign,
@@ -8,20 +15,58 @@ import {
   MoreVertical,
   Calendar,
   Settings,
+  Edit3,
+  Trash2,
+  Archive,
+  Eye as EyeIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/shared/lib/utils";
 import { Course } from "@/services/api";
+import { useCourseStatus } from "@/hooks/useCourseStatus";
+import { useDeleteCourse } from "@/hooks/useCourses";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface CourseCardProps {
   course: Course;
+  onCourseUpdate?: () => void; // Callback to refresh the course list
 }
 
-export const CourseCard = ({ course }: CourseCardProps) => {
+export const CourseCard = ({ course, onCourseUpdate }: CourseCardProps) => {
   const navigate = useNavigate();
+  const { updateStatus, isLoading: isUpdatingStatus } = useCourseStatus();
+  const { mutate: deleteCourse, isPending: isDeleting } = useDeleteCourse();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const handleEditCourse = () => {
     navigate(`/dashboard/ai-creator/${course.id}`);
+  };
+
+  const handleStatusUpdate = async (newStatus: "draft" | "published" | "archived") => {
+    try {
+      const result = await updateStatus(course.id, newStatus);
+      if (result) {
+        toast.success(`Course status updated to ${newStatus}`);
+        onCourseUpdate?.();
+      }
+    } catch (error) {
+      toast.error("Failed to update course status");
+    }
+  };
+
+  const handleDeleteCourse = () => {
+    if (window.confirm(`Are you sure you want to delete "${course.title}"? This action cannot be undone.`)) {
+      deleteCourse(course.id, {
+        onSuccess: () => {
+          toast.success("Course deleted successfully");
+          onCourseUpdate?.();
+        },
+        onError: (error: Error) => {
+          toast.error(error.message || "Failed to delete course");
+        },
+      });
+    }
   };
 
   const getStatusColor = (status: Course["status"]) => {
@@ -74,13 +119,57 @@ export const CourseCard = ({ course }: CourseCardProps) => {
 
         {/* Actions Menu */}
         <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-8 h-8 bg-black/20 hover:bg-black/40 text-white"
-          >
-            <MoreVertical className="w-4 h-4" />
-          </Button>
+          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="w-8 h-8 bg-black/20 hover:bg-black/40 text-white"
+                disabled={isUpdatingStatus || isDeleting}
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              {/* Status Update Options */}
+              <DropdownMenuItem
+                onClick={() => handleStatusUpdate("draft")}
+                disabled={course.status === "draft" || isUpdatingStatus}
+                className="flex items-center gap-2"
+              >
+                <Edit3 className="w-4 h-4" />
+                Save as Draft
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleStatusUpdate("published")}
+                disabled={course.status === "published" || isUpdatingStatus}
+                className="flex items-center gap-2"
+              >
+                <EyeIcon className="w-4 h-4" />
+                Publish
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleStatusUpdate("archived")}
+                disabled={course.status === "archived" || isUpdatingStatus}
+                className="flex items-center gap-2"
+              >
+                <Archive className="w-4 h-4" />
+                Archive
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              {/* Delete Option */}
+              <DropdownMenuItem
+                onClick={handleDeleteCourse}
+                disabled={isDeleting}
+                className="flex items-center gap-2 text-red-400 focus:text-red-300 focus:bg-red-500/10"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete Course
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

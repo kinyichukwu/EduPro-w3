@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useParams, useNavigate } from "react-router-dom"
 import { Button } from "@/shared/components/ui/button"
 import { Progress } from "@/shared/components/ui/progress"
 import { Badge } from "@/shared/components/ui/badge"
@@ -16,48 +17,14 @@ import {
   Calendar,
   Menu,
   X,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { Sheet, SheetTrigger } from "@/shared/components/ui/sheet"
-
-const courseData = {
-  title: "Advanced React & TypeScript",
-  progress: 65,
-  modules: [
-    {
-      id: 1,
-      title: "Getting Started",
-      progress: 100,
-      chapters: [
-        { id: 1, title: "Course Introduction", type: "reading", duration: "5 min", completed: true, content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of 'de Finibus Bonorum et Malorum' (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, 'Lorem ipsum dolor sit amet..', comes from a line in section 1.10.32. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like)." },
-        { id: 2, title: "Development Setup", type: "reading", duration: "12:45", completed: true, content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of 'de Finibus Bonorum et Malorum' (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, 'Lorem ipsum dolor sit amet..', comes from a line in section 1.10.32. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like)." },
-        { id: 3, title: "Project Overview", type: "reading", duration: "8 min", completed: true, content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of 'de Finibus Bonorum et Malorum' (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, 'Lorem ipsum dolor sit amet..', comes from a line in section 1.10.32. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like)." },
-      ],
-    },
-    {
-      id: 2,
-      title: "React Fundamentals",
-      progress: 75,
-      chapters: [
-        { id: 4, title: "Components & Props", type: "reading", duration: "15:30", completed: true, content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of 'de Finibus Bonorum et Malorum' (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, 'Lorem ipsum dolor sit amet..', comes from a line in section 1.10.32. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like)." },
-        { id: 5, title: "State Management", type: "reading", duration: "18:45", completed: true, content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of 'de Finibus Bonorum et Malorum' (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, 'Lorem ipsum dolor sit amet..', comes from a line in section 1.10.32. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like)." },
-        { id: 6, title: "Event Handling", type: "reading", duration: "12:20", completed: true, content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of 'de Finibus Bonorum et Malorum' (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, 'Lorem ipsum dolor sit amet..', comes from a line in section 1.10.32. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like)." },
-        { id: 7, title: "Practice Exercise", type: "reading", duration: "4:30", completed: false, content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of 'de Finibus Bonorum et Malorum' (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, 'Lorem ipsum dolor sit amet..', comes from a line in section 1.10.32. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like)." },
-      ],
-    },
-    {
-      id: 3,
-      title: "Advanced Patterns",
-      progress: 25,
-      chapters: [
-        { id: 8, title: "Higher-Order Components", type: "reading", duration: "22:10", completed: true, content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of 'de Finibus Bonorum et Malorum' (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, 'Lorem ipsum dolor sit amet..', comes from a line in section 1.10.32. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like)." },
-        { id: 9, title: "Render Props", type: "reading", duration: "19:30", completed: false, content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of 'de Finibus Bonorum et Malorum' (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, 'Lorem ipsum dolor sit amet..', comes from a line in section 1.10.32. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like)." },
-        { id: 10, title: "Custom Hooks", type: "reading", duration: "25:45", completed: false, content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of 'de Finibus Bonorum et Malorum' (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, 'Lorem ipsum dolor sit amet..', comes from a line in section 1.10.32. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like)." },
-        { id: 11, title: "Context API", type: "reading", duration: "20:15", completed: false, content: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum. Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source. Lorem Ipsum comes from sections 1.10.32 and 1.10.33 of 'de Finibus Bonorum et Malorum' (The Extremes of Good and Evil) by Cicero, written in 45 BC. This book is a treatise on the theory of ethics, very popular during the Renaissance. The first line of Lorem Ipsum, 'Lorem ipsum dolor sit amet..', comes from a line in section 1.10.32. It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like)." },
-      ],
-    },
-  ],
-}
+import { useCourseLearning } from "@/hooks/useCourseLearning"
+import { useCourseProgress } from "@/hooks/useCourseProgress"
+import { toast } from "sonner"
 
 const getTypeIcon = (type: string) => {
   switch (type) {
@@ -69,38 +36,177 @@ const getTypeIcon = (type: string) => {
 }
 
 export default function CourseLearningPage() {
-  const [activeChapter, setActiveChapter] = useState(7)
-  const [expandedModules, setExpandedModules] = useState<number[]>([1, 2, 3])
-  const [completedChapters, setCompletedChapters] = useState<number[]>([1, 2, 3, 4, 5, 6, 8])
+  const { courseId } = useParams<{ courseId: string }>()
+  const navigate = useNavigate()
+  
+  // Fetch course learning content
+  const { 
+    data: learningContent, 
+    isLoading: isLoadingContent, 
+    error: contentError,
+    refetch: refetchContent 
+  } = useCourseLearning(courseId ?? null)
+  
+  // Fetch course progress
+  const { 
+    progress, 
+    isLoading: isLoadingProgress, 
+    isUpdating: isUpdatingProgress,
+    error: progressError,
+    updateProgress,
+    refetch: refetchProgress 
+  } = useCourseProgress(courseId ?? null)
+
+  // Local state for UI
+  const [activeModuleId, setActiveModuleId] = useState<string | null>(null)
+  const [expandedModules, setExpandedModules] = useState<string[]>([])
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [completedModules, setCompletedModules] = useState<Set<string>>(new Set())
 
-  const currentChapter = courseData.modules
-    .flatMap((module) => module.chapters)
-    .find((chapter) => chapter.id === activeChapter)
+  // Initialize active module and expanded modules when data loads
+  useEffect(() => {
+    if (learningContent?.modules && learningContent.modules.length > 0) {
+      // Set first module as active if none selected
+      if (!activeModuleId) {
+        setActiveModuleId(learningContent.modules[0].id)
+      }
+      
+      // Expand all modules by default
+      setExpandedModules(learningContent.modules.map(m => m.id))
+    }
+  }, [learningContent, activeModuleId])
 
-  const allChapters = courseData.modules.flatMap((module) => module.chapters)
-  const currentIndex = allChapters.findIndex((chapter) => chapter.id === activeChapter)
-  const nextChapter = allChapters[currentIndex + 1]
-  const prevChapter = allChapters[currentIndex - 1]
+  // Update completed modules based on course progress
+  useEffect(() => {
+    if (progress && learningContent?.modules) {
+      const completedCount = progress.completed_modules
+      const newCompletedModules = new Set<string>()
+      
+      // Mark first N modules as completed based on completed_modules count
+      // This is a simplified approach - in a real implementation you'd want
+      // individual module progress tracking
+      for (let i = 0; i < Math.min(completedCount, learningContent.modules.length); i++) {
+        newCompletedModules.add(learningContent.modules[i].id)
+      }
+      
+      setCompletedModules(newCompletedModules)
+    }
+  }, [progress, learningContent])
 
-  const toggleModule = (moduleId: number) => {
-    setExpandedModules((prev) => (prev.includes(moduleId) ? prev.filter((id) => id !== moduleId) : [...prev, moduleId]))
+  const currentModule = learningContent?.modules.find(m => m.id === activeModuleId)
+  const allModules = learningContent?.modules ?? []
+  const currentIndex = allModules.findIndex(m => m.id === activeModuleId)
+  const nextModule = allModules[currentIndex + 1]
+  const prevModule = allModules[currentIndex - 1]
+
+  const toggleModule = (moduleId: string) => {
+    setExpandedModules((prev) => 
+      prev.includes(moduleId) 
+        ? prev.filter((id) => id !== moduleId) 
+        : [...prev, moduleId]
+    )
   }
 
-  const markAsComplete = (chapterId: number) => {
-    setCompletedChapters((prev) => [...prev, chapterId])
-    if (nextChapter) {
-      setActiveChapter(nextChapter.id)
+  const markAsComplete = async (moduleId: string) => {
+    if (!updateProgress || !courseId) {
+      toast.error("Unable to update progress")
+      return
+    }
+
+    try {
+      const result = await updateProgress({
+        module_id: moduleId,
+        completed: true,
+        progress: 100
+      })
+
+      if (result) {
+        toast.success("Module marked as complete!")
+        
+        // Update local state
+        setCompletedModules(prev => new Set([...prev, moduleId]))
+        
+        // Move to next module if available
+        if (nextModule) {
+          setActiveModuleId(nextModule.id)
+        }
+        
+        // Refresh progress data
+        refetchProgress()
+      }
+    } catch (error) {
+      toast.error("Failed to update progress")
     }
   }
 
   const calculateProgress = () => {
-    const totalChapters = allChapters.length
-    const completed = completedChapters.length
-    return Math.round((completed / totalChapters) * 100)
+    if (!progress) return 0
+    return Math.round(progress.progress)
   }
 
-  const isChapterCompleted = (chapterId: number) => completedChapters.includes(chapterId)
+  const isModuleCompleted = (moduleId: string) => {
+    return completedModules.has(moduleId)
+  }
+
+  const getModuleProgress = (moduleId: string) => {
+    return isModuleCompleted(moduleId) ? 100 : 0
+  }
+
+  // Loading state
+  if (isLoadingContent || isLoadingProgress) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100dvh-50px)]">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-turbo-purple mx-auto" />
+          <p className="text-white/60">Loading course content...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (contentError || progressError) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100dvh-50px)]">
+        <div className="text-center space-y-4">
+          <AlertCircle className="w-8 h-8 text-red-500 mx-auto" />
+          <p className="text-white/60">
+            {contentError ?? progressError ?? "Failed to load course content"}
+          </p>
+          <Button 
+            onClick={() => {
+              refetchContent()
+              refetchProgress()
+            }}
+            className="bg-turbo-purple hover:bg-turbo-purple/80"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // No data state
+  if (!learningContent) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100dvh-50px)]">
+        <div className="text-center space-y-4">
+          <BookOpen className="w-8 h-8 text-white/40 mx-auto" />
+          <p className="text-white/60">No course content found</p>
+          <Button 
+            onClick={() => navigate("/dashboard/explore")}
+            variant="outline"
+            className="border-white/10 text-white hover:bg-white/10"
+          >
+            Browse Courses
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const { course, modules } = learningContent
 
   return (
     <div className="flex max-h-[calc(100dvh-50px)] h-[calc(100dvh-50px)] w-full text-dark-text">
@@ -124,16 +230,16 @@ export default function CourseLearningPage() {
                       </Button>
                     </SheetTrigger>
                   </Sheet>
-                  <h2 className="font-semibold text-lg text-white">{courseData.title}</h2>
+                  <h2 className="font-semibold text-lg text-white">{course.title}</h2>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-dark-muted">
                   <div className="flex items-center gap-1">
                     <User className="h-3 w-3" />
-                    <span>Sarah Chen</span>
+                    <span>Course Creator</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <BookOpen className="h-3 w-3" />
-                    <span>{allChapters.length} lessons</span>
+                    <span>{modules.length} modules</span>
                   </div>
                 </div>
               </div>
@@ -145,7 +251,7 @@ export default function CourseLearningPage() {
                 <div className="space-y-1">
                   <Progress value={calculateProgress()} className="h-2 bg-dark-accent/50" />
                   <p className="text-xs text-dark-muted">
-                    {completedChapters.length} of {allChapters.length} lessons completed
+                    {progress?.completed_modules ?? 0} of {modules.length} modules completed
                   </p>
                 </div>
               </div>
@@ -154,11 +260,10 @@ export default function CourseLearningPage() {
 
           <div className="flex-1 overflow-y-auto p-3">
             <div className="space-y-2">
-              {courseData.modules.map((module) => {
-                const moduleChapters = module.chapters
-                const completedInModule = moduleChapters.filter((ch) => isChapterCompleted(ch.id)).length
-                const moduleProgress = Math.round((completedInModule / moduleChapters.length) * 100)
+              {modules.map((module) => {
+                const moduleProgress = getModuleProgress(module.id)
                 const isExpanded = expandedModules.includes(module.id)
+                const isCompleted = isModuleCompleted(module.id)
 
                 return (
                   <div key={module.id}>
@@ -174,9 +279,9 @@ export default function CourseLearningPage() {
                           <span className="truncate text-sm">{module.title}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          {moduleProgress === 100 && <CheckCircle className="h-4 w-4 text-green-600" />}
+                          {isCompleted && <CheckCircle className="h-4 w-4 text-green-600" />}
                           <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-dark-accent/50 text-white border-white/10">
-                            {completedInModule}/{moduleChapters.length}
+                            {moduleProgress}%
                           </Badge>
                         </div>
                       </div>
@@ -186,42 +291,40 @@ export default function CourseLearningPage() {
                       className={`overflow-hidden transition-all duration-300 ${isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}
                     >
                       <div className="mt-2 ml-4 space-y-1">
-                        {module.chapters.map((chapter) => (
-                          <div key={chapter.id}>
-                            <div
-                              onClick={() => {
-                                setActiveChapter(chapter.id)
-                                setSidebarOpen(false) // Close drawer when chapter is selected on mobile
-                              }}
-                              className={`cursor-pointer transition-all duration-200 rounded-md p-2.5 text-white ${
-                                activeChapter === chapter.id
-                                  ? "bg-gradient-to-r from-turbo-purple/30 to-turbo-indigo/30 border-l-2 border-turbo-purple"
-                                  : "hover:bg-white/10"
-                              }`}
-                            >
-                              <div className="flex items-center gap-3 w-full">
-                                <div className="flex-shrink-0">
-                                  {isChapterCompleted(chapter.id) ? (
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                  ) : activeChapter === chapter.id ? (
-                                    <div className="h-4 w-4 rounded-full bg-turbo-purple/20 border-2 border-turbo-purple flex items-center justify-center">
-                                      <div className="h-1.5 w-1.5 rounded-full bg-turbo-purple" />
-                                    </div>
-                                  ) : (
-                                    <div className="h-4 w-4 rounded-full bg-dark-accent border border-white/10" />
-                                  )}
+                        <div
+                          onClick={() => {
+                            setActiveModuleId(module.id)
+                            setSidebarOpen(false) // Close drawer when module is selected on mobile
+                          }}
+                          className={`cursor-pointer transition-all duration-200 rounded-md p-2.5 text-white ${
+                            activeModuleId === module.id
+                              ? "bg-gradient-to-r from-turbo-purple/30 to-turbo-indigo/30 border-l-2 border-turbo-purple"
+                              : "hover:bg-white/10"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 w-full">
+                            <div className="flex-shrink-0">
+                              {isCompleted ? (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              ) : activeModuleId === module.id ? (
+                                <div className="h-4 w-4 rounded-full bg-turbo-purple/20 border-2 border-turbo-purple flex items-center justify-center">
+                                  <div className="h-1.5 w-1.5 rounded-full bg-turbo-purple" />
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    {getTypeIcon(chapter.type)}
-                                    <span className="truncate text-sm">{chapter.title}</span>
-                                  </div>
-                                </div>
-                                <span className="text-xs text-dark-muted flex-shrink-0">{chapter.duration}</span>
+                              ) : (
+                                <div className="h-4 w-4 rounded-full bg-dark-accent border border-white/10" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                {getTypeIcon("reading")}
+                                <span className="truncate text-sm">{module.title}</span>
                               </div>
                             </div>
+                            <span className="text-xs text-dark-muted flex-shrink-0">
+                              {Math.ceil(module.content.length / 1000)} min read
+                            </span>
                           </div>
-                        ))}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -247,10 +350,10 @@ export default function CourseLearningPage() {
           </Sheet>
           <div className="flex items-center gap-2 text-sm">
             <span className="text-dark-muted">
-              Module {courseData.modules.find((m) => m.chapters.some((c) => c.id === activeChapter))?.id}
+              Module {currentIndex + 1}
             </span>
             <ChevronRight className="h-3 w-3 text-dark-muted" />
-            <span className="font-medium text-white">{currentChapter?.title}</span>
+            <span className="font-medium text-white">{currentModule?.title}</span>
           </div>
         </header>
 
@@ -260,34 +363,34 @@ export default function CourseLearningPage() {
               <div className="space-y-6">
                 <div className="flex items-start gap-2.5 sm:gap-4">
                   <div className="flex-shrink-0 p-3 rounded-xl bg-gradient-to-r from-turbo-purple/20 to-turbo-indigo/20 border border-white/10">
-                    {isChapterCompleted(activeChapter) ? (
+                    {isModuleCompleted(activeModuleId ?? "") ? (
                       <CheckCircle className="h-6 w-6 text-green-600" />
                     ) : (
-                      getTypeIcon(currentChapter?.type ?? "reading")
+                      getTypeIcon("reading")
                     )}
                   </div>
                   <div className="flex-1 space-y-3">
-                    <h1 className="text-3xl font-bold text-white leading-tight">{currentChapter?.title}</h1>
+                    <h1 className="text-3xl font-bold text-white leading-tight">{currentModule?.title}</h1>
                     <div className="flex items-center gap-6 text-sm text-dark-muted">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4" />
-                        <span>{currentChapter?.duration}</span>
+                        <span>{Math.ceil((currentModule?.content.length || 0) / 1000)} min read</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
                         <span>
-                          Lesson {currentIndex + 1} of {allChapters.length}
+                          Module {currentIndex + 1} of {modules.length}
                         </span>
                       </div>
                       <Badge
-                        variant={isChapterCompleted(activeChapter) ? "default" : "secondary"}
+                        variant={isModuleCompleted(activeModuleId ?? "") ? "default" : "secondary"}
                         className={`px-3 py-1 ${
-                          isChapterCompleted(activeChapter) 
+                          isModuleCompleted(activeModuleId ?? "") 
                             ? "bg-gradient-to-r from-turbo-purple to-turbo-indigo text-white" 
                             : "bg-dark-accent/50 text-white border-white/10"
                         }`}
                       >
-                        {isChapterCompleted(activeChapter) ? "Completed" : "In Progress"}
+                        {isModuleCompleted(activeModuleId ?? "") ? "Completed" : "In Progress"}
                       </Badge>
                     </div>
                   </div>
@@ -297,7 +400,7 @@ export default function CourseLearningPage() {
               <div className="bg-gradient-to-br from-dark-accent/30 to-dark-accent/10 rounded-xl border border-white/10 max-sm:p-6 p-8">
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <div className="text-white leading-relaxed text-base whitespace-pre-line">
-                    {currentChapter?.content}
+                    {currentModule?.content || "No content available for this module."}
                   </div>
                 </div>
               </div>
@@ -306,32 +409,39 @@ export default function CourseLearningPage() {
                 <div className="flex items-center justify-between">
                   <Button
                     variant="outline"
-                    disabled={!prevChapter}
-                    onClick={() => prevChapter && setActiveChapter(prevChapter.id)}
+                    disabled={!prevModule}
+                    onClick={() => prevModule && setActiveModuleId(prevModule.id)}
                     className="flex items-center gap-2 sm:px-6 px-3 py-2.5 border-white/10 text-white hover:bg-white/10"
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    <span className="max-sm:hidden">Previous Lesson</span>
+                    <span className="max-sm:hidden">Previous Module</span>
                   </Button>
 
                   <div className="flex items-center gap-3">
-                    {!isChapterCompleted(activeChapter) && (
+                    {!isModuleCompleted(activeModuleId ?? "") && activeModuleId && (
                       <Button 
                         variant="outline" 
-                        onClick={() => markAsComplete(activeChapter)} 
+                        onClick={() => markAsComplete(activeModuleId)}
+                        disabled={isUpdatingProgress}
                         className="px-3 sm:px-6 py-2.5 bg-dark-accent/50 text-white border-white/10 hover:bg-dark-accent/70"
                       >
-                        <span className="max-sm:hidden">Mark as Complete</span>
-                        <CheckCircle className="h-4 w-4 sm:hidden" />
+                        {isUpdatingProgress ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <span className="max-sm:hidden">Mark as Complete</span>
+                            <CheckCircle className="h-4 w-4 sm:hidden" />
+                          </>
+                        )}
                       </Button>
                     )}
 
                     <Button
-                      disabled={!nextChapter}
-                      onClick={() => nextChapter && setActiveChapter(nextChapter.id)}
+                      disabled={!nextModule}
+                      onClick={() => nextModule && setActiveModuleId(nextModule.id)}
                       className="flex items-center gap-2 sm:px-6 px-3 py-2.5 bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80 text-white"
                     >
-                      <span className="max-sm:">Next Lesson</span>
+                      <span className="max-sm:hidden">Next Module</span>
                       <ChevronRight className="h-4 w-4" />
                     </Button>
                   </div>

@@ -106,7 +106,7 @@ export const DashboardHome = () => {
   const weeklyProgress = 78;
 
   return (
-    <div className="px-4 py-6 md:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div className="px-4 py-6 md:px-6 lg:px-8 mx-auto">
       {/* Welcome Section with Study Goal */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>

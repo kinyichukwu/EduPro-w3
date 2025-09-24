@@ -122,7 +122,7 @@ export const DashboardLayout = () => {
         <Onboarding />
       ) : (
         <TooltipProvider>
-          <div className="w-full max-w-[1440px] mx-auto min-h-[100dvh] flex bg-dark-background text-dark-text relative ">
+          <div className="w-full max-w-[100rem] mx-auto min-h-[100dvh] flex bg-dark-background text-dark-text relative">
             {/* Desktop Sidebar */}
             <Sidebar sidebarOpen={sidebarOpen} />
 
@@ -132,7 +132,7 @@ export const DashboardLayout = () => {
               )}
               style={{ boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)" }}
             >
-              <div className="w-full max-w-[1440px] mx-auto flex items-center justify-between">
+              <div className="w-full max-w-[100rem] mx-auto flex items-center justify-between">
                 <div className="flex items-center justify-between gap-2">
                   <div className="w-16 flex items-center justify-center max-md:hidden">
                     <Button

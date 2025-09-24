@@ -24,7 +24,7 @@ export default function PastQuestions() {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
   return (
-    <div className="px-4 py-6 md:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div className="px-4 py-6 md:px-6 lg:px-8 mx-auto">
       {/* Header Section */}
       <div className="flex flex-col gap-6 mb-8">
         <div className="flex max-sm:flex-col sm:items-center justify-between gap-y-2">

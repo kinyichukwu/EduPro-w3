@@ -63,7 +63,7 @@ export default function UploadNew() {
   };
 
   return (
-    <div className="px-4 py-6 md:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div className="px-4 py-6 md:px-6 lg:px-8 mx-auto">
       {/* Header Section */}
       <div className="flex flex-col gap-6 mb-8">
         <div className="flex items-center justify-between">

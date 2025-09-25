@@ -12,13 +12,11 @@ import {
   BookOpen,
   Loader2,
   AlertCircle,
+  Coins,
 } from "lucide-react";
-import {
-  Tabs,
-} from "@/shared/components/ui/tabs";
 import { Badge } from "@/shared/components/ui/badge";
 import { Alert, AlertDescription } from "@/shared/components/ui/alert";
-import { ReferralTab, SettingsTab, RewardsTab, TransactionHistoryTab } from "../components/profile";
+import { ReferralTab, SettingsTab, RewardsTab, TransactionHistoryTab, StakingTab, NFTOwnershipTab } from "../components/profile";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -30,6 +28,7 @@ export const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState("settings");
   const [eduproBalance, setEduproBalance] = useState<number>(0);
   const [solBalance, setSolBalance] = useState<number>(0);
+  const [stakingInfo, setStakingInfo] = useState<{ stakedAmount: number; rewards: number; duration: number } | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const user = useAuthStore((s) => s.user);
@@ -52,6 +51,7 @@ export const ProfilePage = () => {
     if (!connected || !userWallet) {
       setEduproBalance(0);
       setSolBalance(0);
+      setStakingInfo(null);
       setBalanceError(null);
       return;
     }
@@ -65,12 +65,20 @@ export const ProfilePage = () => {
       ]);
       setEduproBalance(eduBalance.edutoken_balance / 1e9);
       setSolBalance(solBalanceData.balance_sol);
+
+      // Mock staking info - in real implementation, this would come from API
+      setStakingInfo({
+        stakedAmount: Math.floor(eduBalance.edutoken_balance / 1e9 * 0.25), // 25% staked
+        rewards: Math.floor(eduBalance.edutoken_balance / 1e9 * 0.15), // 15% rewards
+        duration: 30 // days
+      });
     } catch (error) {
       console.error("Failed to fetch balances:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to fetch balances";
       setBalanceError(errorMessage);
       setEduproBalance(0);
       setSolBalance(0);
+      setStakingInfo(null);
     } finally {
       setIsLoadingBalance(false);
     }
@@ -319,6 +327,25 @@ export const ProfilePage = () => {
                   </div>
                 </div>
               </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="bg-white/5 rounded-lg p-4 border border-white/10"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-500/20 rounded-lg">
+                    <Coins className="w-5 h-5 text-orange-400" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">
+                      {stakingInfo ? stakingInfo.stakedAmount.toLocaleString('en-US') : "0"}
+                    </p>
+                    <p className="text-sm text-white/60">EDU Staked</p>
+                  </div>
+                </div>
+              </motion.div>
             </div>
           </section>
         </motion.div>
@@ -333,6 +360,8 @@ export const ProfilePage = () => {
               <div className="flex gap-2">
                 {[
                   { value: "rewards", icon: CreditCard, label: "Rewards" },
+                  { value: "staking", icon: Coins, label: "Staking" },
+                  { value: "nft", icon: Award, label: "NFTs" },
                   { value: "referral", icon: Share2, label: "Referral" },
                   { value: "transactions", icon: History, label: "Transactions" },
                   { value: "settings", icon: Settings, label: "Settings" }
@@ -356,6 +385,8 @@ export const ProfilePage = () => {
             {/* Tab Content */}
             <div className="min-h-[400px]">
               {activeTab === "rewards" && <RewardsTab />}
+              {activeTab === "staking" && <StakingTab stakingInfo={stakingInfo} />}
+              {activeTab === "nft" && <NFTOwnershipTab />}
               {activeTab === "referral" && <ReferralTab />}
               {activeTab === "transactions" && <TransactionHistoryTab />}
               {activeTab === "settings" && <SettingsTab />}

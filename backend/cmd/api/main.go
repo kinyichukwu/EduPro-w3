@@ -334,10 +334,15 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			flashcards.GET("/stats", flashcardHandler.GetFlashcardStats)
 		}
 
-		// Course routes (protected)
+		// Course routes
 		courses := api.Group("/courses")
-		courses.Use(middleware.JWTMiddleware(cfg))
 		{
+			// Public browse endpoints
+			courses.GET("/browse", courseHandler.BrowseCourses)
+			courses.GET("/browse/:id", courseHandler.BrowseCourse)
+
+			// Protected endpoints
+			courses.Use(middleware.JWTMiddleware(cfg))
 			// Course management
 			courses.POST("", courseHandler.CreateCourse)
 			courses.GET("", courseHandler.GetCourses)
@@ -345,7 +350,7 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			courses.GET("/:id", courseHandler.GetCourse)
 			courses.PUT("/:id", courseHandler.UpdateCourse)
 			courses.DELETE("/:id", courseHandler.DeleteCourse)
-			
+
 			// Course status and learning endpoints
 			courses.PATCH("/:id/status", courseHandler.UpdateCourseStatus)
 			courses.GET("/:id/learn", courseHandler.GetCourseLearningContent)

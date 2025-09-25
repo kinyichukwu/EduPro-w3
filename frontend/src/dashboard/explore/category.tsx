@@ -8,18 +8,37 @@ import {
 } from "lucide-react";
 import { Input } from "@/shared/components/ui/input";
 import { Badge } from "@/shared/components/ui/badge";
-import { mockCourses } from "../constants/explore";
+import type { Course as UiCourse } from "../constants/explore";
 import { CourseCard } from "../components/explore";
 import { useParams, Link } from "react-router-dom";
+import { usePublicCourses } from "@/hooks/useCourses";
+import type { Course as ApiCourse } from "@/services/api";
 
 export default function ExploreCategory() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("all");
 
-  const currentCategory = useParams().category ?? "Calculus";
+  const currentCategory = useParams().categoryId ?? "All";
+  const { data: apiCourses = [], isLoading } = usePublicCourses({ page: 1, limit: 50 });
+
+  const mapToUiCourse = (c: ApiCourse): UiCourse => ({
+    id: c.id,
+    title: c.title,
+    description: c.description,
+    instructor: "Course Creator", // TODO: add instructor to API/course model
+    category: "General", // TODO: add category to API/course model
+    difficulty: "Beginner", // TODO: add difficulty/level to API
+    price: c.price,
+    rating: 4.8, // TODO: add rating to API
+    students: c.students_count ?? 0,
+    duration: `${c.total_modules} modules`,
+    thumbnail: c.thumbnail_url || undefined,
+  });
+
+  const allUiCourses: UiCourse[] = (apiCourses || []).map(mapToUiCourse);
 
   const filteredCourses = useMemo(() => {
-    return mockCourses.filter((course) => {
+    return allUiCourses.filter((course) => {
       const matchesSearch = 
         course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         course.instructor.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -172,7 +191,7 @@ export default function ExploreCategory() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-semibold text-white capitalize">{currentCategory} Courses</h2>
-            <p className="text-white/60 mt-1">{filteredCourses.length} courses available</p>
+            <p className="text-white/60 mt-1">{isLoading ? "Loading..." : `${filteredCourses.length} courses available`}</p>
           </div>
         </div>
         

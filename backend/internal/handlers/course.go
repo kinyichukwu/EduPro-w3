@@ -176,6 +176,72 @@ func (h *CourseHandler) GetCourse(c *gin.Context) {
 	SuccessResponse(c, http.StatusOK, "Course retrieved successfully", course)
 }
 
+// BrowseCourses lists published courses for discovery (public)
+// @Summary Browse published courses
+// @Description Publicly list published courses with pagination
+// @Tags courses
+// @Produce json
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Items per page (default: 10)"
+// @Success 200 {object} models.APIResponse{data=[]models.Course} "Published courses retrieved successfully"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Router /api/courses/browse [get]
+func (h *CourseHandler) BrowseCourses(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	courses, err := h.db.GetPublishedCourses(limit, offset)
+	if err != nil {
+		zap.L().Error("Failed to browse courses", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve courses", err)
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Published courses retrieved successfully", courses)
+}
+
+// BrowseCourse retrieves a single published course by ID (public)
+// @Summary Get published course by ID
+// @Description Publicly retrieve a published course by its ID
+// @Tags courses
+// @Produce json
+// @Param id path string true "Course ID"
+// @Success 200 {object} models.APIResponse{data=models.Course} "Course retrieved successfully"
+// @Failure 400 {object} models.APIResponse "Invalid course ID"
+// @Failure 404 {object} models.APIResponse "Course not found"
+// @Failure 500 {object} models.APIResponse "Internal server error"
+// @Router /api/courses/browse/{id} [get]
+func (h *CourseHandler) BrowseCourse(c *gin.Context) {
+	courseIDStr := c.Param("id")
+	courseID, err := uuid.Parse(courseIDStr)
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
+		return
+	}
+
+	// Use published course retrieval
+	course, err := h.db.GetCourseForLearning(courseID)
+	if err != nil {
+		if err.Error() == "course not found" {
+			ErrorResponse(c, http.StatusNotFound, "Course not found or not published", err)
+			return
+		}
+		zap.L().Error("Failed to get published course", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve course", err)
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Course retrieved successfully", course)
+}
+
 // UpdateCourse updates an existing course
 // @Summary Update course
 // @Description Update an existing course

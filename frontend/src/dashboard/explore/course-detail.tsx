@@ -23,8 +23,9 @@ import {
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
-import { mockCourses } from "../constants/explore";
-import { Course } from "../constants/explore";
+import type { Course as UiCourse } from "../constants/explore";
+import type { Course as ApiCourse } from "@/services/api";
+import { usePublicCourse } from "@/hooks/useCourses";
 
 interface Review {
   id: string;
@@ -39,7 +40,7 @@ interface Review {
 const CourseDetail = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
-  const [course, setCourse] = useState<Course | null>(null);
+  const [course, setCourse] = useState<UiCourse | null>(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
@@ -163,10 +164,28 @@ const CourseDetail = () => {
     },
   ];
 
+  const { data: apiCourse } = usePublicCourse(courseId ?? "");
+
   useEffect(() => {
-    const foundCourse = mockCourses.find((c) => c.id.toString() === courseId);
-    setCourse(foundCourse ?? null);
-  }, [courseId]);
+    if (!apiCourse) {
+      setCourse(null);
+      return;
+    }
+    const mapToUiCourse = (c: ApiCourse): UiCourse => ({
+      id: c.id,
+      title: c.title,
+      description: c.description,
+      instructor: "Course Creator", // TODO: add instructor to API/course model
+      category: "General", // TODO: add category to API/course model
+      difficulty: "Beginner", // TODO: add difficulty/level to API
+      price: c.price,
+      rating: 4.8, // TODO: add rating to API
+      students: c.students_count ?? 0,
+      duration: `${c.total_modules} modules`,
+      thumbnail: c.thumbnail_url || undefined,
+    });
+    setCourse(mapToUiCourse(apiCourse));
+  }, [apiCourse]);
 
   const toggleSection = (sectionId: string) => {
     const newExpanded = new Set(expandedSections);
@@ -180,6 +199,10 @@ const CourseDetail = () => {
 
   const handleEnroll = () => {
     setIsEnrolled(true);
+    // Navigate to learning view; backend will enroll on first progress update
+    if (courseId) {
+      navigate(`/dashboard/course/${courseId}`);
+    }
   };
 
   const handleWishlist = () => {

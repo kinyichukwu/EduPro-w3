@@ -43,6 +43,37 @@ export const useCourse = (courseId: string) => {
   });
 };
 
+// Public: Hook for browsing published courses
+export const usePublicCourses = (params?: { page?: number; limit?: number }) => {
+  return useQuery({
+    queryKey: ["public-courses", params],
+    queryFn: async () => {
+      const response = await apiService.getPublicCourses(params);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return response.data!;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
+// Public: Hook for single published course
+export const usePublicCourse = (courseId: string) => {
+  return useQuery({
+    queryKey: ["public-course", courseId],
+    queryFn: async () => {
+      const response = await apiService.getPublicCourse(courseId);
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      return response.data!;
+    },
+    enabled: !!courseId,
+    staleTime: 5 * 60 * 1000,
+  });
+};
+
 // Hook for fetching course statistics
 export const useCourseStats = () => {
   return useQuery({

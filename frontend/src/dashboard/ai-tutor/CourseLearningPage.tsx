@@ -164,19 +164,16 @@ export default function CourseLearningPage() {
     )
   }
 
-  // Error state
-  if (contentError || progressError) {
+  // Error state (content error is fatal; progress error is non-fatal e.g., not enrolled yet)
+  if (contentError) {
     return (
       <div className="flex items-center justify-center h-[calc(100dvh-50px)]">
         <div className="text-center space-y-4">
           <AlertCircle className="w-8 h-8 text-red-500 mx-auto" />
-          <p className="text-white/60">
-            {contentError ?? progressError ?? "Failed to load course content"}
-          </p>
+          <p className="text-white/60">{contentError ?? "Failed to load course content"}</p>
           <Button 
             onClick={() => {
               refetchContent()
-              refetchProgress()
             }}
             className="bg-turbo-purple hover:bg-turbo-purple/80"
           >

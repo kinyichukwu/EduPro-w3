@@ -96,6 +96,58 @@ func (c *Client) GetUserCourses(userID uuid.UUID, status string, limit, offset i
 	return courses, nil
 }
 
+// GetPublishedCourses retrieves published courses for discovery with pagination
+func (c *Client) GetPublishedCourses(limit, offset int) ([]models.Course, error) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	query := `
+        SELECT id, user_id, title, description, status, total_modules, completed_modules,
+               students_count, earnings, price, thumbnail_url, created_at, updated_at
+        FROM courses
+        WHERE status = 'published'
+        ORDER BY created_at DESC
+        LIMIT $1 OFFSET $2
+    `
+
+	rows, err := c.pool.Query(ctx, query, limit, offset)
+	if err != nil {
+		logger.Error("Failed to get published courses", zap.Error(err))
+		return nil, fmt.Errorf("failed to get published courses: %w", err)
+	}
+	defer rows.Close()
+
+	var courses []models.Course
+	for rows.Next() {
+		var course models.Course
+		err := rows.Scan(
+			&course.ID, &course.UserID, &course.Title, &course.Description, &course.Status,
+			&course.TotalModules, &course.CompletedModules, &course.StudentsCount,
+			&course.Earnings, &course.Price, &course.ThumbnailURL,
+			&course.CreatedAt, &course.UpdatedAt,
+		)
+		if err != nil {
+			logger.Error("Failed to scan published course", zap.Error(err))
+			return nil, fmt.Errorf("failed to scan published course: %w", err)
+		}
+		courses = append(courses, course)
+	}
+
+	if err = rows.Err(); err != nil {
+		logger.Error("Error iterating over published courses", zap.Error(err))
+		return nil, fmt.Errorf("error iterating over published courses: %w", err)
+	}
+
+	return courses, nil
+}
+
 // GetCourse retrieves a specific course by ID and user ID
 func (c *Client) GetCourse(courseID, userID uuid.UUID) (*models.Course, error) {
 	logger := utils.GetLogger()
@@ -460,7 +512,7 @@ func (c *Client) UpdateModuleProgress(userID, moduleID uuid.UUID, completed bool
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	logger.Info("Module progress updated successfully", 
+	logger.Info("Module progress updated successfully",
 		zap.String("user_id", userID.String()),
 		zap.String("module_id", moduleID.String()),
 		zap.Bool("completed", completed),

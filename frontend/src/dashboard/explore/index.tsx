@@ -4,7 +4,9 @@ import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { CourseCard } from '../components/explore';
-import { mockCourses } from '../constants/explore';
+import { usePublicCourses } from "@/hooks/useCourses";
+import type { Course as UiCourse } from "../constants/explore";
+import type { Course as ApiCourse } from "@/services/api";
 
 const Explore = () => {
 
@@ -28,6 +30,24 @@ const Explore = () => {
       transition: { type: "spring", stiffness: 100 }
     }
   };
+
+  const { data: publicCourses = [], isLoading } = usePublicCourses({ page: 1, limit: 12 });
+
+  const mapToUiCourse = (c: ApiCourse): UiCourse => ({
+    id: c.id,
+    title: c.title,
+    description: c.description,
+    instructor: "Course Creator", // TODO: add instructor to API/course model
+    category: "General", // TODO: add category to API/course model
+    difficulty: "Beginner", // TODO: add difficulty/level to API
+    price: c.price,
+    rating: 4.8, // TODO: add rating to API
+    students: c.students_count ?? 0,
+    duration: `${c.total_modules} modules`,
+    thumbnail: c.thumbnail_url || undefined,
+  });
+
+  const uiCourses: UiCourse[] = (publicCourses || []).map(mapToUiCourse);
 
   return (
     <div className="h-full w-full space-y-6 lg:p-12 p-6">
@@ -147,7 +167,7 @@ const Explore = () => {
         
         {/* Course grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {mockCourses.slice(0, 6).map((course, index) => (
+          {(isLoading ? [] : uiCourses).slice(0, 6).map((course, index) => (
             <motion.div
               key={course.id}
               initial={{ opacity: 0, y: 20 }}

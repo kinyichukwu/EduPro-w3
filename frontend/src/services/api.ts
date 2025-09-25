@@ -314,6 +314,40 @@ export interface ApiResponse<T> {
 }
 
 class ApiService {
+  // Public request without auth header
+  private async requestPublic<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          error: data.error || `HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+
+      if (data && typeof data === "object" && "success" in data) {
+        // @ts-expect-error - runtime guard
+        return data.success ? { data: data.data } : { error: data.error || "API request failed" };
+      }
+
+      return { data };
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+      };
+    }
+  }
   private async getAuthHeaders(): Promise<HeadersInit> {
     const {
       data: { session },
@@ -841,6 +875,19 @@ class ApiService {
 
   async getCourse(courseId: string): Promise<ApiResponse<Course>> {
     return this.request<Course>(`/courses/${courseId}`);
+  }
+
+  // Public browse endpoints (no auth)
+  async getPublicCourses(params?: { page?: number; limit?: number }): Promise<ApiResponse<Course[]>> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append("page", params.page.toString());
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+    const url = `/courses/browse${searchParams.toString() ? `?${searchParams}` : ""}`;
+    return this.requestPublic<Course[]>(url);
+  }
+
+  async getPublicCourse(courseId: string): Promise<ApiResponse<Course>> {
+    return this.requestPublic<Course>(`/courses/browse/${courseId}`);
   }
 
   async updateCourse(

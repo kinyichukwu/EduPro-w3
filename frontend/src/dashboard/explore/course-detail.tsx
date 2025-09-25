@@ -244,9 +244,9 @@ const CourseDetail = () => {
   );
 
   return (
-    <div className="h-full w-full space-y-6 lg:p-12 p-6">
+    <div className="h-full w-full space-y-6 px-3 py-5">
       {/* Header Section */}
-      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 p-6">
+      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 max-sm:px-4 p-6">
         <div className="flex max-md:flex-col gap-y-5 lg:items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold gradient-text">
@@ -274,7 +274,7 @@ const CourseDetail = () => {
 
         {/* Course Hero Content */}
         <motion.div 
-          className="relative overflow-hidden rounded-xl mb-6"
+          className="relative overflow-hidden rounded-xl sm:mb-6"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -288,7 +288,7 @@ const CourseDetail = () => {
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
           </div>
 
-          <div className="relative z-10 px-8 py-12">
+          <div className="relative z-10 px-4 sm:px-8 py-12">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Main Course Info */}
               <div className="lg:col-span-2">
@@ -493,7 +493,7 @@ const CourseDetail = () => {
       </section>
 
       {/* What's Included Section */}
-      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 p-6">
+      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 max-sm:px-4 p-6">
         <div className="mb-6">
           <h2 className="text-xl font-semibold gradient-text flex items-center gap-2">
             <Trophy className="w-5 h-5 text-yellow-400" />
@@ -598,7 +598,7 @@ const CourseDetail = () => {
       </section>
 
       {/* What You'll Learn Section */}
-      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 p-6">
+      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 max-sm:px-4 p-6">
         <div className="mb-6">
           <h2 className="text-xl font-semibold gradient-text">
             What you'll learn
@@ -624,7 +624,7 @@ const CourseDetail = () => {
       </section>
 
       {/* Course Content Section */}
-      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 p-6">
+      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 max-sm:px-4 p-6">
         <div className="mb-6">
           <h2 className="text-xl font-semibold gradient-text">
             Course Content
@@ -715,7 +715,7 @@ const CourseDetail = () => {
       </section>
 
       {/* Reviews Section */}
-      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 p-6">
+      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 max-sm:px-4 p-6">
         <div className="flex items-center gap-4 mb-6">
           <div>
             <h2 className="text-xl font-semibold gradient-text">Reviews</h2>

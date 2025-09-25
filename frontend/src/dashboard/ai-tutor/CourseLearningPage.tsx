@@ -25,6 +25,10 @@ import { Sheet, SheetTrigger } from "@/shared/components/ui/sheet"
 import { useCourseLearning } from "@/hooks/useCourseLearning"
 import { useCourseProgress } from "@/hooks/useCourseProgress"
 import { toast } from "sonner"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import rehypeHighlight from "rehype-highlight"
+import "highlight.js/styles/github-dark.css"
 
 const getTypeIcon = (type: string) => {
   switch (type) {
@@ -52,7 +56,6 @@ export default function CourseLearningPage() {
     progress, 
     isLoading: isLoadingProgress, 
     isUpdating: isUpdatingProgress,
-    error: progressError,
     updateProgress,
     refetch: refetchProgress 
   } = useCourseProgress(courseId ?? null)
@@ -134,7 +137,7 @@ export default function CourseLearningPage() {
         // Refresh progress data
         refetchProgress()
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to update progress")
     }
   }
@@ -173,7 +176,7 @@ export default function CourseLearningPage() {
           <p className="text-white/60">{contentError ?? "Failed to load course content"}</p>
           <Button 
             onClick={() => {
-              refetchContent()
+              void refetchContent()
             }}
             className="bg-turbo-purple hover:bg-turbo-purple/80"
           >
@@ -255,7 +258,7 @@ export default function CourseLearningPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3">
+          <div className="flex-1 overflow-y-auto p-3 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
             <div className="space-y-2">
               {modules.map((module) => {
                 const moduleProgress = getModuleProgress(module.id)
@@ -269,13 +272,13 @@ export default function CourseLearningPage() {
                       onClick={() => toggleModule(module.id)}
                     >
                       <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
                           <ChevronDown
-                            className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-0" : "-rotate-90"}`}
+                            className={`h-4 w-4 transition-transform duration-200 flex-shrink-0 ${isExpanded ? "rotate-0" : "-rotate-90"}`}
                           />
                           <span className="truncate text-sm">{module.title}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           {isCompleted && <CheckCircle className="h-4 w-4 text-green-600" />}
                           <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-dark-accent/50 text-white border-white/10">
                             {moduleProgress}%
@@ -371,7 +374,7 @@ export default function CourseLearningPage() {
                     <div className="flex items-center gap-6 text-sm text-dark-muted">
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4" />
-                        <span>{Math.ceil((currentModule?.content.length || 0) / 1000)} min read</span>
+                        <span>{Math.ceil((currentModule?.content.length ?? 0) / 1000)} min read</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
@@ -395,10 +398,91 @@ export default function CourseLearningPage() {
               </div>
 
               <div className="bg-gradient-to-br from-dark-accent/30 to-dark-accent/10 rounded-xl border border-white/10 max-sm:p-6 p-8">
-                <div className="prose prose-neutral dark:prose-invert max-w-none">
-                  <div className="text-white leading-relaxed text-base whitespace-pre-line">
-                    {currentModule?.content || "No content available for this module."}
-                  </div>
+                <div className="prose prose-neutral dark:prose-invert max-w-none prose-headings:text-white prose-p:text-white/90 prose-strong:text-white prose-code:text-green-300 prose-code:bg-dark-background/60 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:border prose-code:border-white/10 prose-pre:bg-dark-background/60 prose-pre:border prose-pre:border-white/10 prose-blockquote:border-l-turbo-purple/50 prose-blockquote:bg-turbo-purple/10 prose-blockquote:text-white/90 prose-a:text-turbo-purple prose-a:no-underline hover:prose-a:underline">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeHighlight]}
+                    components={{
+                      h1: ({ children }) => (
+                        <h1 className="text-2xl font-bold text-white mt-6 mb-4 first:mt-0">{children}</h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 className="text-xl font-semibold text-white mt-5 mb-3">{children}</h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 className="text-lg font-semibold text-white mt-4 mb-2">{children}</h3>
+                      ),
+                      p: ({ children }) => (
+                        <p className="text-white/90 leading-relaxed mb-4">{children}</p>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-inside space-y-2 mb-4 text-white/90">{children}</ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal list-inside space-y-2 mb-4 text-white/90">{children}</ol>
+                      ),
+                      li: ({ children }) => (
+                        <li className="leading-relaxed">{children}</li>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-turbo-purple/50 pl-4 py-2 my-4 bg-turbo-purple/10 rounded-r-lg text-white/90 italic">
+                          {children}
+                        </blockquote>
+                      ),
+                      code: ({ children, className }) => {
+                        const isInline = !className
+                        if (isInline) {
+                          return (
+                            <code className="bg-dark-background/60 text-green-300 px-1.5 py-0.5 rounded text-sm font-mono border border-white/10">
+                              {children}
+                            </code>
+                          )
+                        }
+                        return (
+                          <code className={className}>
+                            {children}
+                          </code>
+                        )
+                      },
+                      pre: ({ children }) => (
+                        <pre className="bg-dark-background/60 border border-white/10 rounded-lg p-4 overflow-x-auto mb-4">
+                          {children}
+                        </pre>
+                      ),
+                      a: ({ href, children }) => (
+                        <a
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-turbo-purple hover:text-turbo-indigo underline transition-colors"
+                        >
+                          {children}
+                        </a>
+                      ),
+                      table: ({ children }) => (
+                        <div className="overflow-x-auto mb-4">
+                          <table className="min-w-full border border-white/10 rounded-lg">
+                            {children}
+                          </table>
+                        </div>
+                      ),
+                      th: ({ children }) => (
+                        <th className="border border-white/10 px-4 py-2 bg-dark-accent/50 text-white font-semibold text-left">
+                          {children}
+                        </th>
+                      ),
+                      td: ({ children }) => (
+                        <td className="border border-white/10 px-4 py-2 text-white/90">
+                          {children}
+                        </td>
+                      ),
+                      hr: () => (
+                        <hr className="border-white/20 my-6" />
+                      ),
+                    }}
+                  >
+                    {currentModule?.content ?? "No content available for this module."}
+                  </ReactMarkdown>
                 </div>
               </div>
 
@@ -418,7 +502,7 @@ export default function CourseLearningPage() {
                     {!isModuleCompleted(activeModuleId ?? "") && activeModuleId && (
                       <Button 
                         variant="outline" 
-                        onClick={() => markAsComplete(activeModuleId)}
+                        onClick={() => void markAsComplete(activeModuleId)}
                         disabled={isUpdatingProgress}
                         className="px-3 sm:px-6 py-2.5 bg-dark-accent/50 text-white border-white/10 hover:bg-dark-accent/70"
                       >

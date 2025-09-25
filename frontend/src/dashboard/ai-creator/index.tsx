@@ -43,7 +43,7 @@ export default function AICreator() {
   );
 
   return (
-    <div className="h-full w-full space-y-6">
+    <div className="h-full w-full px-3 py-5 space-y-6">
       {/* Header Section */}
       <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 p-6">
         <div className="flex max-md:flex-col gap-y-5 lg:items-center justify-between mb-6">

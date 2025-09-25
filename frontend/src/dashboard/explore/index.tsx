@@ -50,9 +50,9 @@ const Explore = () => {
   const uiCourses: UiCourse[] = (publicCourses || []).map(mapToUiCourse);
 
   return (
-    <div className="h-full w-full space-y-6 lg:p-12 p-6">
+    <div className="h-full w-full space-y-6 px-3 py-5">
       {/* Header Section */}
-      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 p-6">
+      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 max-sm:px-4 p-6">
         <div className="flex max-md:flex-col gap-y-5 lg:items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold gradient-text">
@@ -66,7 +66,7 @@ const Explore = () => {
 
         {/* Hero Content */}
         <motion.div 
-          className="relative overflow-hidden rounded-xl mb-6"
+          className="relative overflow-hidden rounded-xl sm:mb-6"
           variants={itemVariants}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-turbo-purple via-turbo-indigo to-purple-900"></div>
@@ -78,7 +78,7 @@ const Explore = () => {
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
           </div>
 
-          <div className="relative z-10 px-8 py-12">
+          <div className="relative z-10 px-4 sm:px-8 py-12">
             <div className="text-center">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
@@ -119,7 +119,7 @@ const Explore = () => {
       </section>
 
       {/* Categories Section */}
-      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 p-6">
+      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 max-sm:px-4 p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-white">Browse by Category</h2>
         </div>
@@ -148,19 +148,29 @@ const Explore = () => {
       </section>
 
       {/* Featured Courses Section */}
-      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 p-6">
+      <section className="flex flex-col bg-dark-card/40 w-full rounded-xl border border-white/5 max-sm:px-4 p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-semibold text-white">Featured Courses</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">Featured Courses</h2>
+              <Link className='sm:hidden' to="/dashboard/explore/featured">
+                <Button 
+                  variant="outline" 
+                  className="max-sm:px-3 border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200"
+                >
+                  <ChevronRight className="w-4 h-4 sm:ml-2" />
+                </Button>
+          </Link>
+            </div>
             <p className="text-white/60 mt-1">Start learning with our most popular courses</p>
           </div>
-          <Link to="/dashboard/explore/featured">
+          <Link className='max-sm:hidden' to="/dashboard/explore/featured">
             <Button 
               variant="outline" 
               className="border-white/20 text-white hover:bg-white/10 hover:border-white/30 transition-all duration-200"
-            >
-              View All 
-              <ChevronRight className="w-4 h-4 ml-2" />
+              >
+              View All
+              <ChevronRight className="w-4 h-4 sm:ml-2" />
             </Button>
           </Link>
         </div>

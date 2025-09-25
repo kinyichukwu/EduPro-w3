@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   CreditCard,
@@ -47,38 +47,48 @@ export const ProfilePage = () => {
   
   const userWallet = publicKey?.toString() || "";
 
-  // Fetch EduPro token and SOL balances when wallet is connected
-  useEffect(() => {
-    const fetchBalances = async () => {
-      if (!connected || !userWallet) {
-        setEduproBalance(0);
-        setSolBalance(0);
-        setBalanceError(null);
-        return;
-      }
-
-      setIsLoadingBalance(true);
+  // Helper to refresh balances on demand (and on mount)
+  const refreshProfileBalances = useCallback(async () => {
+    if (!connected || !userWallet) {
+      setEduproBalance(0);
+      setSolBalance(0);
       setBalanceError(null);
-      try {
-        const [eduBalance, solBalanceData] = await Promise.all([
-          solanaAPI.getEduTokenBalance(userWallet),
-          solanaAPI.getWalletBalance(userWallet)
-        ]);
-        setEduproBalance(eduBalance.edutoken_balance / 1e9); // Convert from lamports to EDU
-        setSolBalance(solBalanceData.balance_sol);
-      } catch (error) {
-        console.error("Failed to fetch balances:", error);
-        const errorMessage = error instanceof Error ? error.message : "Failed to fetch balances";
-        setBalanceError(errorMessage);
-        setEduproBalance(0);
-        setSolBalance(0);
-      } finally {
-        setIsLoadingBalance(false);
-      }
-    };
+      return;
+    }
 
-    fetchBalances();
+    setIsLoadingBalance(true);
+    setBalanceError(null);
+    try {
+      const [eduBalance, solBalanceData] = await Promise.all([
+        solanaAPI.getEduTokenBalance(userWallet),
+        solanaAPI.getWalletBalance(userWallet)
+      ]);
+      setEduproBalance(eduBalance.edutoken_balance / 1e9);
+      setSolBalance(solBalanceData.balance_sol);
+    } catch (error) {
+      console.error("Failed to fetch balances:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to fetch balances";
+      setBalanceError(errorMessage);
+      setEduproBalance(0);
+      setSolBalance(0);
+    } finally {
+      setIsLoadingBalance(false);
+    }
   }, [connected, userWallet]);
+
+  // Initial fetch and when wallet changes
+  useEffect(() => {
+    refreshProfileBalances();
+  }, [refreshProfileBalances]);
+
+  // Listen for global balance refresh events (e.g., after swap completes)
+  useEffect(() => {
+    const handler = () => {
+      refreshProfileBalances();
+    };
+    window.addEventListener("edupro:refreshBalances", handler);
+    return () => window.removeEventListener("edupro:refreshBalances", handler);
+  }, [refreshProfileBalances]);
 
   // Handle connecting wallet to backend
   const handleConnectToBackend = async () => {

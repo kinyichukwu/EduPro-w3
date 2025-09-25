@@ -447,6 +447,8 @@ const ConversionModal = ({ onClose }: ConversionModalProps) => {
       // Refresh balances and close modal after a short delay
       setTimeout(() => {
         refreshBalances();
+        // Notify rest of app (profile header) to refresh balances too
+        window.dispatchEvent(new CustomEvent("edupro:refreshBalances"));
         onClose();
       }, 2000); // Show success message for 2 seconds before closing
     }

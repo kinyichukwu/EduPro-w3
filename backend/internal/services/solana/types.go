@@ -77,6 +77,9 @@ type SubmitSwapTransactionRequest struct {
 	Transaction string `json:"transaction" validate:"required"`
 	Signature   string `json:"signature" validate:"required"`
 	UserWallet  string `json:"userWallet" validate:"required"`
+	InputMint   string `json:"inputMint" validate:"required"`
+	OutputMint  string `json:"outputMint" validate:"required"`
+	InputAmount uint64 `json:"inputAmount" validate:"required,min=1"`
 }
 
 // SwapStatus represents the status of a swap

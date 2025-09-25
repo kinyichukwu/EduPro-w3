@@ -140,6 +140,9 @@ export const useSwap = () => {
         transaction: state.swapData.solTransaction,
         signature,
         userWallet: publicKey.toString(),
+        inputMint: state.swapData.inputMint,
+        outputMint: state.swapData.outputMint,
+        inputAmount: Number(state.swapData.inAmount),
       };
 
       const result = await solanaAPI.submitSwapTransaction(submitRequest);
@@ -184,6 +187,9 @@ export const useSwap = () => {
         transaction: state.swapData.edupoTransaction,
         signature,
         userWallet: publicKey.toString(),
+        inputMint: state.swapData.inputMint,
+        outputMint: state.swapData.outputMint,
+        inputAmount: Number(state.swapData.inAmount),
       };
 
       await solanaAPI.submitSwapTransaction(submitRequest);
@@ -238,6 +244,9 @@ export const useSwap = () => {
         transaction: swapData.solTransaction,
         signature: signedTransactionBase64,
         userWallet: publicKey.toString(),
+        inputMint: swapData.inputMint,
+        outputMint: swapData.outputMint,
+        inputAmount: Number(swapData.inAmount),
       };
 
       const result = await solanaAPI.submitSwapTransaction(submitRequest);
@@ -296,6 +305,9 @@ export const useSwap = () => {
         transaction: swapData.edupoTransaction,
         signature: signedTransactionBase64,
         userWallet: publicKey.toString(),
+        inputMint: swapData.inputMint,
+        outputMint: swapData.outputMint,
+        inputAmount: Number(swapData.inAmount),
       };
 
       await solanaAPI.submitSwapTransaction(submitRequest);
@@ -349,10 +361,21 @@ export const useSwap = () => {
       // 1. Execute swap to get transactions
       const swapData = await executeSwap(request);
 
-      // 2. Sign and submit SOL transaction - backend now handles EDU transfer automatically
-      await signAndSubmitSOLWithData(swapData);
+      // 2. Sign and submit the correct leg based on direction
+      const SOL_MINT = "So11111111111111111111111111111111111111112";
+      const EDUPRO_MINT = "8kNjLpVVoMK6QY5zQgjavDYmLzULnboxrPcry6Cf4urV";
 
-      // Swap is now complete! Backend has already transferred EDU tokens
+      if (swapData.inputMint === SOL_MINT && swapData.outputMint === EDUPRO_MINT) {
+        // SOL → EDU: user signs SOL
+        await signAndSubmitSOLWithData(swapData);
+      } else if (swapData.inputMint === EDUPRO_MINT && swapData.outputMint === SOL_MINT) {
+        // EDU → SOL: user signs EDU
+        await signAndSubmitEduProWithData(swapData);
+      } else {
+        throw new Error("Unsupported swap direction");
+      }
+
+      // 3. Swap completed (backend handled the counter-transfer)
       setState(prev => ({
         ...prev,
         step: "completed",

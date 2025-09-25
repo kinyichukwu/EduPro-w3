@@ -49,6 +49,9 @@ export interface SubmitSwapTransactionRequest {
   transaction: string;
   signature: string;
   userWallet: string;
+  inputMint: string;
+  outputMint: string;
+  inputAmount: number; // smallest unit of input (lamports for SOL, 1e9 for EDU)
 }
 
 export interface SwapStatus {

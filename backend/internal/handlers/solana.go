@@ -408,7 +408,7 @@ func (h *SolanaHandler) GetSwapQuote(c *gin.Context) {
 	utils.SendSuccess(c, quoteData)
 }
 
-// ExecuteSwap executes a fixed-price token swap
+// ExecuteSwap executes a fixed-price token swap (supports SOL→EDU and EDU→SOL)
 func (h *SolanaHandler) ExecuteSwap(c *gin.Context) {
 	var req solana.SwapRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -427,75 +427,115 @@ func (h *SolanaHandler) ExecuteSwap(c *gin.Context) {
 		return
 	}
 
-	// Check if this is a SOL to EduPro token swap
+	// Supported mints
 	solMint := "So11111111111111111111111111111111111111112"
 	edupoMint := "8kNjLpVVoMK6QY5zQgjavDYmLzULnboxrPcry6Cf4urV"
-
-	if req.InputMint != solMint || req.OutputMint != edupoMint {
-		utils.SendError(c, &models.APIError{
-			Code:    http.StatusBadRequest,
-			Message: "Only SOL to EduPro token swaps are supported",
-		})
-		return
-	}
 
 	// Fixed rate: 1 SOL = 1000 EduPro tokens
 	fixedRate := 1000.0
 
-	// Calculate amounts
-	solAmount := float64(req.Amount) / 1e9 // Convert lamports to SOL
-	edupoAmount := solAmount * fixedRate
-	edupoAmountLamports := uint64(edupoAmount * 1e9) // Convert to EduPro token units
-
-	// Create swap execution response
 	swapID := fmt.Sprintf("swap_%d", time.Now().Unix())
 
-	// Create actual serialized transactions
-	solTransaction, err := h.createSOLTransferTransaction(req.UserWallet, h.config.SolanaConfig.RecipientWallet, req.Amount)
-	if err != nil {
-		h.logger.Error("Failed to create SOL transaction", zap.Error(err))
-		utils.SendError(c, &models.APIError{
-			Code:    http.StatusInternalServerError,
-			Message: "Failed to create SOL transaction",
-		})
+	// Branch on direction
+	if req.InputMint == solMint && req.OutputMint == edupoMint {
+		// SOL → EDU
+		solAmountSOL := float64(req.Amount) / 1e9
+		edupoAmount := solAmountSOL * fixedRate
+		edupoAmountLamports := uint64(edupoAmount * 1e9)
+
+		// User sends SOL to org
+		solTransaction, err := h.createSOLTransferTransaction(req.UserWallet, h.config.SolanaConfig.RecipientWallet, req.Amount)
+		if err != nil {
+			h.logger.Error("Failed to create SOL transaction", zap.Error(err))
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Failed to create SOL transaction"})
+			return
+		}
+
+		// Org will programmatically send EDU after SOL confirmation; we still include a prepared token tx for reference
+		edupoTransaction, err := h.createEduProTokenTransferTransaction(h.config.SolanaConfig.RecipientWallet, req.UserWallet, edupoAmountLamports)
+		if err != nil {
+			h.logger.Error("Failed to create EduPro transaction", zap.Error(err))
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Failed to create EduPro transaction"})
+			return
+		}
+
+		result := map[string]interface{}{
+			"swapId":           swapID,
+			"status":           "pending",
+			"inputMint":        req.InputMint,
+			"outputMint":       req.OutputMint,
+			"inAmount":         fmt.Sprintf("%d", req.Amount),
+			"outAmount":        fmt.Sprintf("%d", edupoAmountLamports),
+			"fixedRate":        fixedRate,
+			"userWallet":       req.UserWallet,
+			"orgWallet":        h.config.SolanaConfig.RecipientWallet,
+			"solTransaction":   solTransaction,
+			"edupoTransaction": edupoTransaction,
+			"message":          "Sign and submit the SOL transaction. After confirmation, EDU tokens will be sent to your wallet.",
+			"expiresAt":        time.Now().Add(15 * time.Minute).Unix(),
+		}
+
+		h.logger.Info("Fixed-price swap prepared (SOL→EDU)",
+			zap.String("swap_id", swapID),
+			zap.String("user_wallet", req.UserWallet),
+			zap.Float64("sol_in_SOL", solAmountSOL),
+			zap.Float64("edupo_out", edupoAmount),
+			zap.Float64("fixed_rate", fixedRate),
+		)
+
+		utils.SendSuccess(c, result)
+		return
+	} else if req.InputMint == edupoMint && req.OutputMint == solMint {
+		// EDU → SOL
+		edupoAmountTokens := float64(req.Amount) / 1e9
+		solAmount := edupoAmountTokens / fixedRate
+		solAmountLamports := uint64(solAmount * 1e9)
+
+		// User sends EDU tokens to org (user will sign this)
+		edupoTransaction, err := h.createEduProTokenTransferTransaction(req.UserWallet, h.config.SolanaConfig.RecipientWallet, req.Amount)
+		if err != nil {
+			h.logger.Error("Failed to create EduPro transaction", zap.Error(err))
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Failed to create EduPro transaction"})
+			return
+		}
+
+		// Org will programmatically send SOL after EDU confirmation; include a prepared SOL tx for reference
+		solTransaction, err := h.createSOLTransferTransaction(h.config.SolanaConfig.RecipientWallet, req.UserWallet, solAmountLamports)
+		if err != nil {
+			h.logger.Error("Failed to create SOL transaction", zap.Error(err))
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "Failed to create SOL transaction"})
+			return
+		}
+
+		result := map[string]interface{}{
+			"swapId":           swapID,
+			"status":           "pending",
+			"inputMint":        req.InputMint,
+			"outputMint":       req.OutputMint,
+			"inAmount":         fmt.Sprintf("%d", req.Amount),
+			"outAmount":        fmt.Sprintf("%d", solAmountLamports),
+			"fixedRate":        fixedRate,
+			"userWallet":       req.UserWallet,
+			"orgWallet":        h.config.SolanaConfig.RecipientWallet,
+			"solTransaction":   solTransaction,
+			"edupoTransaction": edupoTransaction,
+			"message":          "Sign and submit the EduPro token transaction. After confirmation, SOL will be sent to your wallet.",
+			"expiresAt":        time.Now().Add(15 * time.Minute).Unix(),
+		}
+
+		h.logger.Info("Fixed-price swap prepared (EDU→SOL)",
+			zap.String("swap_id", swapID),
+			zap.String("user_wallet", req.UserWallet),
+			zap.Float64("edupo_in", edupoAmountTokens),
+			zap.Float64("sol_out_SOL", solAmount),
+			zap.Float64("fixed_rate", fixedRate),
+		)
+
+		utils.SendSuccess(c, result)
 		return
 	}
 
-	edupoTransaction, err := h.createEduProTokenTransferTransaction(h.config.SolanaConfig.RecipientWallet, req.UserWallet, edupoAmountLamports)
-	if err != nil {
-		h.logger.Error("Failed to create EduPro transaction", zap.Error(err))
-		utils.SendError(c, &models.APIError{
-			Code:    http.StatusInternalServerError,
-			Message: "Failed to create EduPro transaction",
-		})
-		return
-	}
-
-	result := map[string]interface{}{
-		"swapId":           swapID,
-		"status":           "pending",
-		"inputMint":        req.InputMint,
-		"outputMint":       req.OutputMint,
-		"inAmount":         fmt.Sprintf("%d", req.Amount),
-		"outAmount":        fmt.Sprintf("%d", edupoAmountLamports),
-		"fixedRate":        fixedRate,
-		"userWallet":       req.UserWallet,
-		"orgWallet":        h.config.SolanaConfig.RecipientWallet,
-		"solTransaction":   solTransaction,
-		"edupoTransaction": edupoTransaction,
-		"message":          "Sign and submit both transactions to complete the swap. SOL will be sent to organization wallet and EduPro tokens will be sent to your wallet.",
-		"expiresAt":        time.Now().Add(15 * time.Minute).Unix(),
-	}
-
-	h.logger.Info("Fixed-price swap executed",
-		zap.String("swap_id", swapID),
-		zap.String("user_wallet", req.UserWallet),
-		zap.Float64("sol_amount", solAmount),
-		zap.Float64("edupo_amount", edupoAmount),
-		zap.Float64("fixed_rate", fixedRate),
-	)
-
-	utils.SendSuccess(c, result)
+	utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Only swaps between SOL and EduPro token are supported"})
 }
 
 // GetBlockchainStats gets general blockchain statistics
@@ -765,7 +805,7 @@ func (h *SolanaHandler) SubmitSwapTransaction(c *gin.Context) {
 		return
 	}
 
-	// Submit transaction to Solana network
+	// Submit the signed transaction to Solana (could be SOL or EDU transfer depending on direction)
 	signature, err := h.solanaClient.SubmitTransaction(ctx, txBytes)
 	if err != nil {
 		h.logger.Error("Failed to submit transaction",
@@ -779,7 +819,7 @@ func (h *SolanaHandler) SubmitSwapTransaction(c *gin.Context) {
 		return
 	}
 
-	h.logger.Info("SOL transaction submitted to Solana",
+	h.logger.Info("User transaction submitted to Solana",
 		zap.String("swap_id", req.SwapID),
 		zap.String("signature", signature.String()),
 		zap.String("user_wallet", req.UserWallet),
@@ -812,71 +852,123 @@ func (h *SolanaHandler) SubmitSwapTransaction(c *gin.Context) {
 		return
 	}
 
-	// Transaction confirmed! Now transfer EDU tokens to user
+	// Transaction confirmed! Now fulfill the other leg based on direction
 	fixedRate := 1000.0
 
-	// For now, we'll need to parse the transaction to get the SOL amount
-	// This is a simplified approach - in production you'd store this data
-	solAmount, err := h.getSOLAmountFromTransaction(ctx, signature.String())
-	if err != nil {
-		h.logger.Error("Failed to get SOL amount from transaction",
-			zap.String("swap_id", req.SwapID),
-			zap.String("signature", signature.String()),
-			zap.Error(err),
-		)
-		// Continue anyway with a default amount for now
-		solAmount = 1000000000 // 1 SOL in lamports
-	}
+	solMint := "So11111111111111111111111111111111111111112"
+	edupoMint := "8kNjLpVVoMK6QY5zQgjavDYmLzULnboxrPcry6Cf4urV"
 
-	// Calculate EDU tokens to send
-	eduAmount := uint64(float64(solAmount) * fixedRate)
-
-	// Transfer EDU tokens to user
 	transferService := solana.NewTransferService(h.config.SolanaConfig.RPCEndpoint, h.logger)
 
-	transferReq := &solana.TransferTokenRequest{
-		FromPrivateKey: h.config.SolanaConfig.PrivateKey,
-		ToWallet:       req.UserWallet,
-		TokenMint:      h.config.SolanaConfig.EduProTokenMint,
-		Amount:         eduAmount,
-		Decimals:       9,
-		Memo:           fmt.Sprintf("Swap completion: %s", req.SwapID),
-	}
+	if req.InputMint == solMint && req.OutputMint == edupoMint {
+		// User sent SOL → send EDU tokens
+		// Prefer provided amount if available (lamports of SOL in req.InputAmount)
+		solAmount := req.InputAmount
+		if solAmount == 0 {
+			// Fallback: try parsing from chain
+			parsed, err := h.getSOLAmountFromTransaction(ctx, signature.String())
+			if err != nil {
+				h.logger.Error("Failed to parse SOL amount from transaction", zap.Error(err))
+				parsed = 1000000000 // default 1 SOL
+			}
+			solAmount = parsed
+		}
 
-	transferResult, err := transferService.SendToken(ctx, transferReq)
-	if err != nil {
-		h.logger.Error("Failed to transfer EDU tokens to user",
+		eduAmount := uint64(float64(solAmount) * fixedRate)
+
+		transferReq := &solana.TransferTokenRequest{
+			FromPrivateKey: h.config.SolanaConfig.PrivateKey,
+			ToWallet:       req.UserWallet,
+			TokenMint:      h.config.SolanaConfig.EduProTokenMint,
+			Amount:         eduAmount,
+			Decimals:       9,
+			Memo:           fmt.Sprintf("Swap completion: %s", req.SwapID),
+		}
+
+		transferResult, err := transferService.SendToken(ctx, transferReq)
+		if err != nil {
+			h.logger.Error("Failed to transfer EDU tokens to user",
+				zap.String("swap_id", req.SwapID),
+				zap.String("user_wallet", req.UserWallet),
+				zap.Uint64("edu_amount", eduAmount),
+				zap.Error(err),
+			)
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "SOL received but failed to send EDU tokens"})
+			return
+		}
+
+		h.logger.Info("Swap completed successfully (SOL→EDU)",
 			zap.String("swap_id", req.SwapID),
+			zap.String("user_tx_signature", signature.String()),
+			zap.String("org_tx_signature", transferResult.Signature),
 			zap.String("user_wallet", req.UserWallet),
+			zap.Uint64("sol_amount", solAmount),
 			zap.Uint64("edu_amount", eduAmount),
-			zap.Error(err),
 		)
-		utils.SendError(c, &models.APIError{
-			Code:    http.StatusInternalServerError,
-			Message: "SOL received but failed to send EDU tokens",
+
+		utils.SendSuccess(c, gin.H{
+			"swapId":       req.SwapID,
+			"status":       "completed",
+			"solSignature": signature.String(),
+			"eduSignature": transferResult.Signature,
+			"confirmed":    true,
+			"solAmount":    solAmount,
+			"eduAmount":    eduAmount,
+			"message":      "Swap completed successfully! EDU tokens have been sent to your wallet.",
+		})
+		return
+	} else if req.InputMint == edupoMint && req.OutputMint == solMint {
+		// User sent EDU → send SOL lamports
+		edupoAmountLamports := req.InputAmount
+		if edupoAmountLamports == 0 {
+			// We could parse token amount from chain here; use default 1 EDU for fallback
+			edupoAmountLamports = 1000000000
+		}
+		edupoAmountTokens := float64(edupoAmountLamports) / 1e9
+		solAmountLamports := uint64((edupoAmountTokens / fixedRate) * 1e9)
+
+		solReq := &solana.TransferSOLRequest{
+			FromPrivateKey: h.config.SolanaConfig.PrivateKey,
+			ToWallet:       req.UserWallet,
+			Amount:         solAmountLamports,
+			Memo:           fmt.Sprintf("Swap completion: %s", req.SwapID),
+		}
+
+		solResult, err := transferService.SendSOL(ctx, solReq)
+		if err != nil {
+			h.logger.Error("Failed to transfer SOL to user",
+				zap.String("swap_id", req.SwapID),
+				zap.String("user_wallet", req.UserWallet),
+				zap.Uint64("sol_amount", solAmountLamports),
+				zap.Error(err),
+			)
+			utils.SendError(c, &models.APIError{Code: http.StatusInternalServerError, Message: "EDU received but failed to send SOL"})
+			return
+		}
+
+		h.logger.Info("Swap completed successfully (EDU→SOL)",
+			zap.String("swap_id", req.SwapID),
+			zap.String("user_tx_signature", signature.String()),
+			zap.String("org_tx_signature", solResult.Signature),
+			zap.String("user_wallet", req.UserWallet),
+			zap.Uint64("edu_amount", edupoAmountLamports),
+			zap.Uint64("sol_amount", solAmountLamports),
+		)
+
+		utils.SendSuccess(c, gin.H{
+			"swapId":       req.SwapID,
+			"status":       "completed",
+			"eduSignature": signature.String(),
+			"solSignature": solResult.Signature,
+			"confirmed":    true,
+			"eduAmount":    edupoAmountLamports,
+			"solAmount":    solAmountLamports,
+			"message":      "Swap completed successfully! SOL has been sent to your wallet.",
 		})
 		return
 	}
 
-	h.logger.Info("Swap completed successfully",
-		zap.String("swap_id", req.SwapID),
-		zap.String("sol_signature", signature.String()),
-		zap.String("edu_signature", transferResult.Signature),
-		zap.String("user_wallet", req.UserWallet),
-		zap.Uint64("sol_amount", solAmount),
-		zap.Uint64("edu_amount", eduAmount),
-	)
-
-	utils.SendSuccess(c, gin.H{
-		"swapId":       req.SwapID,
-		"status":       "completed",
-		"solSignature": signature.String(),
-		"eduSignature": transferResult.Signature,
-		"confirmed":    true,
-		"solAmount":    solAmount,
-		"eduAmount":    eduAmount,
-		"message":      "Swap completed successfully! EDU tokens have been sent to your wallet.",
-	})
+	utils.SendError(c, &models.APIError{Code: http.StatusBadRequest, Message: "Invalid swap direction"})
 }
 
 // GetSwapStatus gets the status of a swap

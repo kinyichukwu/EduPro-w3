@@ -39,12 +39,12 @@ export const Questions = () => {
       animate="visible"
     >
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-medium">Available Question Papers</h2>
+        <h2 className="text-xl font-semibold text-white">Available Question Papers</h2>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-sm text-gray-500">
+          <div className="flex items-center gap-1 text-sm text-white/60">
             <SlidersHorizontal size={14} />
             <span className="max-sm:hidden">Sort by:</span>
-            <select className="bg-transparent border-none font-medium text-purple-500 focus:outline-none cursor-pointer">
+            <select className="bg-transparent border-none font-medium text-turbo-purple focus:outline-none cursor-pointer">
               <option>Recent</option>
               <option>Year</option>
               <option>Difficulty</option>
@@ -74,10 +74,10 @@ export const Questions = () => {
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xl font-bold">
+                        <span className="text-xl font-bold text-white">
                           {question.subject}
                         </span>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-white/60">
                           • {question.year}
                         </span>
                         <span
@@ -92,17 +92,17 @@ export const Questions = () => {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4">
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                        <div className="flex items-center gap-1 text-sm text-white/60">
                           <BookOpen size={14} />
                           <span>
                             {question.examType} {question.paper}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                        <div className="flex items-center gap-1 text-sm text-white/60">
                           <Calendar size={14} />
                           <span>{question.questions} Questions</span>
                         </div>
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
+                        <div className="flex items-center gap-1 text-sm text-white/60">
                           <Clock size={14} />
                           <span>{question.duration} Minutes</span>
                         </div>
@@ -111,8 +111,8 @@ export const Questions = () => {
                       {question.progress > 0 && (
                         <div className="mb-2 w-full md:max-w-md">
                           <div className="flex justify-between items-center mb-1 text-xs">
-                            <span className="text-gray-500">Progress</span>
-                            <span className="font-medium">
+                            <span className="text-white/60">Progress</span>
+                            <span className="font-medium text-white">
                               {question.progress}%
                             </span>
                           </div>
@@ -125,7 +125,7 @@ export const Questions = () => {
                     </div>
 
                     <div className="flex md:flex-col items-center md:items-end gap-3 md:min-w-[120px]">
-                      <Button className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 w-full md:w-auto">
+                      <Button className="bg-gradient-to-r from-turbo-purple to-turbo-indigo hover:from-turbo-purple/80 hover:to-turbo-indigo/80 w-full md:w-auto">
                         <Play size={14} className="mr-1" /> Practice
                       </Button>
 
@@ -133,14 +133,14 @@ export const Questions = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-full hover:bg-gray-200/20"
+                          className="h-8 w-8 rounded-full hover:bg-white/10 text-white/60 hover:text-white"
                         >
                           <Download size={14} />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-full hover:bg-gray-200/20"
+                          className="h-8 w-8 rounded-full hover:bg-white/10 text-white/60 hover:text-white"
                         >
                           <Star size={14} />
                         </Button>

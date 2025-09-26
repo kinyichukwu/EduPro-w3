@@ -33,8 +33,8 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { icon: BookOpen, name: "Quizzes", path: "/dashboard/quizzes" },
     {
       icon: FileQuestion,
-      name: "Past Questions",
-      path: "/dashboard/past-questions",
+      name: "Questions",
+      path: "/dashboard/questions",
     },
     { icon: Upload, name: "Upload Materials", path: "/dashboard/upload" },
     { icon: Library, name: "Material Library", path: "/dashboard/library" },

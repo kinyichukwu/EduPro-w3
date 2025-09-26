@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft,
   BookOpen,
   CheckCircle2,
   ChevronRight,
@@ -13,16 +11,14 @@ import {
   Search,
   Target,
   TrendingUp,
-  Users,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { GlassCard } from "../components/GlassCard";
 import { examTypes, subjects, pastQuestions } from "../constants/library";
-import { Questions } from "../components/library/PastQuestions";
+import { Questions as QuestionPapers } from "../components/library/PastQuestions";
 
-export default function PastQuestions() {
-  const navigate = useNavigate();
+export default function Questions() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
@@ -109,7 +105,7 @@ export default function PastQuestions() {
         {/* Header Section */}
         <div className="flex max-sm:flex-col gap-y-5 lg:items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold gradient-text">Past Questions</h1>
+            <h1 className="text-3xl font-bold gradient-text">Questions</h1>
             <p className="text-white/60 mt-1">
               Practice with previous examination questions to improve your test performance
             </p>
@@ -229,7 +225,7 @@ export default function PastQuestions() {
         </div>
 
         {/* Past Question Papers */}
-        <Questions />
+        <QuestionPapers />
 
         {/* Study Recommendations */}
         <div className="mb-8">

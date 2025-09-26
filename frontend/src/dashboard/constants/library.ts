@@ -9,7 +9,7 @@ export const libraryFeatures = [
     icon: History,
     stats: { value: 240, label: "Questions Available" },
     color: "from-turbo-purple to-purple",
-    path: "/dashboard/library/past-questions",
+    path: "/dashboard/questions",
     action: "Browse Questions",
   },
   {

@@ -17,7 +17,7 @@ import ErrorBoundary from "./shared/components/ErrorBoundary";
 import QuizView from "./dashboard/quizzes";
 import DoFlashCards from "./dashboard/flashcards/DoFlashCards";
 import LibraryHub from "./dashboard/library";
-import PastQuestions from "./dashboard/library/past-questions";
+import PastQuestions from "./dashboard/library/questions";
 import MyUploads from "./dashboard/library/uploads";
 import LibraryAnalytics from "./dashboard/library/analytics";
 import UploadNew from "./dashboard/library/upload";
@@ -102,7 +102,7 @@ export const AppRoutes = () => {
           <Route path="quizzes" element={<QuizView />} />
           <Route path="quizzes/:id" element={<Quiz />} />
           <Route path="library" element={<LibraryHub />} />
-          <Route path="library/past-questions" element={<PastQuestions />} />
+          <Route path="questions" element={<PastQuestions />} />
           <Route path="library/uploads" element={<MyUploads />} />
           <Route path="library/analytics" element={<LibraryAnalytics />} />
           <Route path="library/upload" element={<UploadNew />} />

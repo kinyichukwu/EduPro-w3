@@ -185,7 +185,7 @@ export const CourseCard = ({ course, onCourseUpdate }: CourseCardProps) => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-1">
+        <div className="grid grid-cols-4 gap-1">
           <div className="text-center border border-purple/10 bg-white/5 rounded-xl py-3 px-1">
             <div className="flex items-center justify-center text-turbo-purple">
               <BookOpen className="w-4 h-4" />
@@ -208,6 +208,14 @@ export const CourseCard = ({ course, onCourseUpdate }: CourseCardProps) => {
               <span className="font-medium">{course.earnings}</span>
             </div>
             <p className="text-xs text-white/60 mt-1">Earned</p>
+          </div>
+
+          <div className="text-center border border-purple/10 bg-white/5 rounded-xl py-3 px-1">
+            <div className="flex items-center justify-center text-yellow-500">
+              <DollarSign className="w-4 h-4" />
+              <span className="font-medium">{course.price}</span>
+            </div>
+            <p className="text-xs text-white/60 mt-1">EDU Price</p>
           </div>
         </div>
 

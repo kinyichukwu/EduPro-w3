@@ -65,7 +65,7 @@ export const CreateCourseModal = ({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-dark-card/95 backdrop-blur-lg rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-white/20"
+            className="bg-dark-card/95 backdrop-blur-lg rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-white/20"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -89,7 +89,7 @@ export const CreateCourseModal = ({
             </div>
 
             {/* Content */}
-            <div className="p-6 max-sm:px-4 space-y-6">
+            <div className="p-6 max-sm:px-4 space-y-6 overflow-y-auto flex-1">
               {/* Course Creation Fee Notice */}
               <div className="bg-gradient-to-r from-turbo-purple/10 to-turbo-indigo/10 border border-turbo-purple/20 rounded-lg p-4">
                 <div className="flex items-center gap-3">
@@ -141,11 +141,25 @@ export const CreateCourseModal = ({
                   <Input
                     type="number"
                     value={price}
-                    onChange={(e) => setPrice(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Only allow positive numbers
+                      if (value === "" || parseFloat(value) >= 0) {
+                        setPrice(value);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      // Prevent typing negative sign
+                      if (e.key === "-" || e.key === "e" || e.key === "E") {
+                        e.preventDefault();
+                      }
+                    }}
+                    pattern="^$|^\\d+(\\.\\d+)?$"
                     min={0}
                     step={0.000000001}
                     placeholder="e.g., 25.5"
-                    className="bg-white/5 border-white/20 text-white placeholder-white/40"
+                    className="bg-white/5 border-white/20 text-white placeholder-white/40 [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    style={{ appearance: 'none' }}
                   />
                   <p className="mt-1 text-xs text-white/50">
                     Platform earns 3–7% per sale. You can change price later.

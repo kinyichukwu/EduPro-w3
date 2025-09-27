@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -76,13 +77,18 @@ func (h *CourseHandler) CreateCourse(c *gin.Context) {
 		return
 	}
 
+	price := 10.00
+	if req.Price != nil {
+		price = *req.Price
+	}
+
 	course := models.Course{
 		ID:          uuid.New(),
 		UserID:      user.ID, // Use the internal UUID from the database
 		Title:       req.Title,
 		Description: req.Description,
 		Status:      "draft",
-		Price:       10.00, // Default course creation fee
+		Price:       price,
 	}
 
 	if err := h.db.CreateCourse(&course); err != nil {
@@ -419,6 +425,79 @@ func (h *CourseHandler) UpdateCourseStatus(c *gin.Context) {
 	SuccessResponse(c, http.StatusOK, "Course status updated successfully", course)
 }
 
+// EnrollCourse enrolls the authenticated user in a published course (after purchase)
+// @Summary Enroll in course
+// @Description Enroll the authenticated user in a course (requires purchase)
+// @Tags courses
+// @Produce json
+// @Param id path string true "Course ID"
+// @Success 200 {object} models.APIResponse "Enrolled"
+// @Failure 400 {object} models.APIResponse "Invalid course ID"
+// @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 404 {object} models.APIResponse "Course not found"
+// @Router /api/courses/{id}/enroll [post]
+func (h *CourseHandler) EnrollCourse(c *gin.Context) {
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	courseIDStr := c.Param("id")
+	courseID, err := uuid.Parse(courseIDStr)
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
+		return
+	}
+
+	// Ensure course exists and is published
+	if _, err := h.db.GetCourseForLearning(courseID); err != nil {
+		ErrorResponse(c, http.StatusNotFound, "Course not found or not published", err)
+		return
+	}
+
+	if err := h.db.EnrollUserInCourse(courseID, user.ID); err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to enroll", err)
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Enrolled successfully", nil)
+}
+
+// GetMyCourses returns enrolled courses for the authenticated user
+// @Summary Get enrolled courses
+// @Tags courses
+// @Produce json
+// @Param page query int false "Page number (default: 1)"
+// @Param limit query int false "Items per page (default: 10)"
+// @Success 200 {object} models.APIResponse{data=[]models.Course}
+// @Failure 401 {object} models.APIResponse
+// @Router /api/courses/enrolled [get]
+func (h *CourseHandler) GetMyCourses(c *gin.Context) {
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+
+	courses, err := h.db.GetEnrolledCourses(user.ID, limit, offset)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve courses", err)
+		return
+	}
+	SuccessResponse(c, http.StatusOK, "Enrolled courses retrieved", courses)
+}
+
 // GetCourseLearningContent retrieves course content for learning
 // @Summary Get course learning content
 // @Description Retrieve course with modules for learning purposes
@@ -445,7 +524,7 @@ func (h *CourseHandler) GetCourseLearningContent(c *gin.Context) {
 		return
 	}
 
-	// Get course - for learning, we can access any published course
+	// Get course - must be published
 	course, err := h.db.GetCourseForLearning(courseID)
 	if err != nil {
 		if err.Error() == "course not found" {
@@ -465,17 +544,28 @@ func (h *CourseHandler) GetCourseLearningContent(c *gin.Context) {
 		return
 	}
 
-	// Get user's progress if they're enrolled
-	var progress *models.CourseProgressResponse
+	// Require enrollment to view modules/content
 	progressData, err := h.db.GetUserCourseProgress(courseID, user.ID)
-	if err == nil {
-		progress = progressData
+	if err != nil {
+		ErrorResponse(c, http.StatusForbidden, "You must purchase/enroll to view course content", err)
+		return
+	}
+
+	var viewURL *string
+	if course.CollectionMintAddress != nil {
+		cluster := os.Getenv("SOLANA_NETWORK")
+		if cluster == "" {
+			cluster = "devnet"
+		}
+		url := fmt.Sprintf("https://explorer.solana.com/address/%s?cluster=%s", *course.CollectionMintAddress, cluster)
+		viewURL = &url
 	}
 
 	learningContent := models.CourseLearningContent{
-		Course:   *course,
-		Modules:  modules,
-		Progress: progress,
+		Course:         *course,
+		Modules:        modules,
+		Progress:       progressData,
+		ViewOnChainURL: viewURL,
 	}
 
 	SuccessResponse(c, http.StatusOK, "Course content retrieved successfully", learningContent)

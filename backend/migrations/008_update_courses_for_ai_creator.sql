@@ -10,7 +10,8 @@ ADD COLUMN IF NOT EXISTS completed_modules INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS students_count INTEGER DEFAULT 0,
 ADD COLUMN IF NOT EXISTS earnings DECIMAL(10,2) DEFAULT 0.00,
 ADD COLUMN IF NOT EXISTS price DECIMAL(10,2) DEFAULT 10.00,
-ADD COLUMN IF NOT EXISTS thumbnail_url TEXT;
+ADD COLUMN IF NOT EXISTS thumbnail_url TEXT,
+ADD COLUMN IF NOT EXISTS collection_mint_address VARCHAR(44);
 
 -- Update existing courses to have a user_id (set to instructor_id if it exists)
 UPDATE courses SET user_id = instructor_id WHERE user_id IS NULL AND instructor_id IS NOT NULL;

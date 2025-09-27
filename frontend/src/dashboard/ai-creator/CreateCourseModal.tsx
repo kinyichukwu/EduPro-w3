@@ -8,7 +8,7 @@ import { X, BookOpen, DollarSign } from "lucide-react";
 interface CreateCourseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreateCourse: (course: { title: string; description: string }) => void;
+  onCreateCourse: (course: { title: string; description: string; price?: number }) => void;
 }
 
 export const CreateCourseModal = ({
@@ -19,6 +19,7 @@ export const CreateCourseModal = ({
   const [courseTitle, setCourseTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [price, setPrice] = useState("");
 
   const handleCreateCourse = async () => {
     if (!courseTitle.trim() || !description.trim()) return;
@@ -31,6 +32,7 @@ export const CreateCourseModal = ({
     onCreateCourse({
       title: courseTitle,
       description: description,
+      price: price ? parseFloat(price) : undefined,
     });
 
     resetForm();
@@ -40,6 +42,7 @@ export const CreateCourseModal = ({
   const resetForm = () => {
     setCourseTitle("");
     setDescription("");
+    setPrice("");
     setIsCreating(false);
   };
 
@@ -129,6 +132,24 @@ export const CreateCourseModal = ({
                     rows={4}
                     className="bg-white/5 border-white/20 text-white placeholder-white/40"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Course Price (EDU)
+                  </label>
+                  <Input
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    min={0}
+                    step={0.000000001}
+                    placeholder="e.g., 25.5"
+                    className="bg-white/5 border-white/20 text-white placeholder-white/40"
+                  />
+                  <p className="mt-1 text-xs text-white/50">
+                    Platform earns 3–7% per sale. You can change price later.
+                  </p>
                 </div>
 
                 {/* Course Benefits */}

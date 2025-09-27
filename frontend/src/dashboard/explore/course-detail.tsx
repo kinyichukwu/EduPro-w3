@@ -26,6 +26,8 @@ import { Badge } from "@/shared/components/ui/badge";
 import type { Course as UiCourse } from "../constants/explore";
 import type { Course as ApiCourse } from "@/services/api";
 import { usePublicCourse } from "@/hooks/useCourses";
+import { apiService } from "@/services/api";
+import { toast } from "sonner";
 
 interface Review {
   id: string;
@@ -197,11 +199,15 @@ const CourseDetail = () => {
     setExpandedSections(newExpanded);
   };
 
-  const handleEnroll = () => {
-    setIsEnrolled(true);
-    // Navigate to learning view; backend will enroll on first progress update
-    if (courseId) {
+  const handleEnroll = async () => {
+    try {
+      if (!courseId) return;
+      const resp = await apiService.enrollInCourse(courseId);
+      if (resp.error) throw new Error(resp.error);
+      setIsEnrolled(true);
       navigate(`/dashboard/course/${courseId}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to enroll");
     }
   };
 

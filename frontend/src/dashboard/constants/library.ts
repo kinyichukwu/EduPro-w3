@@ -32,14 +32,13 @@ export const libraryFeatures = [
     action: "View Statistics",
   },
   {
-    title: "Upload New",
-    description:
-      "Add new study materials, notes, or documents to your library",
-    icon: PlusCircle,
-    stats: { value: "3/5", label: "Monthly Uploads" },
+    title: "My Courses",
+    description: "Access courses you have purchased/enrolled in",
+    icon: FileText,
+    stats: { value: 0, label: "Courses" },
     color: "from-amber to-orange",
-    path: "/dashboard/library/upload",
-    action: "Upload Material",
+    path: "/dashboard/library/uploads", // temporarily reuse page; UI will list courses section
+    action: "Open",
   },
 ];
 

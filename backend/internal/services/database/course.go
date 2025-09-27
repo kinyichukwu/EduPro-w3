@@ -19,10 +19,10 @@ func (c *Client) CreateCourse(course *models.Course) error {
 	ctx := context.Background()
 
 	query := `
-		INSERT INTO courses (id, user_id, title, description, status, price, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-		RETURNING created_at, updated_at
-	`
+        INSERT INTO courses (id, user_id, title, description, status, price, created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+        RETURNING created_at, updated_at
+    `
 
 	err := c.pool.QueryRow(ctx, query, course.ID, course.UserID, course.Title, course.Description, course.Status, course.Price).
 		Scan(&course.CreatedAt, &course.UpdatedAt)
@@ -45,8 +45,8 @@ func (c *Client) GetUserCourses(userID uuid.UUID, status string, limit, offset i
 
 	if status != "" {
 		query = `
-			SELECT id, user_id, title, description, status, total_modules, completed_modules, 
-				   students_count, earnings, price, thumbnail_url, created_at, updated_at
+            SELECT id, user_id, title, description, status, total_modules, completed_modules, 
+                   students_count, earnings, price, thumbnail_url, collection_mint_address, created_at, updated_at
 			FROM courses 
 			WHERE user_id = $1 AND status = $2
 			ORDER BY created_at DESC
@@ -55,8 +55,8 @@ func (c *Client) GetUserCourses(userID uuid.UUID, status string, limit, offset i
 		args = []interface{}{userID, status, limit, offset}
 	} else {
 		query = `
-			SELECT id, user_id, title, description, status, total_modules, completed_modules, 
-				   students_count, earnings, price, thumbnail_url, created_at, updated_at
+            SELECT id, user_id, title, description, status, total_modules, completed_modules, 
+                   students_count, earnings, price, thumbnail_url, collection_mint_address, created_at, updated_at
 			FROM courses 
 			WHERE user_id = $1
 			ORDER BY created_at DESC
@@ -78,7 +78,7 @@ func (c *Client) GetUserCourses(userID uuid.UUID, status string, limit, offset i
 		err := rows.Scan(
 			&course.ID, &course.UserID, &course.Title, &course.Description, &course.Status,
 			&course.TotalModules, &course.CompletedModules, &course.StudentsCount,
-			&course.Earnings, &course.Price, &course.ThumbnailURL,
+			&course.Earnings, &course.Price, &course.ThumbnailURL, &course.CollectionMintAddress,
 			&course.CreatedAt, &course.UpdatedAt,
 		)
 		if err != nil {
@@ -110,7 +110,7 @@ func (c *Client) GetPublishedCourses(limit, offset int) ([]models.Course, error)
 
 	query := `
         SELECT id, user_id, title, description, status, total_modules, completed_modules,
-               students_count, earnings, price, thumbnail_url, created_at, updated_at
+               students_count, earnings, price, thumbnail_url, collection_mint_address, created_at, updated_at
         FROM courses
         WHERE status = 'published'
         ORDER BY created_at DESC
@@ -130,7 +130,7 @@ func (c *Client) GetPublishedCourses(limit, offset int) ([]models.Course, error)
 		err := rows.Scan(
 			&course.ID, &course.UserID, &course.Title, &course.Description, &course.Status,
 			&course.TotalModules, &course.CompletedModules, &course.StudentsCount,
-			&course.Earnings, &course.Price, &course.ThumbnailURL,
+			&course.Earnings, &course.Price, &course.ThumbnailURL, &course.CollectionMintAddress,
 			&course.CreatedAt, &course.UpdatedAt,
 		)
 		if err != nil {
@@ -154,17 +154,17 @@ func (c *Client) GetCourse(courseID, userID uuid.UUID) (*models.Course, error) {
 	ctx := context.Background()
 
 	query := `
-		SELECT id, user_id, title, description, status, total_modules, completed_modules, 
-			   students_count, earnings, price, thumbnail_url, created_at, updated_at
-		FROM courses 
-		WHERE id = $1 AND user_id = $2
-	`
+        SELECT id, user_id, title, description, status, total_modules, completed_modules, 
+               students_count, earnings, price, thumbnail_url, collection_mint_address, created_at, updated_at
+        FROM courses 
+        WHERE id = $1 AND user_id = $2
+    `
 
 	var course models.Course
 	err := c.pool.QueryRow(ctx, query, courseID, userID).Scan(
 		&course.ID, &course.UserID, &course.Title, &course.Description, &course.Status,
 		&course.TotalModules, &course.CompletedModules, &course.StudentsCount,
-		&course.Earnings, &course.Price, &course.ThumbnailURL,
+		&course.Earnings, &course.Price, &course.ThumbnailURL, &course.CollectionMintAddress,
 		&course.CreatedAt, &course.UpdatedAt,
 	)
 	if err != nil {
@@ -329,17 +329,17 @@ func (c *Client) GetCourseForLearning(courseID uuid.UUID) (*models.Course, error
 	ctx := context.Background()
 
 	query := `
-		SELECT id, user_id, title, description, status, total_modules, completed_modules, 
-			   students_count, earnings, price, thumbnail_url, created_at, updated_at
-		FROM courses 
-		WHERE id = $1 AND status = 'published'
-	`
+        SELECT id, user_id, title, description, status, total_modules, completed_modules, 
+               students_count, earnings, price, thumbnail_url, collection_mint_address, created_at, updated_at
+        FROM courses 
+        WHERE id = $1 AND status = 'published'
+    `
 
 	var course models.Course
 	err := c.pool.QueryRow(ctx, query, courseID).Scan(
 		&course.ID, &course.UserID, &course.Title, &course.Description, &course.Status,
 		&course.TotalModules, &course.CompletedModules, &course.StudentsCount,
-		&course.Earnings, &course.Price, &course.ThumbnailURL,
+		&course.Earnings, &course.Price, &course.ThumbnailURL, &course.CollectionMintAddress,
 		&course.CreatedAt, &course.UpdatedAt,
 	)
 	if err != nil {
@@ -353,6 +353,107 @@ func (c *Client) GetCourseForLearning(courseID uuid.UUID) (*models.Course, error
 	return &course, nil
 }
 
+// EnrollUserInCourse inserts an enrollment record if it doesn't exist
+func (c *Client) EnrollUserInCourse(courseID, userID uuid.UUID) error {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	query := `
+        INSERT INTO course_enrollments (id, course_id, user_id, enrolled_at, progress)
+        VALUES (uuid_generate_v4(), $1, $2, NOW(), 0.0)
+        ON CONFLICT (course_id, user_id) DO NOTHING
+    `
+
+	if _, err := c.pool.Exec(ctx, query, courseID, userID); err != nil {
+		logger.Error("Failed to enroll user in course", zap.Error(err))
+		return fmt.Errorf("failed to enroll user in course: %w", err)
+	}
+
+	return nil
+}
+
+// GetEnrolledCourses returns courses the user is enrolled in
+func (c *Client) GetEnrolledCourses(userID uuid.UUID, limit, offset int) ([]models.Course, error) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	query := `
+        SELECT c.id, c.user_id, c.title, c.description, c.status, c.total_modules, c.completed_modules,
+               c.students_count, c.earnings, c.price, c.thumbnail_url, c.collection_mint_address, c.created_at, c.updated_at
+        FROM courses c
+        INNER JOIN course_enrollments e ON e.course_id = c.id
+        WHERE e.user_id = $1
+        ORDER BY e.enrolled_at DESC
+        LIMIT $2 OFFSET $3
+    `
+
+	rows, err := c.pool.Query(ctx, query, userID, limit, offset)
+	if err != nil {
+		logger.Error("Failed to get enrolled courses", zap.Error(err))
+		return nil, fmt.Errorf("failed to get enrolled courses: %w", err)
+	}
+	defer rows.Close()
+
+	var courses []models.Course
+	for rows.Next() {
+		var course models.Course
+		if err := rows.Scan(
+			&course.ID, &course.UserID, &course.Title, &course.Description, &course.Status,
+			&course.TotalModules, &course.CompletedModules, &course.StudentsCount,
+			&course.Earnings, &course.Price, &course.ThumbnailURL, &course.CollectionMintAddress,
+			&course.CreatedAt, &course.UpdatedAt,
+		); err != nil {
+			logger.Error("Failed to scan enrolled course", zap.Error(err))
+			return nil, fmt.Errorf("failed to scan enrolled course: %w", err)
+		}
+		courses = append(courses, course)
+	}
+
+	if err = rows.Err(); err != nil {
+		logger.Error("Error iterating enrolled courses", zap.Error(err))
+		return nil, fmt.Errorf("error iterating enrolled courses: %w", err)
+	}
+
+	return courses, nil
+}
+
+// UpdateCourseCollectionMintAddress sets the collection mint address for a course
+func (c *Client) UpdateCourseCollectionMintAddress(courseID, userID uuid.UUID, mintAddress string) (*models.Course, error) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	query := `
+        UPDATE courses
+        SET collection_mint_address = $3, updated_at = NOW()
+        WHERE id = $1 AND user_id = $2
+        RETURNING id, user_id, title, description, status, total_modules, completed_modules, 
+                  students_count, earnings, price, thumbnail_url, collection_mint_address, created_at, updated_at
+    `
+
+	var course models.Course
+	if err := c.pool.QueryRow(ctx, query, courseID, userID, mintAddress).Scan(
+		&course.ID, &course.UserID, &course.Title, &course.Description, &course.Status,
+		&course.TotalModules, &course.CompletedModules, &course.StudentsCount,
+		&course.Earnings, &course.Price, &course.ThumbnailURL, &course.CollectionMintAddress,
+		&course.CreatedAt, &course.UpdatedAt,
+	); err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("course not found")
+		}
+		logger.Error("Failed to update course collection mint address", zap.Error(err))
+		return nil, fmt.Errorf("failed to update course: %w", err)
+	}
+
+	return &course, nil
+}
+
 // GetUserCourseProgress retrieves user's progress in a course
 func (c *Client) GetUserCourseProgress(courseID, userID uuid.UUID) (*models.CourseProgressResponse, error) {
 	logger := utils.GetLogger()
@@ -360,10 +461,10 @@ func (c *Client) GetUserCourseProgress(courseID, userID uuid.UUID) (*models.Cour
 
 	// First, ensure user is enrolled
 	enrollmentQuery := `
-		SELECT id, enrolled_at, completed_at, progress
-		FROM course_enrollments 
-		WHERE course_id = $1 AND user_id = $2
-	`
+        SELECT id, enrolled_at, completed_at, progress
+        FROM course_enrollments 
+        WHERE course_id = $1 AND user_id = $2
+    `
 
 	var enrollmentID uuid.UUID
 	var enrolledAt time.Time

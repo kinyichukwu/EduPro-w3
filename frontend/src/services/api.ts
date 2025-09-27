@@ -152,6 +152,7 @@ export interface CourseStats {
 export interface CreateCourseRequest {
   title: string;
   description: string;
+  price?: number;
 }
 
 export interface UpdateCourseRequest {
@@ -337,8 +338,11 @@ class ApiService {
       }
 
       if (data && typeof data === "object" && "success" in data) {
-        // @ts-expect-error - runtime guard
-        return data.success ? { data: data.data } : { error: data.error || "API request failed" };
+        const success = (data as any).success as boolean;
+        if (success) {
+          return { data: (data as any).data };
+        }
+        return { error: (data as any).error || "API request failed" };
       }
 
       return { data };
@@ -363,48 +367,7 @@ class ApiService {
     };
   }
 
-  private async requestWithCustomAuth<T>(
-    endpoint: string,
-    authToken: string,
-    options: RequestInit = {}
-  ): Promise<ApiResponse<T>> {
-    try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-          ...options.headers,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        return {
-          error:
-            data.error || `HTTP ${response.status}: ${response.statusText}`,
-        };
-      }
-
-      // Handle backend APIResponse wrapper
-      if (data && typeof data === "object" && "success" in data) {
-        if (data.success) {
-          return { data: data.data };
-        } else {
-          return { error: data.error || "API request failed" };
-        }
-      }
-
-      return { data };
-    } catch (error) {
-      console.error("API request failed:", error);
-      return {
-        error:
-          error instanceof Error ? error.message : "Unknown error occurred",
-      };
-    }
-  }
+  // NOTE: requestWithCustomAuth removed due to no references. Re-add if needed.
 
   private async request<T>(
     endpoint: string,
@@ -875,6 +838,20 @@ class ApiService {
 
   async getCourse(courseId: string): Promise<ApiResponse<Course>> {
     return this.request<Course>(`/courses/${courseId}`);
+  }
+
+  async enrollInCourse(courseId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request<{ message: string }>(`/courses/${courseId}/enroll`, {
+      method: "POST",
+    });
+  }
+
+  async getEnrolledCourses(params?: { page?: number; limit?: number }): Promise<ApiResponse<Course[]>> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.append("page", params.page.toString());
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+    const url = `/courses/enrolled${searchParams.toString() ? `?${searchParams}` : ""}`;
+    return this.request<Course[]>(url);
   }
 
   // Public browse endpoints (no auth)

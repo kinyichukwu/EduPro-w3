@@ -8,19 +8,20 @@ import (
 
 // Course represents a course in the system
 type Course struct {
-	ID               uuid.UUID `json:"id" db:"id"`
-	UserID           uuid.UUID `json:"user_id" db:"user_id"`
-	Title            string    `json:"title" db:"title" validate:"required,min=3,max=255"`
-	Description      string    `json:"description" db:"description"`
-	Status           string    `json:"status" db:"status" validate:"oneof=draft published archived"`
-	TotalModules     int       `json:"total_modules" db:"total_modules"`
-	CompletedModules int       `json:"completed_modules" db:"completed_modules"`
-	StudentsCount    int       `json:"students_count" db:"students_count"`
-	Earnings         float64   `json:"earnings" db:"earnings"`
-	Price            float64   `json:"price" db:"price"`
-	ThumbnailURL     *string   `json:"thumbnail_url" db:"thumbnail_url"`
-	CreatedAt        time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at" db:"updated_at"`
+	ID                    uuid.UUID `json:"id" db:"id"`
+	UserID                uuid.UUID `json:"user_id" db:"user_id"`
+	Title                 string    `json:"title" db:"title" validate:"required,min=3,max=255"`
+	Description           string    `json:"description" db:"description"`
+	Status                string    `json:"status" db:"status" validate:"oneof=draft published archived"`
+	TotalModules          int       `json:"total_modules" db:"total_modules"`
+	CompletedModules      int       `json:"completed_modules" db:"completed_modules"`
+	StudentsCount         int       `json:"students_count" db:"students_count"`
+	Earnings              float64   `json:"earnings" db:"earnings"`
+	Price                 float64   `json:"price" db:"price"`
+	ThumbnailURL          *string   `json:"thumbnail_url" db:"thumbnail_url"`
+	CollectionMintAddress *string   `json:"collection_mint_address,omitempty" db:"collection_mint_address"`
+	CreatedAt             time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // CourseModule represents a module within a course
@@ -58,23 +59,24 @@ type CourseEnrollment struct {
 
 // ModuleProgress represents a user's progress in a specific module
 type ModuleProgress struct {
-	ID         uuid.UUID  `json:"id" db:"id"`
-	UserID     uuid.UUID  `json:"user_id" db:"user_id"`
-	ModuleID   uuid.UUID  `json:"module_id" db:"module_id"`
-	Completed  bool       `json:"completed" db:"completed"`
-	Progress   float64    `json:"progress" db:"progress"`
-	StartedAt  *time.Time `json:"started_at" db:"started_at"`
+	ID          uuid.UUID  `json:"id" db:"id"`
+	UserID      uuid.UUID  `json:"user_id" db:"user_id"`
+	ModuleID    uuid.UUID  `json:"module_id" db:"module_id"`
+	Completed   bool       `json:"completed" db:"completed"`
+	Progress    float64    `json:"progress" db:"progress"`
+	StartedAt   *time.Time `json:"started_at" db:"started_at"`
 	CompletedAt *time.Time `json:"completed_at" db:"completed_at"`
-	CreatedAt  time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt  time.Time  `json:"updated_at" db:"updated_at"`
+	CreatedAt   time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 // Request/Response models
 
 // CreateCourseRequest represents the request to create a new course
 type CreateCourseRequest struct {
-	Title       string `json:"title" validate:"required,min=3,max=255"`
-	Description string `json:"description" validate:"max=1000"`
+	Title       string   `json:"title" validate:"required,min=3,max=255"`
+	Description string   `json:"description" validate:"max=1000"`
+	Price       *float64 `json:"price,omitempty" validate:"omitempty,min=0"`
 }
 
 // UpdateCourseRequest represents the request to update a course
@@ -149,25 +151,26 @@ type UpdateCourseStatusRequest struct {
 
 // CourseProgressRequest represents the request to update course progress
 type CourseProgressRequest struct {
-	ModuleID   uuid.UUID `json:"module_id" validate:"required"`
-	Completed  bool      `json:"completed"`
-	Progress   float64   `json:"progress" validate:"min=0,max=100"`
+	ModuleID  uuid.UUID `json:"module_id" validate:"required"`
+	Completed bool      `json:"completed"`
+	Progress  float64   `json:"progress" validate:"min=0,max=100"`
 }
 
 // CourseProgressResponse represents the user's progress in a course
 type CourseProgressResponse struct {
-	CourseID         uuid.UUID `json:"course_id"`
-	UserID           uuid.UUID `json:"user_id"`
-	Progress         float64   `json:"progress"`
-	CompletedModules int       `json:"completed_modules"`
-	TotalModules     int       `json:"total_modules"`
-	EnrolledAt       time.Time `json:"enrolled_at"`
+	CourseID         uuid.UUID  `json:"course_id"`
+	UserID           uuid.UUID  `json:"user_id"`
+	Progress         float64    `json:"progress"`
+	CompletedModules int        `json:"completed_modules"`
+	TotalModules     int        `json:"total_modules"`
+	EnrolledAt       time.Time  `json:"enrolled_at"`
 	CompletedAt      *time.Time `json:"completed_at"`
 }
 
 // CourseLearningContent represents the learning content structure
 type CourseLearningContent struct {
-	Course  Course         `json:"course"`
-	Modules []CourseModule `json:"modules"`
-	Progress *CourseProgressResponse `json:"progress,omitempty"`
+	Course         Course                  `json:"course"`
+	Modules        []CourseModule          `json:"modules"`
+	Progress       *CourseProgressResponse `json:"progress,omitempty"`
+	ViewOnChainURL *string                 `json:"view_on_chain_url,omitempty"`
 }

@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS courses (
     earnings DECIMAL(10,2) DEFAULT 0.00,
     price DECIMAL(10,2) DEFAULT 10.00, -- Course creation fee
     thumbnail_url TEXT,
+    collection_mint_address VARCHAR(44),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

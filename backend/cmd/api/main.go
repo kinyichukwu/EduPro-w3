@@ -356,6 +356,8 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			courses.GET("/:id/learn", courseHandler.GetCourseLearningContent)
 			courses.GET("/:id/progress", courseHandler.GetCourseProgress)
 			courses.PATCH("/:id/progress", courseHandler.UpdateCourseProgress)
+			courses.POST("/:id/enroll", courseHandler.EnrollCourse)
+			courses.GET("/enrolled", courseHandler.GetMyCourses)
 
 			// Module management
 			courses.POST("/:id/modules", moduleHandler.CreateModule)

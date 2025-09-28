@@ -1,10 +1,19 @@
 import "./index.css";
+import { Buffer } from "buffer";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AppRoutes } from "./router.tsx";
 import { ThemeProvider } from "@/shared/context/ThemeProvider.tsx";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from "@/store/useAuthStore";
+
+// Polyfill Buffer for browser environment (required by some Solana deps)
+// Ensure this runs before any Solana libraries execute
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+if (!(window as any).Buffer) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).Buffer = Buffer;
+}
 
 // Solana wallet adapter imports
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';

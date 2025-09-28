@@ -12,7 +12,7 @@ import {
 import { CreateCourseModal } from "./CreateCourseModal";
 import { CourseCard } from "./CourseCard";
 import { useCourseManagement } from "@/hooks/useCourses";
-import { CreateCourseRequest } from "@/services/api";
+import { CreateCourseRequest, CreateCourseWithPaymentRequest } from "@/services/api";
 
 export default function AICreator() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -28,13 +28,22 @@ export default function AICreator() {
     createCourse,
   } = useCourseManagement();
 
-  const handleCreateCourse = async (courseData: CreateCourseRequest) => {
+  const handleCreateCourse = async (courseData: CreateCourseWithPaymentRequest) => {
     try {
-      await createCourse(courseData);
-      setShowCreateModal(false);
+      // Import the API service to use the new method
+      const { apiService } = await import("@/services");
+      const response = await apiService.createCourseWithPayment(courseData);
+      
+      if (response.success) {
+        setShowCreateModal(false);
+        // Refresh the courses list
+        window.location.reload(); // Simple refresh, could be improved with proper state management
+      } else {
+        throw new Error(response.error || 'Failed to create course');
+      }
     } catch (error) {
-      // Error is handled by the hook with toast
       console.error("Failed to create course:", error);
+      // Error toast is already shown by the modal
     }
   };
 

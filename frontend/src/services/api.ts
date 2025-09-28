@@ -112,6 +112,15 @@ export interface Course {
   thumbnail_url?: string;
   created_at: string;
   updated_at: string;
+  
+  // NFT fields
+  price_edu_tokens?: number;
+  price_token_mint?: string;
+  nft_mint_address?: string;
+  platform_fee_bps?: number;
+  nft_metadata_uri?: string;
+  creation_tx_signature?: string;
+  view_on_chain_url?: string;
 }
 
 export interface CourseModule {
@@ -153,6 +162,19 @@ export interface CreateCourseRequest {
   title: string;
   description: string;
   price?: number;
+}
+
+export interface CreateCourseWithPaymentRequest {
+  title: string;
+  description: string;
+  price_edu_tokens: number;
+  creation_tx_signature: string;
+  creator_wallet: string;
+}
+
+export interface PurchaseCourseRequest {
+  purchase_tx_signature: string;
+  buyer_wallet: string;
 }
 
 export interface UpdateCourseRequest {
@@ -217,6 +239,32 @@ export interface CourseLearningContent {
   course: Course;
   modules: CourseModule[];
   progress?: CourseProgressResponse;
+}
+
+// NFT Course Types
+export interface CoursePurchase {
+  id: string;
+  course_id: string;
+  buyer_user_id: string;
+  buyer_wallet_address: string;
+  purchase_tx_signature: string;
+  nft_mint_address: string;
+  total_amount_paid: number;
+  platform_amount: number;
+  seller_amount: number;
+  platform_fee_bps: number;
+  purchase_status: 'pending' | 'confirmed' | 'failed';
+  nft_mint_tx_signature?: string;
+  created_at: string;
+  confirmed_at?: string;
+}
+
+export interface CourseWithPurchaseInfo {
+  course: Course;
+  is_purchased: boolean;
+  purchase?: CoursePurchase;
+  can_access: boolean;
+  price_display_edu: number;
 }
 
 const API_BASE_URL = getApiBaseUrl();
@@ -885,6 +933,38 @@ class ApiService {
 
   async getCourseStats(): Promise<ApiResponse<CourseStats>> {
     return this.request<CourseStats>("/courses/stats");
+  }
+
+  // NFT Course APIs
+  async createCourseWithPayment(
+    request: CreateCourseWithPaymentRequest
+  ): Promise<ApiResponse<Course>> {
+    return this.request<Course>("/courses/create-with-payment", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async purchaseCourse(
+    courseId: string,
+    request: PurchaseCourseRequest
+  ): Promise<ApiResponse<CoursePurchase>> {
+    return this.request<CoursePurchase>(`/courses/${courseId}/purchase`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getPublicCoursesWithPurchaseInfo(): Promise<ApiResponse<CourseWithPurchaseInfo[]>> {
+    return this.request<CourseWithPurchaseInfo[]>("/courses/public-with-purchase-info");
+  }
+
+  async getUserPurchasedCourses(): Promise<ApiResponse<CoursePurchase[]>> {
+    return this.request<CoursePurchase[]>("/courses/my-purchases");
+  }
+
+  async getCourseDetails(courseId: string): Promise<ApiResponse<Course>> {
+    return this.request<Course>(`/courses/${courseId}/details`);
   }
 
   // Module Management APIs

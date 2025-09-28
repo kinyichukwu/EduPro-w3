@@ -113,7 +113,9 @@ type CreateMembershipNFTResponse struct {
 
 // CreateCourseNFTCollectionRequest represents the request to create a course NFT collection
 type CreateCourseNFTCollectionRequest struct {
+	CreatorID         uuid.UUID `json:"creator_id" validate:"required"`
 	CreatorEmail      string    `json:"creator_email" validate:"required,email"`
+	CreatorWallet     string    `json:"creator_wallet" validate:"required"`
 	CourseID          uuid.UUID `json:"course_id" validate:"required"`
 	CourseTitle       string    `json:"course_title" validate:"required"`
 	MaxSupply         int       `json:"max_supply" validate:"required,min=1,max=10000"`

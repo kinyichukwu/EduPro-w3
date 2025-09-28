@@ -33,6 +33,12 @@ type Config struct {
 	EduProJupiterAPIBase      string
 	EduProStakingProgramID    string
 	EduProStakingTreasury     string
+	CourseCreationFeeEDU      int
+	// Pinata IPFS Configuration
+	PinataAPIKey     string
+	PinataAPISecret  string
+	PinataJWT        string
+	PinataGatewayURL string
 }
 
 func Load() (*Config, error) {
@@ -82,6 +88,20 @@ func Load() (*Config, error) {
 		platformFeeBPS = 250
 	}
 	config.EduProPlatformFeeBPS = platformFeeBPS
+
+	// Parse course creation fee
+	courseCreationFeeStr := getEnv("COURSE_CREATION_FEE_EDU", "10") // 10 EDU tokens default
+	courseCreationFee, err := strconv.Atoi(courseCreationFeeStr)
+	if err != nil {
+		courseCreationFee = 10
+	}
+	config.CourseCreationFeeEDU = courseCreationFee
+
+	// Load Pinata IPFS configuration
+	config.PinataAPIKey = getEnv("PINATA_API_KEY", "5b3b02dc2a0e64fcb0b6")
+	config.PinataAPISecret = getEnv("PINATA_API_SECRET", "5fda3f351019dd61d9354100fa53882a97c68c46368b1b221ac5008d3ea2186e")
+	config.PinataJWT = getEnv("PINATA_JWT", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIyMzMyMjU4YS1iYjY5LTQ1ZTItOGQ4Yy04NTdkZmM5NmQ2N2IiLCJlbWFpbCI6ImtpbnlpY2h1a3d1b3NlQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiI1YjNiMDJkYzJhMGU2NGZjYjBiNiIsInNjb3BlZEtleVNlY3JldCI6IjVmZGEzZjM1MTAxOWRkNjFkOTM1NDEwMGZhNTM4ODJhOTdjNjhjNDYzNjhiMWIyMjFhYzUwMDhkM2VhMjE4NmUiLCJleHAiOjE3OTA2MDcwNzd9.kycNEirra1xB_YmKX_poveZQSTx2DklgT0GTs3Uh8Ak")
+	config.PinataGatewayURL = getEnv("PINATA_GATEWAY_URL", "https://gateway.pinata.cloud")
 
 	// Validate required fields
 	if config.GeminiAPIKey == "" {

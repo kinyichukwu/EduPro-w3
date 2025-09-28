@@ -52,12 +52,25 @@ type Service struct {
 func NewService(cfg *config.SolanaConfig, logger *zap.Logger) (*Service, error) {
 	rpcClient := rpc.New(cfg.RPCEndpoint)
 
-	// Initialize IPFS service
-	ipfsService := ipfs.NewService(
-		"https://ipfs.io/ipfs/",   // Gateway URL
-		"https://ipfs.io/api/v0/", // API URL
-		logger,
-	)
+	// Initialize IPFS service with Pinata if configured
+	var ipfsService *ipfs.Service
+	if cfg.PinataAPIKey != "" && cfg.PinataJWT != "" {
+		ipfsService = ipfs.NewPinataService(
+			cfg.PinataAPIKey,
+			cfg.PinataAPISecret,
+			cfg.PinataJWT,
+			cfg.PinataGatewayURL,
+			logger,
+		)
+		logger.Info("Initialized Pinata IPFS service", zap.String("gateway", cfg.PinataGatewayURL))
+	} else {
+		ipfsService = ipfs.NewService(
+			"https://ipfs.io/ipfs/",   // Gateway URL
+			"https://ipfs.io/api/v0/", // API URL
+			logger,
+		)
+		logger.Warn("Using fallback IPFS service - Pinata not configured")
+	}
 
 	// Parse program IDs
 	tokenMetadataProgram, err := solana.PublicKeyFromBase58(TokenMetadataProgramID)
@@ -113,10 +126,10 @@ func (s *Service) CreateMembershipNFT(ctx context.Context, userWallet string, me
 		return nil, fmt.Errorf("invalid user wallet address: %w", err)
 	}
 
-	// Get recent blockhash
-	recentBlockhash, err := s.rpcClient.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+	// Get latest blockhash (getRecentBlockhash deprecated / not supported on some RPCs)
+	latestBlockhash, err := s.rpcClient.GetLatestBlockhash(ctx, rpc.CommitmentFinalized)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get recent blockhash: %w", err)
+		return nil, fmt.Errorf("failed to get latest blockhash: %w", err)
 	}
 
 	// Create metadata account address
@@ -220,7 +233,7 @@ func (s *Service) CreateMembershipNFT(ctx context.Context, userWallet string, me
 	// Create transaction
 	transaction, err := solana.NewTransaction(
 		instructions,
-		recentBlockhash.Value.Blockhash,
+		latestBlockhash.Value.Blockhash,
 		solana.TransactionPayer(userWalletPubKey),
 	)
 	if err != nil {
@@ -245,10 +258,10 @@ func (s *Service) CreateCourseNFTCollection(ctx context.Context, creatorWallet s
 		return nil, fmt.Errorf("invalid creator wallet address: %w", err)
 	}
 
-	// Get recent blockhash
-	recentBlockhash, err := s.rpcClient.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+	// Get latest blockhash
+	latestBlockhash, err := s.rpcClient.GetLatestBlockhash(ctx, rpc.CommitmentFinalized)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get recent blockhash: %w", err)
+		return nil, fmt.Errorf("failed to get latest blockhash: %w", err)
 	}
 
 	// Create metadata account address
@@ -328,7 +341,7 @@ func (s *Service) CreateCourseNFTCollection(ctx context.Context, creatorWallet s
 	// Create transaction
 	transaction, err := solana.NewTransaction(
 		instructions,
-		recentBlockhash.Value.Blockhash,
+		latestBlockhash.Value.Blockhash,
 		solana.TransactionPayer(creatorWalletPubKey),
 	)
 	if err != nil {
@@ -358,10 +371,10 @@ func (s *Service) MintCourseNFT(ctx context.Context, collectionMint, userWallet 
 		return nil, fmt.Errorf("invalid user wallet address: %w", err)
 	}
 
-	// Get recent blockhash
-	recentBlockhash, err := s.rpcClient.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+	// Get latest blockhash
+	latestBlockhash, err := s.rpcClient.GetLatestBlockhash(ctx, rpc.CommitmentFinalized)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get recent blockhash: %w", err)
+		return nil, fmt.Errorf("failed to get latest blockhash: %w", err)
 	}
 
 	// Create metadata account address
@@ -468,7 +481,7 @@ func (s *Service) MintCourseNFT(ctx context.Context, collectionMint, userWallet 
 	// Create transaction
 	transaction, err := solana.NewTransaction(
 		instructions,
-		recentBlockhash.Value.Blockhash,
+		latestBlockhash.Value.Blockhash,
 		solana.TransactionPayer(userWalletPubKey),
 	)
 	if err != nil {

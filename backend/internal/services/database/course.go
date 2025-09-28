@@ -19,12 +19,18 @@ func (c *Client) CreateCourse(course *models.Course) error {
 	ctx := context.Background()
 
 	query := `
-        INSERT INTO courses (id, user_id, title, description, status, price, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+        INSERT INTO courses (id, user_id, title, description, status, price, 
+                           price_edu_tokens, price_token_mint, nft_mint_address, 
+                           platform_fee_bps, nft_metadata_uri, creation_tx_signature,
+                           created_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
         RETURNING created_at, updated_at
     `
 
-	err := c.pool.QueryRow(ctx, query, course.ID, course.UserID, course.Title, course.Description, course.Status, course.Price).
+	err := c.pool.QueryRow(ctx, query,
+		course.ID, course.UserID, course.Title, course.Description, course.Status, course.Price,
+		course.PriceEduTokens, course.PriceTokenMint, course.NFTMintAddress,
+		course.PlatformFeeBPS, course.NFTMetadataURI, course.CreationTxSignature).
 		Scan(&course.CreatedAt, &course.UpdatedAt)
 	if err != nil {
 		logger.Error("Failed to create course", zap.Error(err))
@@ -620,4 +626,211 @@ func (c *Client) UpdateModuleProgress(userID, moduleID uuid.UUID, completed bool
 		zap.Float64("progress", progress))
 
 	return nil
+}
+
+// Course purchase methods
+
+// CreateCoursePurchase creates a new course purchase record
+func (c *Client) CreateCoursePurchase(purchase *models.CoursePurchase) error {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	query := `
+		INSERT INTO course_purchases (
+			id, course_id, buyer_user_id, buyer_wallet_address, purchase_tx_signature,
+			nft_mint_address, total_amount_paid, platform_amount, seller_amount,
+			platform_fee_bps, purchase_status, nft_mint_tx_signature, created_at, confirmed_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), $13
+		)
+		RETURNING created_at
+	`
+
+	err := c.pool.QueryRow(ctx, query,
+		purchase.ID, purchase.CourseID, purchase.BuyerUserID, purchase.BuyerWalletAddress,
+		purchase.PurchaseTxSignature, purchase.NFTMintAddress, purchase.TotalAmountPaid,
+		purchase.PlatformAmount, purchase.SellerAmount, purchase.PlatformFeeBPS,
+		purchase.PurchaseStatus, purchase.NFTMintTxSignature, purchase.ConfirmedAt).
+		Scan(&purchase.CreatedAt)
+	if err != nil {
+		logger.Error("Failed to create course purchase", zap.Error(err))
+		return fmt.Errorf("failed to create course purchase: %w", err)
+	}
+
+	logger.Info("Course purchase created successfully", zap.String("purchase_id", purchase.ID.String()))
+	return nil
+}
+
+// GetCoursePurchaseByUserAndCourse retrieves a course purchase by user and course
+func (c *Client) GetCoursePurchaseByUserAndCourse(userID, courseID string) (*models.CoursePurchase, error) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	courseUUID, err := uuid.Parse(courseID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid course ID: %w", err)
+	}
+
+	query := `
+		SELECT id, course_id, buyer_user_id, buyer_wallet_address, purchase_tx_signature,
+			   nft_mint_address, total_amount_paid, platform_amount, seller_amount,
+			   platform_fee_bps, purchase_status, nft_mint_tx_signature, created_at, confirmed_at
+		FROM course_purchases
+		WHERE buyer_user_id = $1 AND course_id = $2
+	`
+
+	var purchase models.CoursePurchase
+	err = c.pool.QueryRow(ctx, query, userUUID, courseUUID).Scan(
+		&purchase.ID, &purchase.CourseID, &purchase.BuyerUserID, &purchase.BuyerWalletAddress,
+		&purchase.PurchaseTxSignature, &purchase.NFTMintAddress, &purchase.TotalAmountPaid,
+		&purchase.PlatformAmount, &purchase.SellerAmount, &purchase.PlatformFeeBPS,
+		&purchase.PurchaseStatus, &purchase.NFTMintTxSignature, &purchase.CreatedAt, &purchase.ConfirmedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		logger.Error("Failed to get course purchase", zap.Error(err))
+		return nil, fmt.Errorf("failed to get course purchase: %w", err)
+	}
+
+	return &purchase, nil
+}
+
+// GetCourseByID retrieves a course by ID (with all NFT fields)
+func (c *Client) GetCourseByID(courseID string) (*models.Course, error) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	courseUUID, err := uuid.Parse(courseID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid course ID: %w", err)
+	}
+
+	query := `
+		SELECT id, user_id, title, description, status, total_modules, completed_modules,
+			   students_count, earnings, price, thumbnail_url, collection_mint_address,
+			   price_edu_tokens, price_token_mint, nft_mint_address, platform_fee_bps,
+			   nft_metadata_uri, creation_tx_signature, created_at, updated_at
+		FROM courses
+		WHERE id = $1
+	`
+
+	var course models.Course
+	err = c.pool.QueryRow(ctx, query, courseUUID).Scan(
+		&course.ID, &course.UserID, &course.Title, &course.Description, &course.Status,
+		&course.TotalModules, &course.CompletedModules, &course.StudentsCount,
+		&course.Earnings, &course.Price, &course.ThumbnailURL, &course.CollectionMintAddress,
+		&course.PriceEduTokens, &course.PriceTokenMint, &course.NFTMintAddress,
+		&course.PlatformFeeBPS, &course.NFTMetadataURI, &course.CreationTxSignature,
+		&course.CreatedAt, &course.UpdatedAt,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("course not found")
+		}
+		logger.Error("Failed to get course by ID", zap.Error(err))
+		return nil, fmt.Errorf("failed to get course: %w", err)
+	}
+
+	return &course, nil
+}
+
+// GetAllPublishedCoursesWithNFTDetails retrieves all published courses (with all NFT fields)
+func (c *Client) GetAllPublishedCoursesWithNFTDetails() ([]models.Course, error) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	query := `
+		SELECT id, user_id, title, description, status, total_modules, completed_modules,
+			   students_count, earnings, price, thumbnail_url, collection_mint_address,
+			   price_edu_tokens, price_token_mint, nft_mint_address, platform_fee_bps,
+			   nft_metadata_uri, creation_tx_signature, created_at, updated_at
+		FROM courses
+		WHERE status = 'published'
+		ORDER BY created_at DESC
+	`
+
+	rows, err := c.pool.Query(ctx, query)
+	if err != nil {
+		logger.Error("Failed to get published courses", zap.Error(err))
+		return nil, fmt.Errorf("failed to get published courses: %w", err)
+	}
+	defer rows.Close()
+
+	var courses []models.Course
+	for rows.Next() {
+		var course models.Course
+		err := rows.Scan(
+			&course.ID, &course.UserID, &course.Title, &course.Description, &course.Status,
+			&course.TotalModules, &course.CompletedModules, &course.StudentsCount,
+			&course.Earnings, &course.Price, &course.ThumbnailURL, &course.CollectionMintAddress,
+			&course.PriceEduTokens, &course.PriceTokenMint, &course.NFTMintAddress,
+			&course.PlatformFeeBPS, &course.NFTMetadataURI, &course.CreationTxSignature,
+			&course.CreatedAt, &course.UpdatedAt,
+		)
+		if err != nil {
+			logger.Error("Failed to scan published course", zap.Error(err))
+			return nil, fmt.Errorf("failed to scan published course: %w", err)
+		}
+		courses = append(courses, course)
+	}
+
+	if err = rows.Err(); err != nil {
+		logger.Error("Error iterating over published courses", zap.Error(err))
+		return nil, fmt.Errorf("error iterating over published courses: %w", err)
+	}
+
+	return courses, nil
+}
+
+// GetUserPurchasedCourses retrieves courses purchased by a user
+func (c *Client) GetUserPurchasedCourses(userID uuid.UUID) ([]models.CoursePurchase, error) {
+	logger := utils.GetLogger()
+	ctx := context.Background()
+
+	query := `
+		SELECT cp.id, cp.course_id, cp.buyer_user_id, cp.buyer_wallet_address, 
+			   cp.purchase_tx_signature, cp.nft_mint_address, cp.total_amount_paid,
+			   cp.platform_amount, cp.seller_amount, cp.platform_fee_bps,
+			   cp.purchase_status, cp.nft_mint_tx_signature, cp.created_at, cp.confirmed_at
+		FROM course_purchases cp
+		WHERE cp.buyer_user_id = $1 AND cp.purchase_status = 'confirmed'
+		ORDER BY cp.created_at DESC
+	`
+
+	rows, err := c.pool.Query(ctx, query, userID)
+	if err != nil {
+		logger.Error("Failed to get user purchased courses", zap.Error(err))
+		return nil, fmt.Errorf("failed to get user purchased courses: %w", err)
+	}
+	defer rows.Close()
+
+	var purchases []models.CoursePurchase
+	for rows.Next() {
+		var purchase models.CoursePurchase
+		err := rows.Scan(
+			&purchase.ID, &purchase.CourseID, &purchase.BuyerUserID, &purchase.BuyerWalletAddress,
+			&purchase.PurchaseTxSignature, &purchase.NFTMintAddress, &purchase.TotalAmountPaid,
+			&purchase.PlatformAmount, &purchase.SellerAmount, &purchase.PlatformFeeBPS,
+			&purchase.PurchaseStatus, &purchase.NFTMintTxSignature, &purchase.CreatedAt, &purchase.ConfirmedAt,
+		)
+		if err != nil {
+			logger.Error("Failed to scan course purchase", zap.Error(err))
+			return nil, fmt.Errorf("failed to scan course purchase: %w", err)
+		}
+		purchases = append(purchases, purchase)
+	}
+
+	if err = rows.Err(); err != nil {
+		logger.Error("Error iterating over purchased courses", zap.Error(err))
+		return nil, fmt.Errorf("error iterating over purchased courses: %w", err)
+	}
+
+	return purchases, nil
 }

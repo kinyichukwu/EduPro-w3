@@ -104,7 +104,7 @@ func main() {
 	flashcardHandler := handlers.NewFlashcardHandler(dbClient, aiService)
 
 	// Initialize course and module handlers
-	courseHandler := handlers.NewCourseHandler(dbClient)
+	courseHandler := handlers.NewCourseHandler(dbClient, cfg, solanaService, nftService)
 	moduleHandler := handlers.NewModuleHandler(dbClient, pgxClient, aiService, embeddingsService)
 
 	// Setup router
@@ -340,16 +340,23 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			// Public browse endpoints
 			courses.GET("/browse", courseHandler.BrowseCourses)
 			courses.GET("/browse/:id", courseHandler.BrowseCourse)
+			courses.GET("/public-with-purchase-info", courseHandler.GetPublicCoursesWithPurchaseInfo)
 
 			// Protected endpoints
 			courses.Use(middleware.JWTMiddleware(cfg))
 			// Course management
 			courses.POST("", courseHandler.CreateCourse)
+			courses.POST("/create-with-payment", courseHandler.CreateCourseWithPayment)
 			courses.GET("", courseHandler.GetCourses)
 			courses.GET("/stats", courseHandler.GetCourseStats)
 			courses.GET("/:id", courseHandler.GetCourse)
+			courses.GET("/:id/details", courseHandler.GetCourseContent)
 			courses.PUT("/:id", courseHandler.UpdateCourse)
 			courses.DELETE("/:id", courseHandler.DeleteCourse)
+
+			// NFT Purchase endpoints
+			courses.POST("/:id/purchase", courseHandler.PurchaseCourse)
+			courses.GET("/my-purchases", courseHandler.GetUserPurchasedCourses)
 
 			// Course status and learning endpoints
 			courses.PATCH("/:id/status", courseHandler.UpdateCourseStatus)

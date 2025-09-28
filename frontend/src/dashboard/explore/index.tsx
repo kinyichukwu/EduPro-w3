@@ -4,9 +4,10 @@ import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { CourseCard } from '../components/explore';
-import { usePublicCourses } from "@/hooks/useCourses";
+import { useQuery } from "@tanstack/react-query";
+import { apiService } from "@/services";
 import type { Course as UiCourse } from "../constants/explore";
-import type { Course as ApiCourse } from "@/services/api";
+import type { CourseWithPurchaseInfo } from "@/services/api";
 
 const Explore = () => {
 
@@ -31,23 +32,38 @@ const Explore = () => {
     }
   };
 
-  const { data: publicCourses = [], isLoading } = usePublicCourses({ page: 1, limit: 12 });
-
-  const mapToUiCourse = (c: ApiCourse): UiCourse => ({
-    id: c.id,
-    title: c.title,
-    description: c.description,
-    instructor: "Course Creator", // TODO: add instructor to API/course model
-    category: "General", // TODO: add category to API/course model
-    difficulty: "Beginner", // TODO: add difficulty/level to API
-    price: c.price,
-    rating: 4.8, // TODO: add rating to API
-    students: c.students_count ?? 0,
-    duration: `${c.total_modules} modules`,
-    thumbnail: c.thumbnail_url || undefined,
+  const { data: coursesWithPurchaseInfo = [], isLoading } = useQuery({
+    queryKey: ['public-courses-with-purchase-info'],
+    queryFn: async () => {
+      const response = await apiService.getPublicCoursesWithPurchaseInfo();
+      return response.success ? response.data : [];
+    },
   });
 
-  const uiCourses: UiCourse[] = (publicCourses || []).map(mapToUiCourse);
+  const mapToUiCourse = (courseInfo: CourseWithPurchaseInfo): UiCourse & {
+    isPurchased: boolean;
+    canAccess: boolean;
+    priceDisplayEDU: number;
+    viewOnChainURL?: string;
+  } => ({
+    id: courseInfo.course.id,
+    title: courseInfo.course.title,
+    description: courseInfo.course.description,
+    instructor: "Course Creator", // TODO: add instructor info
+    category: "General",
+    difficulty: "Beginner",
+    price: courseInfo.price_display_edu, // Real price from backend
+    rating: 4.8,
+    students: courseInfo.course.students_count ?? 0,
+    duration: `${courseInfo.course.total_modules} modules`,
+    thumbnail: courseInfo.course.thumbnail_url || undefined,
+    isPurchased: courseInfo.is_purchased,
+    canAccess: courseInfo.can_access,
+    priceDisplayEDU: courseInfo.price_display_edu,
+    viewOnChainURL: courseInfo.course.view_on_chain_url,
+  });
+
+  const uiCourses = coursesWithPurchaseInfo.map(mapToUiCourse);
 
   return (
     <div className="h-full w-full space-y-6 px-3 py-5">

@@ -150,6 +150,7 @@ func (s *Service) CreateCourseNFTCollection(ctx context.Context, req *models.Cre
 	collectionID := uuid.New()
 	collection := &models.CourseNFTCollection{
 		ID:                    collectionID,
+		CreatorID:             req.CreatorID,
 		CreatorEmail:          req.CreatorEmail,
 		CourseID:              req.CourseID,
 		CourseTitle:           req.CourseTitle,
@@ -171,7 +172,7 @@ func (s *Service) CreateCourseNFTCollection(ctx context.Context, req *models.Cre
 	}
 
 	// Create collection mint transaction using Metaplex
-	transaction, err := s.metaplexService.CreateCourseNFTCollection(ctx, req.CreatorEmail, metadata)
+	transaction, err := s.metaplexService.CreateCourseNFTCollection(ctx, req.CreatorWallet, metadata)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create collection mint transaction: %w", err)
 	}

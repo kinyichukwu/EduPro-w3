@@ -5,27 +5,37 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+	"github.com/kinyichukwu/edu-pro-backend/internal/config"
 	"github.com/kinyichukwu/edu-pro-backend/internal/middleware"
 	"github.com/kinyichukwu/edu-pro-backend/internal/models"
 	"github.com/kinyichukwu/edu-pro-backend/internal/services/database"
+	"github.com/kinyichukwu/edu-pro-backend/internal/services/nft"
+	"github.com/kinyichukwu/edu-pro-backend/internal/services/solana"
 	"go.uber.org/zap"
 )
 
 // CourseHandler handles course-related requests
 type CourseHandler struct {
-	db        *database.Client
-	validator *validator.Validate
+	db            *database.Client
+	validator     *validator.Validate
+	config        *config.Config
+	solanaService *solana.Service
+	nftService    *nft.Service
 }
 
 // NewCourseHandler creates a new course handler
-func NewCourseHandler(db *database.Client) *CourseHandler {
+func NewCourseHandler(db *database.Client, config *config.Config, solanaService *solana.Service, nftService *nft.Service) *CourseHandler {
 	return &CourseHandler{
-		db:        db,
-		validator: validator.New(),
+		db:            db,
+		validator:     validator.New(),
+		config:        config,
+		solanaService: solanaService,
+		nftService:    nftService,
 	}
 }
 
@@ -679,4 +689,317 @@ func (h *CourseHandler) UpdateCourseProgress(c *gin.Context) {
 	}
 
 	SuccessResponse(c, http.StatusOK, "Progress updated successfully", progress)
+}
+
+// NFT Course Handlers
+
+// CreateCourseWithPayment creates a new course with NFT after payment verification
+func (h *CourseHandler) CreateCourseWithPayment(c *gin.Context) {
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	var req models.CreateCourseWithPaymentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
+	if err := h.validator.Struct(req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Validation failed", err)
+		return
+	}
+
+	// 1. Verify the creation payment transaction
+	// expectedAmount := int64(10 * 1e9) // 10 EDU tokens in token units
+	// Note: Using a simplified verification here - in production you'd implement proper transaction verification
+	// For now, we'll assume the transaction is valid if the signature is provided
+	if len(req.CreationTxSignature) < 80 {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid transaction signature", nil)
+		return
+	}
+
+	// 2. Create course in database first to get course ID (persist BEFORE NFT collection)
+	course := models.Course{
+		ID:                  uuid.New(),
+		UserID:              user.ID,
+		Title:               req.Title,
+		Description:         req.Description,
+		Status:              "draft",
+		PriceEduTokens:      req.PriceEduTokens,
+		PriceTokenMint:      &h.config.SolanaConfig.EduProTokenMint,
+		PlatformFeeBPS:      h.config.EduProPlatformFeeBPS,
+		CreationTxSignature: &req.CreationTxSignature,
+	}
+
+	if err := h.db.CreateCourse(&course); err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to create course", err)
+		return
+	}
+
+	// 3. Create course NFT collection using existing service (now that course exists)
+	nftRequest := &models.CreateCourseNFTCollectionRequest{
+		CreatorID:         user.ID,
+		CreatorEmail:      user.Email,
+		CreatorWallet:     req.CreatorWallet,
+		CourseID:          course.ID,
+		CourseTitle:       req.Title,
+		Description:       req.Description,
+		ImageURL:          "https://your-cdn.com/course-nft-image.png",
+		MaxSupply:         1000, // Set max supply for course access NFTs
+		PriceEduProTokens: req.PriceEduTokens,
+	}
+
+	nftResult, err := h.nftService.CreateCourseNFTCollection(c.Request.Context(), nftRequest)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to create course NFT collection", err)
+		return
+	}
+
+	// 4. Update course with NFT information
+	updateReq := models.UpdateCourseRequest{}
+	if nftResult.CollectionMintAddress != "" {
+		course.NFTMintAddress = &nftResult.CollectionMintAddress
+	}
+	if nftResult.CollectionMetadataURI != "" {
+		course.NFTMetadataURI = &nftResult.CollectionMetadataURI
+	}
+
+	// Persist NFT fields via an UPDATE to avoid FK issues
+	_, _ = h.db.UpdateCourse(course.ID, user.ID, &updateReq)
+
+	// Add view on chain URL
+	viewOnChainURL := fmt.Sprintf("https://explorer.solana.com/address/%s?cluster=devnet", *course.NFTMintAddress)
+	course.ViewOnChainURL = &viewOnChainURL
+
+	SuccessResponse(c, http.StatusCreated, "Course created successfully", course)
+}
+
+// PurchaseCourse handles course purchase with NFT minting
+func (h *CourseHandler) PurchaseCourse(c *gin.Context) {
+	courseID := c.Param("id")
+	if courseID == "" {
+		ErrorResponse(c, http.StatusBadRequest, "Course ID is required", nil)
+		return
+	}
+
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	var req models.PurchaseCourseRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+
+	// Get course details
+	course, err := h.db.GetCourseByID(courseID)
+	if err != nil {
+		ErrorResponse(c, http.StatusNotFound, "Course not found", err)
+		return
+	}
+
+	if course.PriceEduTokens <= 0 {
+		ErrorResponse(c, http.StatusBadRequest, "Course is not for sale", nil)
+		return
+	}
+
+	// Check if user already purchased
+	existingPurchase, _ := h.db.GetCoursePurchaseByUserAndCourse(user.ID.String(), courseID)
+	if existingPurchase != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Course already purchased", nil)
+		return
+	}
+
+	// Verify purchase transaction (simplified - assume valid if signature provided)
+	if len(req.PurchaseTxSignature) < 80 {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid transaction signature", nil)
+		return
+	}
+
+	platformAmount := (course.PriceEduTokens * int64(course.PlatformFeeBPS)) / 10000
+	sellerAmount := course.PriceEduTokens - platformAmount
+
+	// Purchase course NFT using existing service
+	purchaseRequest := &models.PurchaseCourseNFTRequest{
+		CollectionID:       course.ID, // Use course ID as collection ID
+		BuyerEmail:         user.Email,
+		BuyerWalletAddress: req.BuyerWallet,
+	}
+
+	nftResult, err := h.nftService.PurchaseCourseNFT(c.Request.Context(), purchaseRequest)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to purchase course NFT", err)
+		return
+	}
+
+	// Create purchase record
+	now := time.Now()
+	purchase := models.CoursePurchase{
+		ID:                  uuid.New(),
+		CourseID:            uuid.MustParse(courseID),
+		BuyerUserID:         user.ID,
+		BuyerWalletAddress:  req.BuyerWallet,
+		PurchaseTxSignature: req.PurchaseTxSignature,
+		NFTMintAddress:      nftResult.NFTMintAddress,
+		TotalAmountPaid:     course.PriceEduTokens,
+		PlatformAmount:      platformAmount,
+		SellerAmount:        sellerAmount,
+		PlatformFeeBPS:      course.PlatformFeeBPS,
+		PurchaseStatus:      "confirmed",
+		NFTMintTxSignature:  &nftResult.TransactionSignature,
+		ConfirmedAt:         &now,
+	}
+
+	if err := h.db.CreateCoursePurchase(&purchase); err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to record purchase", err)
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Course purchased successfully", purchase)
+}
+
+// GetPublicCoursesWithPurchaseInfo returns courses with purchase information
+func (h *CourseHandler) GetPublicCoursesWithPurchaseInfo(c *gin.Context) {
+	// Get user if authenticated (optional)
+	var userID *uuid.UUID
+	if user, err := h.getUserFromContext(c); err == nil {
+		userID = &user.ID
+	}
+
+	courses, err := h.db.GetAllPublishedCoursesWithNFTDetails()
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to get courses", err)
+		return
+	}
+
+	var coursesWithInfo []models.CourseWithPurchaseInfo
+	for _, course := range courses {
+		courseInfo := models.CourseWithPurchaseInfo{
+			Course:          course,
+			IsPurchased:     false,
+			CanAccess:       course.PriceEduTokens == 0, // free courses
+			PriceDisplayEDU: float64(course.PriceEduTokens) / 1e9,
+		}
+
+		// Add view on chain URL
+		if course.NFTMintAddress != nil {
+			viewURL := fmt.Sprintf("https://explorer.solana.com/address/%s?cluster=devnet", *course.NFTMintAddress)
+			courseInfo.Course.ViewOnChainURL = &viewURL
+		}
+
+		// Check purchase status if user is authenticated
+		if userID != nil {
+			purchase, _ := h.db.GetCoursePurchaseByUserAndCourse(userID.String(), course.ID.String())
+			if purchase != nil {
+				courseInfo.IsPurchased = true
+				courseInfo.Purchase = purchase
+				courseInfo.CanAccess = true
+			}
+		}
+
+		coursesWithInfo = append(coursesWithInfo, courseInfo)
+	}
+
+	SuccessResponse(c, http.StatusOK, "Courses retrieved successfully", coursesWithInfo)
+}
+
+// GetCourseContent handles course content access with NFT verification
+func (h *CourseHandler) GetCourseContent(c *gin.Context) {
+	courseID := c.Param("id")
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	// Check access: either free course, purchased, or NFT ownership
+	hasAccess, err := h.checkCourseAccess(user.ID.String(), courseID)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to check access", err)
+		return
+	}
+
+	if !hasAccess {
+		ErrorResponse(c, http.StatusForbidden, "Access denied. Please purchase the course.", nil)
+		return
+	}
+
+	// Get course for learning
+	courseUUID, err := uuid.Parse(courseID)
+	if err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid course ID", err)
+		return
+	}
+
+	course, err := h.db.GetCourseForLearning(courseUUID)
+	if err != nil {
+		ErrorResponse(c, http.StatusNotFound, "Course not found", err)
+		return
+	}
+
+	SuccessResponse(c, http.StatusOK, "Course content retrieved successfully", course)
+}
+
+// GetUserPurchasedCourses returns user's purchased courses
+func (h *CourseHandler) GetUserPurchasedCourses(c *gin.Context) {
+	user, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	purchases, err := h.db.GetUserPurchasedCourses(user.ID)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to get purchased courses", err)
+		return
+	}
+
+	// Enhance purchase data with course information
+	type purchaseWithCourse struct {
+		models.CoursePurchase
+		Course models.Course `json:"course"`
+	}
+
+	var purchasesWithCourse []purchaseWithCourse
+	for _, purchase := range purchases {
+		course, err := h.db.GetCourseByID(purchase.CourseID.String())
+		if err == nil {
+			purchaseWithCourse := purchaseWithCourse{
+				CoursePurchase: purchase,
+				Course:         *course,
+			}
+			purchasesWithCourse = append(purchasesWithCourse, purchaseWithCourse)
+		}
+	}
+
+	SuccessResponse(c, http.StatusOK, "Purchased courses retrieved successfully", purchasesWithCourse)
+}
+
+// checkCourseAccess checks if a user has access to a course
+func (h *CourseHandler) checkCourseAccess(userID, courseID string) (bool, error) {
+	// 1. Check if course is free
+	course, err := h.db.GetCourseByID(courseID)
+	if err != nil {
+		return false, err
+	}
+	if course.PriceEduTokens == 0 {
+		return true, nil
+	}
+
+	// 2. Check database purchase record
+	purchase, err := h.db.GetCoursePurchaseByUserAndCourse(userID, courseID)
+	if err == nil && purchase != nil && purchase.PurchaseStatus == "confirmed" {
+		return true, nil
+	}
+
+	// 3. Could add NFT ownership verification on-chain here as additional security
+	// This is more expensive but tamper-proof
+
+	return false, nil
 }

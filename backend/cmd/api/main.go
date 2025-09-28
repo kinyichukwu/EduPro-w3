@@ -350,7 +350,8 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			courses.GET("", courseHandler.GetCourses)
 			courses.GET("/stats", courseHandler.GetCourseStats)
 			courses.GET("/:id", courseHandler.GetCourse)
-			courses.GET("/:id/details", courseHandler.GetCourseContent)
+			courses.GET("/:id/details", courseHandler.GetCourseDetails)
+			courses.GET("/:id/content", courseHandler.GetCourseContent)
 			courses.PUT("/:id", courseHandler.UpdateCourse)
 			courses.DELETE("/:id", courseHandler.DeleteCourse)
 

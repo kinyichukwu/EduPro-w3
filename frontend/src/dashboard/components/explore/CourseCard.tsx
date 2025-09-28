@@ -4,7 +4,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { TrendingUp, Users, Star, Coins, BookOpen, ShoppingCart, Play, ExternalLink, Loader2 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useCoursePayment } from "@/shared/hooks/useCoursePayment";
 import { apiService } from "@/services";
@@ -25,6 +25,8 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, className }) => 
   const [isPurchasing, setIsPurchasing] = useState(false);
   const { purchaseCourse, isWalletConnected, walletAddress } = useCoursePayment();
 
+  console.log('CourseCard received course:', course);
+
   const handlePurchase = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation
     
@@ -41,13 +43,13 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, className }) => 
     setIsPurchasing(true);
     try {
       // Get course details for purchase
-      const courseDetailsResponse = await apiService.getCourseDetails(course.id);
-      if (!courseDetailsResponse.success) {
+      const courseDetailsResponse = await apiService.getCourseDetails(String(course.id));
+      if (courseDetailsResponse.error || !courseDetailsResponse.data) {
         throw new Error('Failed to get course details');
       }
 
       const courseDetails = courseDetailsResponse.data;
-      
+
       // Execute purchase transaction
       const txSignature = await purchaseCourse(
         courseDetails.price_edu_tokens || 0,
@@ -56,16 +58,12 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, className }) => 
       );
 
       // Submit purchase to backend
-      const purchaseResponse = await apiService.purchaseCourse(course.id, {
+      const purchaseResponse = await apiService.purchaseCourse(String(course.id), {
         purchase_tx_signature: txSignature,
         buyer_wallet: walletAddress,
       });
 
-      if (purchaseResponse.success) {
-        toast.success("Course purchased successfully!");
-        // Refresh the page to update purchase status
-        window.location.reload();
-      } else {
+      if (purchaseResponse.error) {
         throw new Error(purchaseResponse.error || 'Purchase failed');
       }
     } catch (error) {

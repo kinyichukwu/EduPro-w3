@@ -32,12 +32,34 @@ const Explore = () => {
     }
   };
 
-  const { data: coursesWithPurchaseInfo = [], isLoading } = useQuery({
+  const { data: coursesWithPurchaseInfo = [], isLoading, error } = useQuery({
     queryKey: ['public-courses-with-purchase-info'],
     queryFn: async () => {
-      const response = await apiService.getPublicCoursesWithPurchaseInfo();
-      return response.success ? response.data : [];
+      try {
+        console.log('Making API call to get courses...');
+        const response = await apiService.getPublicCoursesWithPurchaseInfo();
+        console.log('API Response:', response);
+
+        if (response.error) {
+          console.error('API Error:', response.error);
+          throw new Error(`API Error: ${response.error}`);
+        }
+
+        if (!response.data) {
+          console.warn('No data in response');
+          return [];
+        }
+
+        console.log('Raw courses data:', response.data);
+        return response.data;
+      } catch (err) {
+        console.error('Query Error:', err);
+        throw err;
+      }
     },
+    staleTime: 0, // Always refetch
+    gcTime: 0, // Don't cache
+    retry: 2,
   });
 
   const mapToUiCourse = (courseInfo: CourseWithPurchaseInfo): UiCourse & {
@@ -45,25 +67,31 @@ const Explore = () => {
     canAccess: boolean;
     priceDisplayEDU: number;
     viewOnChainURL?: string;
-  } => ({
-    id: courseInfo.course.id,
-    title: courseInfo.course.title,
-    description: courseInfo.course.description,
-    instructor: "Course Creator", // TODO: add instructor info
-    category: "General",
-    difficulty: "Beginner",
-    price: courseInfo.price_display_edu, // Real price from backend
-    rating: 4.8,
-    students: courseInfo.course.students_count ?? 0,
-    duration: `${courseInfo.course.total_modules} modules`,
-    thumbnail: courseInfo.course.thumbnail_url || undefined,
-    isPurchased: courseInfo.is_purchased,
-    canAccess: courseInfo.can_access,
-    priceDisplayEDU: courseInfo.price_display_edu,
-    viewOnChainURL: courseInfo.course.view_on_chain_url,
-  });
+  } => {
+    console.log('Mapping course:', courseInfo);
+    return {
+      id: courseInfo.course.id,
+      title: courseInfo.course.title,
+      description: courseInfo.course.description,
+      instructor: "Course Creator", // TODO: add instructor info
+      category: "General",
+      difficulty: "Beginner",
+      price: courseInfo.price_display_edu, // Real price from backend
+      rating: 4.8,
+      students: courseInfo.course.students_count ?? 0,
+      duration: `${courseInfo.course.total_modules} modules`,
+      thumbnail: courseInfo.course.thumbnail_url || undefined,
+      isPurchased: courseInfo.is_purchased,
+      canAccess: courseInfo.can_access,
+      priceDisplayEDU: courseInfo.price_display_edu,
+      viewOnChainURL: courseInfo.course.view_on_chain_url,
+    };
+  };
 
   const uiCourses = coursesWithPurchaseInfo.map(mapToUiCourse);
+  console.log('UI Courses:', uiCourses);
+  console.log('Number of UI courses:', uiCourses.length);
+  console.log('Raw API data:', coursesWithPurchaseInfo);
 
   return (
     <div className="h-full w-full space-y-6 px-3 py-5">
@@ -193,16 +221,39 @@ const Explore = () => {
         
         {/* Course grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {(isLoading ? [] : uiCourses).slice(0, 6).map((course, index) => (
-            <motion.div
-              key={course.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <CourseCard course={course} />
-            </motion.div>
-          ))}
+          {isLoading ? (
+            <div className="col-span-full text-center text-white/60">Loading courses...</div>
+          ) : error ? (
+            <div className="col-span-full text-center text-red-400">
+              <div>Error loading courses: {error.message}</div>
+              <div className="mt-2 text-sm text-white/60">Check console for details</div>
+            </div>
+          ) : (
+            <>
+              {uiCourses.length === 0 ? (
+                <div className="col-span-full text-center text-white/60">
+                  No courses found. API returned {coursesWithPurchaseInfo.length} courses.
+                  <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <h3 className="text-red-400 font-semibold mb-2">Debug Info:</h3>
+                    <pre className="text-xs text-white/80 overflow-auto">
+                      {JSON.stringify(coursesWithPurchaseInfo, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              ) : (
+                uiCourses.slice(0, 6).map((course, index) => (
+                  <motion.div
+                    key={course.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                  >
+                    <CourseCard course={course} />
+                  </motion.div>
+                ))
+              )}
+            </>
+          )}
         </div>
       </section>
     </div>

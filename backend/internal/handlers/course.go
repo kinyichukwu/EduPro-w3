@@ -1003,3 +1003,28 @@ func (h *CourseHandler) checkCourseAccess(userID, courseID string) (bool, error)
 
 	return false, nil
 }
+
+// GetCourseDetails gets basic course details for purchase (no access control)
+func (h *CourseHandler) GetCourseDetails(c *gin.Context) {
+	courseID := c.Param("id")
+	_, err := h.getUserFromContext(c)
+	if err != nil {
+		ErrorResponse(c, http.StatusUnauthorized, err.Error(), err)
+		return
+	}
+
+	// Get course details - no access control needed for purchase info
+	course, err := h.db.GetCourseByID(courseID)
+	if err != nil {
+		ErrorResponse(c, http.StatusNotFound, "Course not found", err)
+		return
+	}
+
+	// Add view on chain URL if NFT exists
+	if course.NFTMintAddress != nil && *course.NFTMintAddress != "" {
+		viewURL := fmt.Sprintf("https://explorer.solana.com/address/%s?cluster=devnet", *course.NFTMintAddress)
+		course.ViewOnChainURL = &viewURL
+	}
+
+	SuccessResponse(c, http.StatusOK, "Course details retrieved successfully", course)
+}

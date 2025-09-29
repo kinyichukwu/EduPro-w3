@@ -10,3 +10,4 @@ CREATE INDEX IF NOT EXISTS idx_courses_creator_wallet ON courses(creator_wallet)
 -- Add comment
 COMMENT ON COLUMN courses.creator_wallet IS 'Solana wallet address of the course creator for payment routing';
 
+

@@ -129,3 +129,4 @@ WHERE table_name = 'courses'
 AND column_name IN ('price_edu_tokens', 'creator_wallet', 'nft_mint_address', 'platform_fee_bps', 'nft_metadata_uri', 'creation_tx_signature')
 ORDER BY ordinal_position;
 
+

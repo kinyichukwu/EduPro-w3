@@ -517,6 +517,7 @@ func (h *CourseHandler) GetMyCourses(c *gin.Context) {
 // @Success 200 {object} models.APIResponse{data=models.CourseLearningContent} "Course content retrieved successfully"
 // @Failure 400 {object} models.APIResponse "Invalid course ID"
 // @Failure 401 {object} models.APIResponse "Unauthorized"
+// @Failure 403 {object} models.APIResponse "Access denied"
 // @Failure 404 {object} models.APIResponse "Course not found"
 // @Failure 500 {object} models.APIResponse "Internal server error"
 // @Router /api/courses/{id}/learn [get]
@@ -546,6 +547,19 @@ func (h *CourseHandler) GetCourseLearningContent(c *gin.Context) {
 		return
 	}
 
+	// Check access: free or purchased
+	userIDStr := user.ID.String()
+	hasAccess, err := h.checkCourseAccess(userIDStr, courseIDStr)
+	if err != nil {
+		zap.L().Error("Failed to check course access", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to check access", err)
+		return
+	}
+	if !hasAccess {
+		ErrorResponse(c, http.StatusForbidden, "You must purchase this course to access content", nil)
+		return
+	}
+
 	// Get course modules
 	modules, err := h.db.GetCourseModules(courseID)
 	if err != nil {
@@ -554,11 +568,28 @@ func (h *CourseHandler) GetCourseLearningContent(c *gin.Context) {
 		return
 	}
 
-	// Require enrollment to view modules/content
+	// Get or create enrollment and progress
 	progressData, err := h.db.GetUserCourseProgress(courseID, user.ID)
 	if err != nil {
-		ErrorResponse(c, http.StatusForbidden, "You must purchase/enroll to view course content", err)
-		return
+		if err.Error() == "enrollment not found" {
+			// Auto-enroll if has access
+			if enrollErr := h.db.EnrollUserInCourse(courseID, user.ID); enrollErr != nil {
+				zap.L().Error("Failed to auto-enroll user", zap.Error(enrollErr))
+				ErrorResponse(c, http.StatusInternalServerError, "Failed to enroll", enrollErr)
+				return
+			}
+			// Fetch progress after enrollment
+			progressData, err = h.db.GetUserCourseProgress(courseID, user.ID)
+			if err != nil {
+				zap.L().Error("Failed to get progress after enrollment", zap.Error(err))
+				ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve progress", err)
+				return
+			}
+		} else {
+			zap.L().Error("Failed to get user course progress", zap.Error(err))
+			ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve progress", err)
+			return
+		}
 	}
 
 	var viewURL *string
@@ -590,7 +621,8 @@ func (h *CourseHandler) GetCourseLearningContent(c *gin.Context) {
 // @Success 200 {object} models.APIResponse{data=models.CourseProgressResponse} "Progress retrieved successfully"
 // @Failure 400 {object} models.APIResponse "Invalid course ID"
 // @Failure 401 {object} models.APIResponse "Unauthorized"
-// @Failure 404 {object} models.APIResponse "Course not found or not enrolled"
+// @Failure 403 {object} models.APIResponse "Access denied"
+// @Failure 404 {object} models.APIResponse "Course not found"
 // @Failure 500 {object} models.APIResponse "Internal server error"
 // @Router /api/courses/{id}/progress [get]
 func (h *CourseHandler) GetCourseProgress(c *gin.Context) {
@@ -607,15 +639,53 @@ func (h *CourseHandler) GetCourseProgress(c *gin.Context) {
 		return
 	}
 
+	// Get course - must be published
+	_, err = h.db.GetCourseForLearning(courseID)
+	if err != nil {
+		if err.Error() == "course not found" {
+			ErrorResponse(c, http.StatusNotFound, "Course not found or not published", err)
+			return
+		}
+		zap.L().Error("Failed to get course for progress", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve course", err)
+		return
+	}
+
+	// Check access: free or purchased
+	userIDStr := user.ID.String()
+	hasAccess, err := h.checkCourseAccess(userIDStr, courseIDStr)
+	if err != nil {
+		zap.L().Error("Failed to check course access", zap.Error(err))
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to check access", err)
+		return
+	}
+	if !hasAccess {
+		ErrorResponse(c, http.StatusForbidden, "Access denied. Please purchase the course to view progress.", nil)
+		return
+	}
+
+	// Get or create enrollment and progress
 	progress, err := h.db.GetUserCourseProgress(courseID, user.ID)
 	if err != nil {
 		if err.Error() == "enrollment not found" {
-			ErrorResponse(c, http.StatusNotFound, "Course not found or not enrolled", err)
+			// Auto-enroll if has access
+			if enrollErr := h.db.EnrollUserInCourse(courseID, user.ID); enrollErr != nil {
+				zap.L().Error("Failed to auto-enroll user", zap.Error(enrollErr))
+				ErrorResponse(c, http.StatusInternalServerError, "Failed to enroll", enrollErr)
+				return
+			}
+			// Fetch progress after enrollment
+			progress, err = h.db.GetUserCourseProgress(courseID, user.ID)
+			if err != nil {
+				zap.L().Error("Failed to get progress after enrollment", zap.Error(err))
+				ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve progress", err)
+				return
+			}
+		} else {
+			zap.L().Error("Failed to get course progress", zap.Error(err))
+			ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve progress", err)
 			return
 		}
-		zap.L().Error("Failed to get course progress", zap.Error(err))
-		ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve progress", err)
-		return
 	}
 
 	SuccessResponse(c, http.StatusOK, "Progress retrieved successfully", progress)

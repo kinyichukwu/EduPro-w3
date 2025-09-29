@@ -68,14 +68,14 @@ export default function CourseLearningPage() {
 
   // Initialize active module and expanded modules when data loads
   useEffect(() => {
-    if (learningContent?.modules && learningContent.modules.length > 0) {
+    if (learningContent?.modules && learningContent?.modules?.length > 0) {
       // Set first module as active if none selected
       if (!activeModuleId) {
-        setActiveModuleId(learningContent.modules[0].id)
+        setActiveModuleId(learningContent?.modules?.[0]?.id ?? "")
       }
       
       // Expand all modules by default
-      setExpandedModules(learningContent.modules.map(m => m.id))
+      setExpandedModules(learningContent.modules?.map(m => m.id))
     }
   }, [learningContent, activeModuleId])
 
@@ -88,15 +88,15 @@ export default function CourseLearningPage() {
       // Mark first N modules as completed based on completed_modules count
       // This is a simplified approach - in a real implementation you'd want
       // individual module progress tracking
-      for (let i = 0; i < Math.min(completedCount, learningContent.modules.length); i++) {
-        newCompletedModules.add(learningContent.modules[i].id)
+      for (let i = 0; i < Math.min(completedCount, learningContent?.modules?.length ?? 0); i++) {
+        newCompletedModules.add(learningContent?.modules?.[i]?.id ?? "")
       }
       
       setCompletedModules(newCompletedModules)
     }
   }, [progress, learningContent])
 
-  const currentModule = learningContent?.modules.find(m => m.id === activeModuleId)
+  const currentModule = learningContent?.modules?.find(m => m.id === activeModuleId)
   const allModules = learningContent?.modules ?? []
   const currentIndex = allModules.findIndex(m => m.id === activeModuleId)
   const nextModule = allModules[currentIndex + 1]
@@ -239,7 +239,7 @@ export default function CourseLearningPage() {
                   </div>
                   <div className="flex items-center gap-1">
                     <BookOpen className="h-3 w-3" />
-                    <span>{modules.length} modules</span>
+                    <span>{modules?.length ?? 0} modules</span>
                   </div>
                 </div>
               </div>
@@ -251,7 +251,7 @@ export default function CourseLearningPage() {
                 <div className="space-y-1">
                   <Progress value={calculateProgress()} className="h-2 bg-dark-accent/50" />
                   <p className="text-xs text-dark-muted">
-                    {progress?.completed_modules ?? 0} of {modules.length} modules completed
+                    {progress?.completed_modules ?? 0} of {modules?.length ?? 0} modules completed
                   </p>
                 </div>
               </div>
@@ -260,7 +260,7 @@ export default function CourseLearningPage() {
 
           <div className="flex-1 overflow-y-auto p-3 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
             <div className="space-y-2">
-              {modules.map((module) => {
+              {modules?.map((module) => {
                 const moduleProgress = getModuleProgress(module.id)
                 const isExpanded = expandedModules.includes(module.id)
                 const isCompleted = isModuleCompleted(module.id)
@@ -379,7 +379,7 @@ export default function CourseLearningPage() {
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4" />
                         <span>
-                          Module {currentIndex + 1} of {modules.length}
+                          Module {currentIndex + 1} of {modules?.length ?? 0}
                         </span>
                       </div>
                       <Badge

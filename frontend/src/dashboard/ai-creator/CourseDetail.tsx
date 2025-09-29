@@ -49,7 +49,7 @@ export default function CourseDetail() {
       const request: CreateModuleRequest = {
         title: moduleData.title,
         description: moduleData.description,
-        order_index: modules.length + 1,
+        order_index: (modules?.length ?? 0) + 1,
         content: moduleData.content || "",
       };
 
@@ -272,7 +272,7 @@ export default function CourseDetail() {
               </div>
             ))}
           </div>
-        ) : modules.length === 0 ? (
+        ) : modules?.length === 0 ? (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-white/20 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gagliardetto/solana-go"
+	associatedtokenaccount "github.com/gagliardetto/solana-go/programs/associated-token-account"
 	"github.com/gagliardetto/solana-go/programs/system"
 	"github.com/gagliardetto/solana-go/programs/token"
 	"github.com/gagliardetto/solana-go/rpc"
@@ -187,6 +188,18 @@ func (ts *TransferService) SendToken(ctx context.Context, req *TransferTokenRequ
 
 	fromWallet := privateKey.PublicKey()
 
+	// Check balance before transfer (including rent for potential account creation)
+	balance, err := ts.client.GetBalance(ctx, fromWallet, rpc.CommitmentConfirmed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get balance: %w", err)
+	}
+
+	// Minimum rent for token account creation (approximately 0.002 SOL)
+	minRentForTokenAccount := uint64(2039280) // lamports
+	if balance.Value < minRentForTokenAccount {
+		return nil, fmt.Errorf("insufficient balance for token transfer: have %d lamports, need at least %d lamports for account creation", balance.Value, minRentForTokenAccount)
+	}
+
 	// Find associated token accounts
 	fromTokenAccount, _, err := solana.FindAssociatedTokenAddress(fromWallet, tokenMint)
 	if err != nil {
@@ -198,10 +211,40 @@ func (ts *TransferService) SendToken(ctx context.Context, req *TransferTokenRequ
 		return nil, fmt.Errorf("failed to find to token account: %w", err)
 	}
 
-	// Check if destination token account exists (for logging purposes)
+	// Check if sender's token account exists and has sufficient balance
+	fromAccountInfo, err := ts.client.GetAccountInfo(ctx, fromTokenAccount)
+	if err != nil || fromAccountInfo == nil || fromAccountInfo.Value == nil {
+		return nil, fmt.Errorf("sender token account does not exist for mint %s", req.TokenMint)
+	}
+
+	// Get sender's token balance
+	fromBalance, err := ts.client.GetTokenAccountBalance(ctx, fromTokenAccount, rpc.CommitmentConfirmed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get sender token balance: %w", err)
+	}
+
+	// Parse the balance and check if sufficient
+	senderBalance := uint64(0)
+	if fromBalance.Value.Amount != "" {
+		if parsed, err := strconv.ParseUint(fromBalance.Value.Amount, 10, 64); err == nil {
+			senderBalance = parsed
+		}
+	}
+
+	if senderBalance < req.Amount {
+		return nil, fmt.Errorf("insufficient token balance: have %d, need %d", senderBalance, req.Amount)
+	}
+
+	// Check if destination token account exists and create if needed
 	toAccountInfo, err := ts.client.GetAccountInfo(ctx, toTokenAccount)
-	if err != nil || toAccountInfo == nil || toAccountInfo.Value == nil {
-		ts.logger.Info("Destination token account doesn't exist - transfer will create it if needed")
+	needsAccountCreation := err != nil || toAccountInfo == nil || toAccountInfo.Value == nil
+
+	if needsAccountCreation {
+		ts.logger.Info("Destination token account doesn't exist - will create it",
+			zap.String("token_account", toTokenAccount.String()),
+			zap.String("wallet", toWallet.String()),
+			zap.String("mint", tokenMint.String()),
+		)
 	}
 
 	// Get recent blockhash
@@ -212,8 +255,21 @@ func (ts *TransferService) SendToken(ctx context.Context, req *TransferTokenRequ
 
 	var instructions []solana.Instruction
 
-	// Skip account creation for now - let the RPC handle it or fail gracefully
-	// In production, you'd want to handle account creation properly
+	// Create associated token account if it doesn't exist
+	if needsAccountCreation {
+		createAccountInstruction := associatedtokenaccount.NewCreateInstruction(
+			fromWallet, // payer
+			toWallet,   // wallet
+			tokenMint,  // mint
+		).Build()
+		instructions = append(instructions, createAccountInstruction)
+
+		ts.logger.Info("Added create associated token account instruction",
+			zap.String("payer", fromWallet.String()),
+			zap.String("wallet", toWallet.String()),
+			zap.String("mint", tokenMint.String()),
+		)
+	}
 
 	// Create token transfer instruction
 	transferInstruction := token.NewTransferInstruction(

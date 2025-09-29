@@ -51,10 +51,14 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, className }) => 
       const courseDetails = courseDetailsResponse.data;
 
       // Execute purchase transaction
+      // For now, use a placeholder wallet address since we don't have creator wallet stored yet
+      // In production, this should be the actual creator's wallet address
+      const sellerWallet = (courseDetails as any).creator_wallet || "2L19sMkMXSH1vWYwi9BesdC2gAeCvLdJeSop7oMbMWLU"; // placeholder
+      
       const txSignature = await purchaseCourse(
         courseDetails.price_edu_tokens || 0,
         courseDetails.platform_fee_bps || 250,
-        courseDetails.user_id // seller wallet - this would need to be the actual wallet address
+        sellerWallet
       );
 
       // Submit purchase to backend
@@ -66,6 +70,15 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, className }) => 
       if (purchaseResponse.error) {
         throw new Error(purchaseResponse.error || 'Purchase failed');
       }
+
+      // Success! Show success message and navigate to course
+      toast.success('Course purchased successfully! 🎉');
+      
+      // Navigate to the course page after successful purchase
+      setTimeout(() => {
+        navigate(`/dashboard/course/${course.id}`);
+      }, 1000);
+      
     } catch (error) {
       console.error("Purchase failed:", error);
       toast.error(`Purchase failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

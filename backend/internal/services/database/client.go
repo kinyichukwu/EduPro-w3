@@ -842,6 +842,37 @@ func (c *Client) UpdateCourseNFTCollectionSupply(collectionID uuid.UUID, newSupp
 	return err
 }
 
+// IncrementCourseNFTCollectionSupply atomically increments the collection supply and returns the new token ID
+func (c *Client) IncrementCourseNFTCollectionSupply(collectionID uuid.UUID) (int, error) {
+	// Choose the next available token id atomically, even if current_supply is out-of-sync
+	// with existing NFTs. This prevents duplicate (collection_id, token_id) pairs.
+	query := `
+        WITH next_ids AS (
+            SELECT COALESCE(MAX(token_id), 0) + 1 AS max_token_id_plus_one
+            FROM course_nfts
+            WHERE collection_id = $1
+        )
+        UPDATE course_nft_collections c
+        SET current_supply = LEAST(
+                c.max_supply,
+                GREATEST(c.current_supply + 1, (SELECT max_token_id_plus_one FROM next_ids))
+            ),
+            updated_at = NOW()
+        WHERE c.id = $1 AND c.current_supply < c.max_supply
+        RETURNING c.current_supply`
+
+	var newTokenID int
+	err := c.pool.QueryRow(context.Background(), query, collectionID).Scan(&newTokenID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return 0, fmt.Errorf("collection is sold out or does not exist")
+		}
+		return 0, err
+	}
+
+	return newTokenID, nil
+}
+
 // UpdateCourseNFTOwner updates the owner of a course NFT
 func (c *Client) UpdateCourseNFTOwner(nftID uuid.UUID, ownerID *uuid.UUID, ownerEmail *string, ownerWalletAddress *string) error {
 	query := `

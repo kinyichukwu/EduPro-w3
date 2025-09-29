@@ -21,16 +21,16 @@ func (c *Client) CreateCourse(course *models.Course) error {
 	query := `
         INSERT INTO courses (id, user_id, title, description, status, price, 
                            price_edu_tokens, price_token_mint, nft_mint_address, 
-                           platform_fee_bps, nft_metadata_uri, creation_tx_signature,
+                           platform_fee_bps, nft_metadata_uri, creation_tx_signature, creator_wallet,
                            created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
         RETURNING created_at, updated_at
     `
 
 	err := c.pool.QueryRow(ctx, query,
 		course.ID, course.UserID, course.Title, course.Description, course.Status, course.Price,
 		course.PriceEduTokens, course.PriceTokenMint, course.NFTMintAddress,
-		course.PlatformFeeBPS, course.NFTMetadataURI, course.CreationTxSignature).
+		course.PlatformFeeBPS, course.NFTMetadataURI, course.CreationTxSignature, course.CreatorWallet).
 		Scan(&course.CreatedAt, &course.UpdatedAt)
 	if err != nil {
 		logger.Error("Failed to create course", zap.Error(err))
@@ -653,6 +653,69 @@ func (c *Client) CreateCoursePurchase(purchase *models.CoursePurchase) error {
 		purchase.PurchaseStatus, purchase.NFTMintTxSignature, purchase.ConfirmedAt).
 		Scan(&purchase.CreatedAt)
 	if err != nil {
+		// Some legacy databases have a NOT NULL column `amount_paid_lamports` without a default.
+		// If that's the case, retry insert including that column set to 0 (not used in EDU purchases).
+		if strings.Contains(err.Error(), "amount_paid_lamports") || strings.Contains(err.Error(), "SQLSTATE 23502") {
+			fallbackQuery := `
+                INSERT INTO course_purchases (
+                    id, course_id, buyer_user_id, buyer_wallet_address, purchase_tx_signature,
+                    nft_mint_address, total_amount_paid, platform_amount, seller_amount,
+                    platform_fee_bps, purchase_status, nft_mint_tx_signature, amount_paid_lamports, created_at, confirmed_at
+                ) VALUES (
+                    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), $14
+                )
+                RETURNING created_at
+            `
+
+			// Use 0 lamports for EDU-token purchases
+			var createdAt time.Time
+			fallbackErr := c.pool.QueryRow(ctx, fallbackQuery,
+				purchase.ID, purchase.CourseID, purchase.BuyerUserID, purchase.BuyerWalletAddress,
+				purchase.PurchaseTxSignature, purchase.NFTMintAddress, purchase.TotalAmountPaid,
+				purchase.PlatformAmount, purchase.SellerAmount, purchase.PlatformFeeBPS,
+				purchase.PurchaseStatus, purchase.NFTMintTxSignature, int64(0), purchase.ConfirmedAt).
+				Scan(&createdAt)
+			if fallbackErr == nil {
+				purchase.CreatedAt = createdAt
+				logger.Info("Course purchase created successfully (fallback with amount_paid_lamports=0)", zap.String("purchase_id", purchase.ID.String()))
+				return nil
+			}
+
+			// If the failure is due to NOT NULL payment_method (legacy schema), try a second fallback
+			if strings.Contains(fallbackErr.Error(), "payment_method") || strings.Contains(fallbackErr.Error(), "SQLSTATE 23502") {
+				fallbackQuery2 := `
+                    INSERT INTO course_purchases (
+                        id, course_id, buyer_user_id, buyer_wallet_address, purchase_tx_signature,
+                        nft_mint_address, total_amount_paid, platform_amount, seller_amount,
+                        platform_fee_bps, purchase_status, nft_mint_tx_signature, amount_paid_lamports, payment_method, created_at, confirmed_at
+                    ) VALUES (
+                        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW(), $15
+                    )
+                    RETURNING created_at
+                `
+
+				var createdAt2 time.Time
+				// Use 0 lamports and 'EDUTOKEN' as the payment method for EDU purchases
+				fallbackErr2 := c.pool.QueryRow(ctx, fallbackQuery2,
+					purchase.ID, purchase.CourseID, purchase.BuyerUserID, purchase.BuyerWalletAddress,
+					purchase.PurchaseTxSignature, purchase.NFTMintAddress, purchase.TotalAmountPaid,
+					purchase.PlatformAmount, purchase.SellerAmount, purchase.PlatformFeeBPS,
+					purchase.PurchaseStatus, purchase.NFTMintTxSignature, int64(0), "EDUTOKEN", purchase.ConfirmedAt).
+					Scan(&createdAt2)
+				if fallbackErr2 == nil {
+					purchase.CreatedAt = createdAt2
+					logger.Info("Course purchase created successfully (fallback with lamports=0, payment_method=EDUTOKEN)", zap.String("purchase_id", purchase.ID.String()))
+					return nil
+				}
+
+				logger.Error("Fallback2 create course purchase failed", zap.Error(fallbackErr2))
+				return fmt.Errorf("failed to create course purchase (fallback2): %w", fallbackErr2)
+			}
+
+			logger.Error("Fallback create course purchase failed", zap.Error(fallbackErr))
+			return fmt.Errorf("failed to create course purchase (fallback): %w", fallbackErr)
+		}
+
 		logger.Error("Failed to create course purchase", zap.Error(err))
 		return fmt.Errorf("failed to create course purchase: %w", err)
 	}
@@ -713,13 +776,13 @@ func (c *Client) GetCourseByID(courseID string) (*models.Course, error) {
 	}
 
 	query := `
-		SELECT id, user_id, title, description, status, total_modules, completed_modules,
-			   students_count, earnings, price, thumbnail_url, collection_mint_address,
-			   price_edu_tokens, price_token_mint, nft_mint_address, platform_fee_bps,
-			   nft_metadata_uri, creation_tx_signature, created_at, updated_at
-		FROM courses
-		WHERE id = $1
-	`
+        SELECT id, user_id, title, description, status, total_modules, completed_modules,
+               students_count, earnings, price, thumbnail_url, collection_mint_address,
+               price_edu_tokens, price_token_mint, nft_mint_address, platform_fee_bps,
+               nft_metadata_uri, creation_tx_signature, creator_wallet, created_at, updated_at
+        FROM courses
+        WHERE id = $1
+    `
 
 	var course models.Course
 	err = c.pool.QueryRow(ctx, query, courseUUID).Scan(
@@ -727,7 +790,7 @@ func (c *Client) GetCourseByID(courseID string) (*models.Course, error) {
 		&course.TotalModules, &course.CompletedModules, &course.StudentsCount,
 		&course.Earnings, &course.Price, &course.ThumbnailURL, &course.CollectionMintAddress,
 		&course.PriceEduTokens, &course.PriceTokenMint, &course.NFTMintAddress,
-		&course.PlatformFeeBPS, &course.NFTMetadataURI, &course.CreationTxSignature,
+		&course.PlatformFeeBPS, &course.NFTMetadataURI, &course.CreationTxSignature, &course.CreatorWallet,
 		&course.CreatedAt, &course.UpdatedAt,
 	)
 	if err != nil {
@@ -747,14 +810,14 @@ func (c *Client) GetAllPublishedCoursesWithNFTDetails() ([]models.Course, error)
 	ctx := context.Background()
 
 	query := `
-		SELECT id, user_id, title, description, status, total_modules, completed_modules,
-			   students_count, earnings, price, thumbnail_url, collection_mint_address,
-			   price_edu_tokens, price_token_mint, nft_mint_address, platform_fee_bps,
-			   nft_metadata_uri, creation_tx_signature, created_at, updated_at
-		FROM courses
-		WHERE status = 'published'
-		ORDER BY created_at DESC
-	`
+        SELECT id, user_id, title, description, status, total_modules, completed_modules,
+               students_count, earnings, price, thumbnail_url, collection_mint_address,
+               price_edu_tokens, price_token_mint, nft_mint_address, platform_fee_bps,
+               nft_metadata_uri, creation_tx_signature, creator_wallet, created_at, updated_at
+        FROM courses
+        WHERE status = 'published'
+        ORDER BY created_at DESC
+    `
 
 	rows, err := c.pool.Query(ctx, query)
 	if err != nil {
@@ -771,7 +834,7 @@ func (c *Client) GetAllPublishedCoursesWithNFTDetails() ([]models.Course, error)
 			&course.TotalModules, &course.CompletedModules, &course.StudentsCount,
 			&course.Earnings, &course.Price, &course.ThumbnailURL, &course.CollectionMintAddress,
 			&course.PriceEduTokens, &course.PriceTokenMint, &course.NFTMintAddress,
-			&course.PlatformFeeBPS, &course.NFTMetadataURI, &course.CreationTxSignature,
+			&course.PlatformFeeBPS, &course.NFTMetadataURI, &course.CreationTxSignature, &course.CreatorWallet,
 			&course.CreatedAt, &course.UpdatedAt,
 		)
 		if err != nil {
@@ -806,6 +869,11 @@ func (c *Client) GetUserPurchasedCourses(userID uuid.UUID) ([]models.CoursePurch
 
 	rows, err := c.pool.Query(ctx, query, userID)
 	if err != nil {
+		// If the table doesn't exist yet (migration not run), return empty array
+		if strings.Contains(err.Error(), "does not exist") || strings.Contains(err.Error(), "relation") || strings.Contains(err.Error(), "course_purchases") {
+			logger.Warn("course_purchases table does not exist yet, returning empty purchases", zap.String("user_id", userID.String()))
+			return []models.CoursePurchase{}, nil
+		}
 		logger.Error("Failed to get user purchased courses", zap.Error(err))
 		return nil, fmt.Errorf("failed to get user purchased courses: %w", err)
 	}
@@ -834,3 +902,5 @@ func (c *Client) GetUserPurchasedCourses(userID uuid.UUID) ([]models.CoursePurch
 
 	return purchases, nil
 }
+
+// (duplicate methods removed)

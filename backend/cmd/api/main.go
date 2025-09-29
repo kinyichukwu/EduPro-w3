@@ -341,6 +341,8 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			courses.GET("/browse", courseHandler.BrowseCourses)
 			courses.GET("/browse/:id", courseHandler.BrowseCourse)
 			courses.GET("/public-with-purchase-info", courseHandler.GetPublicCoursesWithPurchaseInfo)
+			// Public course details (no auth)
+			courses.GET("/:id/details", courseHandler.GetCourseDetails)
 
 			// Protected endpoints
 			courses.Use(middleware.JWTMiddleware(cfg))
@@ -350,7 +352,6 @@ func setupRouter(cfg *config.Config, healthHandler *handlers.HealthHandler, quer
 			courses.GET("", courseHandler.GetCourses)
 			courses.GET("/stats", courseHandler.GetCourseStats)
 			courses.GET("/:id", courseHandler.GetCourse)
-			courses.GET("/:id/details", courseHandler.GetCourseDetails)
 			courses.GET("/:id/content", courseHandler.GetCourseContent)
 			courses.PUT("/:id", courseHandler.UpdateCourse)
 			courses.DELETE("/:id", courseHandler.DeleteCourse)

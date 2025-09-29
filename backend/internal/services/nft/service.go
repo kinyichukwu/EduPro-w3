@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gagliardetto/solana-go"
@@ -211,15 +212,9 @@ func (s *Service) PurchaseCourseNFT(ctx context.Context, req *models.PurchaseCou
 		return nil, fmt.Errorf("collection is not active")
 	}
 
-	if collection.CurrentSupply >= collection.MaxSupply {
-		return nil, fmt.Errorf("collection is sold out")
-	}
-
-	// Check if user already owns an NFT from this collection
-	existingNFT, err := s.dbClient.GetCourseNFTByCollectionAndOwner(req.CollectionID, req.BuyerEmail)
-	if err == nil && existingNFT != nil {
-		return nil, fmt.Errorf("user already owns an NFT from this collection")
-	}
+	// Note: For course NFTs, multiple users can own NFTs from the same collection.
+	// Each purchase creates a unique NFT for the buyer, so we don't check for existing ownership.
+	// The course purchase logic in the handler already prevents duplicate purchases per user.
 
 	// Check user's EduPro token balance
 	balance, err := s.getEduProTokenBalance(ctx, req.BuyerWalletAddress)
@@ -231,39 +226,67 @@ func (s *Service) PurchaseCourseNFT(ctx context.Context, req *models.PurchaseCou
 		return nil, fmt.Errorf("insufficient EduPro token balance")
 	}
 
-	// Generate unique NFT metadata
-	tokenID := collection.CurrentSupply + 1
-	metadata := s.generateCourseNFTMetadata(collection.CourseTitle, tokenID, collection.MaxSupply)
-	metadataURI, err := s.uploadMetadata(metadata)
+	// Atomically increment supply and get unique token ID
+	// This prevents race conditions when multiple users purchase simultaneously
+	tokenID, err := s.dbClient.IncrementCourseNFTCollectionSupply(req.CollectionID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to upload NFT metadata: %w", err)
+		return nil, fmt.Errorf("failed to increment collection supply: %w", err)
 	}
 
-	// Create NFT mint address
-	nftMintAddress, err := s.generateNFTMintAddress()
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate NFT mint address: %w", err)
-	}
-
-	// Create NFT record
+	// Create NFT record with retry on duplicate token id (extreme concurrency safety)
 	nftID := uuid.New()
-	courseNFT := &models.CourseNFT{
-		ID:                 nftID,
-		CollectionID:       req.CollectionID,
-		OwnerEmail:         &req.BuyerEmail,
-		OwnerWalletAddress: &req.BuyerWalletAddress,
-		NFTMintAddress:     nftMintAddress,
-		NFTMetadataURI:     metadataURI,
-		TokenID:            tokenID,
-		Status:             models.NFTStatusPending,
-		CreatedAt:          time.Now(),
-		UpdatedAt:          time.Now(),
-	}
+	var metadata *models.NFTMetadata
+	var metadataURI string
+	var nftMintAddress string
 
-	// Save to database
-	err = s.dbClient.CreateCourseNFT(courseNFT)
-	if err != nil {
+	for attempt := 0; attempt < 3; attempt++ {
+		// Generate metadata for current tokenID and upload
+		metadata = s.generateCourseNFTMetadata(collection.CourseTitle, tokenID, collection.MaxSupply)
+		metadataURI, err = s.uploadMetadata(metadata)
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload NFT metadata: %w", err)
+		}
+
+		// Generate a new mint address for this attempt
+		nftMintAddress, err = s.generateNFTMintAddress()
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate NFT mint address: %w", err)
+		}
+
+		courseNFT := &models.CourseNFT{
+			ID:                 nftID,
+			CollectionID:       req.CollectionID,
+			OwnerEmail:         &req.BuyerEmail,
+			OwnerWalletAddress: &req.BuyerWalletAddress,
+			NFTMintAddress:     nftMintAddress,
+			NFTMetadataURI:     metadataURI,
+			TokenID:            tokenID,
+			Status:             models.NFTStatusPending,
+			CreatedAt:          time.Now(),
+			UpdatedAt:          time.Now(),
+		}
+
+		// Save to database
+		err = s.dbClient.CreateCourseNFT(courseNFT)
+		if err == nil {
+			break
+		}
+		// If duplicate (collection_id, token_id), get a new token id and retry
+		if strings.Contains(err.Error(), "course_nfts_collection_id_token_id_key") || strings.Contains(err.Error(), "duplicate key") || strings.Contains(err.Error(), "SQLSTATE 23505") {
+			// Get next token id atomically
+			var nextErr error
+			tokenID, nextErr = s.dbClient.IncrementCourseNFTCollectionSupply(req.CollectionID)
+			if nextErr != nil {
+				return nil, fmt.Errorf("failed to increment collection supply on retry: %w", nextErr)
+			}
+			// Retry loop continues with new tokenID
+			continue
+		}
+		// Non-duplicate error
 		return nil, fmt.Errorf("failed to save course NFT: %w", err)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to save course NFT after retries: %w", err)
 	}
 
 	// Create purchase transaction using Metaplex

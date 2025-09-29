@@ -257,6 +257,7 @@ export interface CoursePurchase {
   nft_mint_tx_signature?: string;
   created_at: string;
   confirmed_at?: string;
+  course?: Course; // Include nested course information
 }
 
 export interface CourseWithPurchaseInfo {

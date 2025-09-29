@@ -28,6 +28,7 @@ type Course struct {
 	PlatformFeeBPS      int     `json:"platform_fee_bps" db:"platform_fee_bps"`
 	NFTMetadataURI      *string `json:"nft_metadata_uri" db:"nft_metadata_uri"`
 	CreationTxSignature *string `json:"creation_tx_signature" db:"creation_tx_signature"`
+	CreatorWallet       *string `json:"creator_wallet" db:"creator_wallet"`
 	ViewOnChainURL      *string `json:"view_on_chain_url,omitempty"` // computed field
 
 	CreatedAt time.Time `json:"created_at" db:"created_at"`

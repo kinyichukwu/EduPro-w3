@@ -16,8 +16,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { Badge } from "@/shared/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { toast } from "react-hot-toast";
 
 export default function LibraryHub() {
@@ -29,7 +27,12 @@ export default function LibraryHub() {
     queryKey: ['user-purchased-courses'],
     queryFn: async () => {
       const response = await apiService.getUserPurchasedCourses();
-      return response.success ? response.data : [];
+      console.log('Library API Response:', response);
+      console.log('Library Response Data:', response.data);
+      if (response.data && response.data.length > 0) {
+        console.log('First purchase course data:', response.data[0].course);
+      }
+      return response.data || [];
     },
   });
 
@@ -166,7 +169,7 @@ export default function LibraryHub() {
                 purchase.course?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 purchase.course?.description?.toLowerCase().includes(searchQuery.toLowerCase())
               )
-              .map((purchase, index) => (
+              .map((purchase) => (
                 <motion.div
                   key={purchase.id}
                   variants={itemVariants}

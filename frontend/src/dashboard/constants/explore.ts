@@ -19,6 +19,23 @@ export interface Course {
   isBestseller?: boolean;
   tags?: string[];
   features?: string[];
+  
+  // NFT and blockchain fields
+  user_id?: string;
+  price_edu_tokens?: number;
+  price_token_mint?: string;
+  nft_mint_address?: string;
+  platform_fee_bps?: number;
+  nft_metadata_uri?: string;
+  creation_tx_signature?: string;
+  creator_wallet?: string;
+  view_on_chain_url?: string;
+  
+  // Purchase status fields (for frontend display)
+  isPurchased?: boolean;
+  canAccess?: boolean;
+  priceDisplayEDU?: number;
+  viewOnChainURL?: string;
 }
 
 export const mockCourses: Course[] = [

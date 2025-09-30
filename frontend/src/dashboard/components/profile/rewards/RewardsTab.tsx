@@ -4,7 +4,6 @@ import {
   Star, 
   Zap, 
   TrendingUp, 
-  Award,
   Target,
   Calendar,
   Clock,

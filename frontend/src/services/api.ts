@@ -1165,6 +1165,20 @@ class ApiService {
       }
     );
   }
+
+  // Generic HTTP methods for general use
+  async post<T>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "POST",
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "GET",
+    });
+  }
 }
 
 export const apiService = new ApiService();

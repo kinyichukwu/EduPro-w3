@@ -15,7 +15,6 @@ import { Badge } from "../../../shared/components/ui/badge";
 import { Loader2, CreditCard, Coins } from "lucide-react";
 import type {
   TokenInfo,
-  PaymentState,
 } from "../../../shared/types/solana";
 
 export const PaymentDemo: React.FC = () => {

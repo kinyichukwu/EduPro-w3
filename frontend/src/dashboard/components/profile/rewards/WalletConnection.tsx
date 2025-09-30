@@ -15,7 +15,7 @@ interface WalletConnectionProps {
 export function WalletConnection({ connected, onConnect, onDisconnect }: WalletConnectionProps) {
   const [isConnecting, setIsConnecting] = useState(false)
   const [walletAddress, setWalletAddress] = useState("")
-  const [balance, setBalance] = useState("1,247.50")
+  const balance = "1,247.50"
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {

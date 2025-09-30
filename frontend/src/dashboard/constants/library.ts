@@ -1,4 +1,4 @@
-import { History, Upload, BarChart2, PlusCircle, FileText } from "lucide-react";
+import { History, Upload, BarChart2, FileText } from "lucide-react";
 
 // Main library feature cards
 export const libraryFeatures = [

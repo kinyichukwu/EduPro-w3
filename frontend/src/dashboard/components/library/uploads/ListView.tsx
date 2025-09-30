@@ -3,9 +3,7 @@ import { GlassCard } from "../../GlassCard";
 import { motion } from "framer-motion";
 import {
   Download,
-  MoreHorizontal,
   FileText,
-  Share2,
   Star,
   MessageSquare,
   Trash2,

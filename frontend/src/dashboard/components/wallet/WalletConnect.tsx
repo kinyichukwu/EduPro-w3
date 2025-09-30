@@ -139,8 +139,8 @@ export const WalletConnect: React.FC = () => {
                     >
                       <div className="flex-1">
                         <p className="text-sm font-mono">
-                          {wallet.address.slice(0, 8)}...
-                          {wallet.address.slice(-8)}
+                          {wallet.wallet_address.slice(0, 8)}...
+                          {wallet.wallet_address.slice(-8)}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           {wallet.is_verified ? (

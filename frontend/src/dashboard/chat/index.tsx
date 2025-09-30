@@ -8,7 +8,7 @@ import {
   Plus,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import { CreateCourseModal } from "./CreateCourseModal";
+import { CreateCourseModal } from "../ai-creator/CreateCourseModal";
 import { cn } from "@/shared/lib/utils";
 import { useNavigate } from "react-router-dom";
 
@@ -213,10 +213,31 @@ export default function ChatView() {
     navigate(`/dashboard/ai-creator/${course.title.trim().replace(/\s+/g, "-")}`);
   };
 
-  const handleCreateCourse = (newCourse: Omit<Course, "id">) => {
+  // const handleCreateCourse = (newCourse: Omit<Course, "id">) => {
+  //   const course: Course = {
+  //     ...newCourse,
+  //     id: Math.max(...courses.map((c) => c.id)) + 1,
+  //   };
+  //   setCourses([...courses, course]);
+  //   setShowCreateModal(false);
+  // };
+
+  const handleCreateCourse = (courseData: {
+    title: string;
+    description: string;
+    price_edu_tokens: number;
+    creation_tx_signature: string;
+    creator_wallet: string;
+  }) => {
     const course: Course = {
-      ...newCourse,
       id: Math.max(...courses.map((c) => c.id)) + 1,
+      title: courseData.title,
+      description: courseData.description,
+      chapters: 0,
+      items: 0,
+      progress: 0,
+      color: "blue",
+      difficulty: "easy",
     };
     setCourses([...courses, course]);
     setShowCreateModal(false);

@@ -138,12 +138,14 @@ export const CreateDeckModal = ({
       topic: selectedTopic.name,
       outstanding: 0,
       new: generationMethod === "ai" ? 15 : 0,
-      totalCards: generationMethod === "ai" ? 15 : 0,
-      masteredCards: 0,
-      averageScore: 0,
-      studyTime: 0,
+      total_cards: generationMethod === "ai" ? 15 : 0,
+      mastered_cards: 0,
+      average_score: 0,
+      study_time: 0,
       difficulty,
       color: selectedTopic.color,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
 
     onCreateDeck(newDeck);

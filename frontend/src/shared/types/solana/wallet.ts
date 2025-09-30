@@ -89,6 +89,6 @@ export interface SupportedTokensResponse {
 export interface TokenInfo {
   symbol: "SOL" | "USDC" | "PYUSD";
   name: string;
-  mint: string;
+  mint_address: string;
   decimals: number;
 }

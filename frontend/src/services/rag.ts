@@ -6,7 +6,6 @@ import {
   type UploadResponse,
   type AskResponse,
   type Chat,
-  type Document,
 } from "./api";
 
 export interface Citation {

@@ -3,8 +3,6 @@ import {
   Download,
   FileText,
   MessageSquare,
-  Pencil,
-  Share2,
   Star,
   Tag,
   Trash2,

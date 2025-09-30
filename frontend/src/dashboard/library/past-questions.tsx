@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft,
   BookOpen,
   CheckCircle2,
   ChevronRight,
@@ -13,7 +11,6 @@ import {
   Search,
   Target,
   TrendingUp,
-  Users,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
@@ -22,7 +19,6 @@ import { examTypes, subjects, pastQuestions } from "../constants/library";
 import { Questions } from "../components/library/PastQuestions";
 
 export default function PastQuestions() {
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 

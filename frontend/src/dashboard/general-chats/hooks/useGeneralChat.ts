@@ -190,7 +190,7 @@ export const useGeneralChat = () => {
         });
       });
 
-      if (!response.success) {
+      if (response.error) {
         throw new Error(response.error || "Failed to generate quiz");
       }
 
@@ -230,7 +230,7 @@ export const useGeneralChat = () => {
         );
       });
 
-      if (!response.success) {
+      if (response.error) {
         throw new Error(response.error || "Failed to generate explanation");
       }
 
@@ -258,7 +258,7 @@ export const useGeneralChat = () => {
         >("/health");
       });
 
-      return response.success && response.data?.status === "healthy";
+      return !response.error && response.data?.data?.status === "healthy";
     } catch (err) {
       console.error("Health check failed:", err);
       return false;
@@ -279,7 +279,7 @@ export const useGeneralChat = () => {
         >("/tasks");
       });
 
-      return response.data?.tasks || [];
+      return response.data?.data?.tasks ?? [];
     } catch (err) {
       console.error("Failed to get available tasks:", err);
       return [];

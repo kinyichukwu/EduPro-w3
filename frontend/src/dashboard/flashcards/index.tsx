@@ -5,6 +5,7 @@ import { CreateDeckModal } from "./CreateDeckModal";
 import { useFlashcardManager } from "@/shared/hooks/useFlashcards";
 import type { CreateDeckRequest } from "@/services/flashcard";
 import { Loader2, BookOpen, Target, TrendingUp, Clock } from "lucide-react";
+import { toast } from "sonner";
 
 export const Flashcards: FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -14,7 +15,7 @@ export const Flashcards: FC = () => {
     decks,
     calculatedStats,
     decksLoading,
-    statsLoading,
+    // statsLoading,
     decksError,
     handleCreateDeck,
     handleDeleteDeck,
@@ -31,7 +32,11 @@ export const Flashcards: FC = () => {
 
   const onDeleteDeck = async (id: string) => {
     const result = await handleDeleteDeck(id);
-    // TODO: Show success/error toast based on result
+    if (result.success) {
+      toast.success("Deck deleted successfully");
+    } else {
+      toast.error("Failed to delete deck");
+    }
   };
 
   return (
@@ -141,7 +146,7 @@ export const Flashcards: FC = () => {
               Failed to load decks
             </h3>
             <p className="text-white/60 mb-6">
-              {decksError instanceof Error ? decksError.message : "Something went wrong"}
+              {decksError && typeof decksError === 'object' && 'message' in decksError ? (decksError as Error).message : "Something went wrong"}
             </p>
             <button
               onClick={() => window.location.reload()}

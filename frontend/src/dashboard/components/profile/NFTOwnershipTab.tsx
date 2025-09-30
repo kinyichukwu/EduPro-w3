@@ -3,9 +3,7 @@ import {
   Trophy,
   Award,
   BookOpen,
-  Calendar,
   ExternalLink,
-  Image,
   Star,
   CheckCircle,
   Clock,
@@ -14,7 +12,6 @@ import {
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { useState, useEffect } from "react";
-import { useAuthStore } from "@/store/useAuthStore";
 
 interface NFTItem {
   id: string;
@@ -31,7 +28,6 @@ interface NFTItem {
 export function NFTOwnershipTab() {
   const [nfts, setNfts] = useState<NFTItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const user = useAuthStore((s) => s.user);
 
   const containerVariants = {
     hidden: { opacity: 0 },

@@ -4,9 +4,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { 
   Connection, 
   PublicKey, 
-  Transaction, 
-  SystemProgram,
-  LAMPORTS_PER_SOL 
+  Transaction,
 } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,

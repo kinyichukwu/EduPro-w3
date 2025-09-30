@@ -45,20 +45,6 @@ export interface OnboardingRequest {
   // }
 }
 
-interface OnboardingResponse {
-  success: boolean;
-  data: {
-    is_completed: boolean;
-    message: string;
-  };
-  meta: {
-    request_id: string;
-    process_time: number;
-    version: string;
-  };
-  timestamp: string;
-}
-
 export const getOnboardingStatus = async () => {
   const res = await apiService.getOnboarding();
   if (res.error) throw new Error(res.error);

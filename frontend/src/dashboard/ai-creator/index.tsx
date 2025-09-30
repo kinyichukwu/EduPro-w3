@@ -12,7 +12,7 @@ import {
 import { CreateCourseModal } from "./CreateCourseModal";
 import { CourseCard } from "./CourseCard";
 import { useCourseManagement } from "@/hooks/useCourses";
-import { CreateCourseRequest, CreateCourseWithPaymentRequest } from "@/services/api";
+import { CreateCourseWithPaymentRequest } from "@/services/api";
 
 export default function AICreator() {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -25,7 +25,7 @@ export default function AICreator() {
     isCreating,
     error,
     setFilter,
-    createCourse,
+    // createCourse,
   } = useCourseManagement();
 
   const handleCreateCourse = async (courseData: CreateCourseWithPaymentRequest) => {
@@ -34,7 +34,7 @@ export default function AICreator() {
       const { apiService } = await import("@/services");
       const response = await apiService.createCourseWithPayment(courseData);
       
-      if (response.success) {
+      if (!response.error) {
         setShowCreateModal(false);
         // Refresh the courses list
         window.location.reload(); // Simple refresh, could be improved with proper state management

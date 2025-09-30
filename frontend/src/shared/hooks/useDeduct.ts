@@ -125,7 +125,7 @@ export const useDeduct = () => {
   }, [signTransaction, state.transaction]);
 
   // Submit signed transaction (you'll need to implement this endpoint)
-  const submitDeduction = useCallback(async (signedTransaction: string): Promise<any> => {
+  const submitDeduction = useCallback(async (): Promise<any> => {
     setState(prev => ({
       ...prev,
       isLoading: true,
@@ -167,10 +167,10 @@ export const useDeduct = () => {
       await createDeduction(request);
 
       // Step 2: Sign transaction
-      const signedTransaction = await signDeduction();
+      await signDeduction();
 
       // Step 3: Submit deduction
-      await submitDeduction(signedTransaction);
+      await submitDeduction();
     } catch (error) {
       console.error("Deduction process failed:", error);
       // Error handling is done in individual steps

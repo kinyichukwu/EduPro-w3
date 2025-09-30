@@ -22,7 +22,8 @@ import {
   ListView,
   SearchFilterBar,
 } from "../components/library/uploads";
-import { ragService, type Document } from "@/services/rag";
+import { ragService } from "@/services/rag";
+import { type Document } from "@/services/api";
 // import { useToast } from "@/shared/hooks";
 
 export const fileTypeMap = {
